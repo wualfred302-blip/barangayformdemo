@@ -52,10 +52,10 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#F9FAFB]">
       {/* Header */}
-      <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-[#E5E7EB] bg-white px-5">
+      <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-5">
         <div className="flex items-center gap-3">
           <div className="relative h-10 w-10">
-            <Image src="/images/mawaque-20logo.jpeg" alt="Barangay Seal" fill className="rounded-full object-contain" />
+            <Image src="/images/mawaque-20logo.jpeg" alt="Barangay Seal" fill className="object-contain" />
           </div>
           <div>
             <p className="text-base font-semibold text-[#111827]">Barangay Mawaque</p>

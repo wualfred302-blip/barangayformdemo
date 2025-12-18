@@ -27,6 +27,7 @@ const INCIDENT_TYPES = [
   "Domestic Dispute",
   "Trespassing",
   "Animal Complaint",
+  "Infrastructure/Lighting",
   "Other",
 ]
 

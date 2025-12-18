@@ -8,12 +8,7 @@ export default function WelcomePage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-white px-8">
       <div className="flex w-full max-w-md flex-col items-center">
         <div className="relative mb-6 h-28 w-28">
-          <Image
-            src="/images/mawaque-20logo.jpeg"
-            alt="Barangay Mawaque Seal"
-            fill
-            className="rounded-full object-contain drop-shadow-lg"
-          />
+          <Image src="/images/mawaque-20logo.jpeg" alt="Barangay Mawaque Seal" fill className="object-contain" />
         </div>
 
         <h1 className="text-center text-3xl font-bold tracking-tight text-gray-900">Barangay Mawaque</h1>

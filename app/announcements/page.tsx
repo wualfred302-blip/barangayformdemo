@@ -7,7 +7,18 @@ import Link from "next/link"
 import { useAnnouncements, type AnnouncementCategory } from "@/lib/announcements-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Megaphone, Pin, Calendar, User, Heart, Activity, AlertCircle, Newspaper } from "lucide-react"
+import {
+  ArrowLeft,
+  Megaphone,
+  Pin,
+  Calendar,
+  User,
+  Heart,
+  Activity,
+  AlertCircle,
+  Newspaper,
+  ChevronRight,
+} from "lucide-react"
 import { BottomNav } from "@/components/bottom-nav"
 
 const CATEGORIES: { value: AnnouncementCategory | "all"; label: string; icon: React.ReactNode; color: string }[] = [
@@ -82,59 +93,63 @@ export default function AnnouncementsPage() {
       <main className="flex-1 px-5 py-6 pb-28">
         <div className="space-y-4">
           {announcements.map((ann) => (
-            <Card
-              key={ann.id}
-              className={`border-0 shadow-sm ${ann.priority === "urgent" ? "ring-2 ring-red-200" : ""}`}
-            >
-              <CardContent className="p-5">
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full ${getCategoryStyle(ann.category)}`}
-                    >
-                      {getCategoryIcon(ann.category)}
+            <Link key={ann.id} href={`/announcements/${ann.id}`}>
+              <Card
+                className={`border-0 shadow-sm transition-shadow hover:shadow-md ${ann.priority === "urgent" ? "ring-2 ring-red-200" : ""}`}
+              >
+                <CardContent className="p-5">
+                  {/* Header */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`flex h-8 w-8 items-center justify-center rounded-full ${getCategoryStyle(ann.category)}`}
+                      >
+                        {getCategoryIcon(ann.category)}
+                      </div>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${getCategoryStyle(ann.category)}`}
+                      >
+                        {ann.category}
+                      </span>
+                      {ann.isPinned && (
+                        <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                          <Pin className="h-3 w-3" />
+                          Pinned
+                        </span>
+                      )}
+                      {ann.priority === "urgent" && (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                          Urgent
+                        </span>
+                      )}
                     </div>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getCategoryStyle(ann.category)}`}>
-                      {ann.category}
-                    </span>
-                    {ann.isPinned && (
-                      <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                        <Pin className="h-3 w-3" />
-                        Pinned
-                      </span>
-                    )}
-                    {ann.priority === "urgent" && (
-                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                        Urgent
-                      </span>
-                    )}
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
                   </div>
-                </div>
 
-                {/* Title & Content */}
-                <h3 className="mt-3 text-lg font-bold text-slate-900">{ann.title}</h3>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{ann.content}</p>
+                  {/* Title & Content */}
+                  <h3 className="mt-3 text-lg font-bold text-slate-900">{ann.title}</h3>
+                  <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600">{ann.content}</p>
 
-                {/* Footer */}
-                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <User className="h-3 w-3" />
-                    <span>{ann.authorName || "Barangay Office"}</span>
+                  {/* Footer */}
+                  <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <User className="h-3 w-3" />
+                      <span>{ann.authorName || "Barangay Office"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <Calendar className="h-3 w-3" />
+                      <span>
+                        {new Date(ann.publishedAt || ann.createdAt).toLocaleDateString("en-PH", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <Calendar className="h-3 w-3" />
-                    <span>
-                      {new Date(ann.publishedAt || ann.createdAt).toLocaleDateString("en-PH", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
 
           {announcements.length === 0 && (

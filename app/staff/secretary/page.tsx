@@ -73,7 +73,7 @@ export default function SecretaryDashboard() {
         <div className="flex h-16 items-center justify-between px-5">
           <div className="flex items-center gap-3">
             <div className="relative h-10 w-10">
-              <Image src="/images/mawaque-20logo.jpeg" alt="Seal" fill className="rounded-full object-contain" />
+              <Image src="/images/mawaque-20logo.jpeg" alt="Barangay Mawaque" fill className="object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-2">

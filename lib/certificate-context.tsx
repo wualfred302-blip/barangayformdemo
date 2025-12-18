@@ -17,6 +17,7 @@ export interface CertificateRequest {
   age: number
   purok: string
   yearsOfResidency: number
+  residentName?: string
 }
 
 interface CertificateContextType {
