@@ -56,10 +56,10 @@ export default function StaffLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-900 to-slate-800">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-emerald-50 to-white">
       {/* Header */}
       <header className="flex h-14 items-center px-4">
-        <Link href="/" className="flex items-center gap-2 text-white/80 hover:text-white">
+        <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-slate-900">
           <ArrowLeft className="h-5 w-5" />
           <span className="text-sm font-medium">Back</span>
         </Link>
@@ -69,28 +69,23 @@ export default function StaffLoginPage() {
       <main className="flex flex-1 flex-col items-center justify-center px-6 pb-12">
         {/* Logo */}
         <div className="mb-6 flex flex-col items-center">
-          <div className="relative mb-4 h-20 w-20">
-            <Image
-              src="/images/mawaque-20logo.jpeg"
-              alt="Barangay Mawaque Seal"
-              fill
-              className="rounded-full object-contain"
-            />
+          <div className="relative mb-4 h-16 w-16">
+            <Image src="/images/mawaque-logo.png" alt="Barangay Mawaque Seal" fill className="object-contain" />
           </div>
-          <div className="flex items-center gap-2 text-amber-400">
+          <div className="flex items-center gap-2 text-emerald-600">
             <Shield className="h-5 w-5" />
             <span className="text-sm font-semibold uppercase tracking-wider">Staff Portal</span>
           </div>
-          <h1 className="mt-2 text-2xl font-bold text-white">Barangay Mawaque</h1>
-          <p className="mt-1 text-sm text-slate-400">Official Staff Login</p>
+          <h1 className="mt-2 text-2xl font-bold text-slate-900">Barangay Mawaque</h1>
+          <p className="mt-1 text-sm text-slate-500">Official Staff Login</p>
         </div>
 
-        {/* Login Form */}
-        <Card className="w-full max-w-sm border-0 bg-white/10 backdrop-blur-lg">
+        {/* Login Form - Changed from dark transparent card to white card with shadow */}
+        <Card className="w-full max-w-sm border-0 bg-white shadow-lg">
           <CardContent className="p-6">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-white/90">
+                <Label htmlFor="email" className="text-sm font-medium text-slate-700">
                   Email Address
                 </Label>
                 <Input
@@ -99,12 +94,12 @@ export default function StaffLoginPage() {
                   placeholder="staff@mawaque.gov.ph"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="border-white/20 bg-white/10 text-white placeholder:text-white/40"
+                  className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="pin" className="text-sm font-medium text-white/90">
+                <Label htmlFor="pin" className="text-sm font-medium text-slate-700">
                   PIN Code
                 </Label>
                 <Input
@@ -114,16 +109,16 @@ export default function StaffLoginPage() {
                   maxLength={6}
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  className="border-white/20 bg-white/10 text-white placeholder:text-white/40"
+                  className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
                 />
               </div>
 
-              {error && <p className="rounded-lg bg-red-500/20 px-3 py-2 text-sm text-red-300">{error}</p>}
+              {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
               <Button
                 type="submit"
                 disabled={isLoading || !email}
-                className="h-12 w-full bg-amber-500 font-semibold text-slate-900 hover:bg-amber-400"
+                className="h-12 w-full bg-emerald-500 font-semibold text-white hover:bg-emerald-600"
               >
                 {isLoading ? (
                   <>
@@ -136,9 +131,9 @@ export default function StaffLoginPage() {
               </Button>
             </form>
 
-            {/* Demo Accounts */}
-            <div className="mt-6 border-t border-white/10 pt-6">
-              <p className="mb-3 text-center text-xs font-medium uppercase tracking-wider text-white/50">
+            {/* Demo Accounts - Updated to light theme colors */}
+            <div className="mt-6 border-t border-slate-100 pt-6">
+              <p className="mb-3 text-center text-xs font-medium uppercase tracking-wider text-slate-400">
                 Demo Accounts
               </p>
               <div className="space-y-2">
@@ -147,19 +142,19 @@ export default function StaffLoginPage() {
                     key={staff.id}
                     type="button"
                     onClick={() => handleQuickLogin(staff)}
-                    className="flex w-full items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-left transition-colors hover:bg-white/10"
+                    className="flex w-full items-center justify-between rounded-lg bg-slate-50 px-3 py-3 text-left transition-colors hover:bg-slate-100"
                   >
                     <div>
-                      <p className="text-sm font-medium text-white">{staff.fullName}</p>
-                      <p className="text-xs text-white/50">{staff.email}</p>
+                      <p className="text-sm font-medium text-slate-900">{staff.fullName}</p>
+                      <p className="text-xs text-slate-500">{staff.email}</p>
                     </div>
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${
                         staff.role === "captain"
-                          ? "bg-amber-500/20 text-amber-400"
+                          ? "bg-emerald-100 text-emerald-700"
                           : staff.role === "secretary"
-                            ? "bg-emerald-500/20 text-emerald-400"
-                            : "bg-blue-500/20 text-blue-400"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-amber-100 text-amber-700"
                       }`}
                     >
                       {staff.role}

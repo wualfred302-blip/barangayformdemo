@@ -76,7 +76,7 @@ export default function AnnouncementsPage() {
               variant="ghost"
               size="sm"
               onClick={() => setSelectedCategory(category.value)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 ${
+              className={`flex shrink-0 items-center gap-2 rounded-full px-3 ${
                 selectedCategory === category.value
                   ? "bg-slate-900 text-white hover:bg-slate-800"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -90,14 +90,14 @@ export default function AnnouncementsPage() {
       </div>
 
       {/* Main */}
-      <main className="flex-1 px-5 py-6 pb-28">
+      <main className="flex-1 px-4 py-6 pb-28">
         <div className="space-y-4">
           {announcements.map((ann) => (
             <Link key={ann.id} href={`/announcements/${ann.id}`}>
               <Card
                 className={`border-0 shadow-sm transition-shadow hover:shadow-md ${ann.priority === "urgent" ? "ring-2 ring-red-200" : ""}`}
               >
-                <CardContent className="p-5">
+                <CardContent className="p-4">
                   {/* Header */}
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
@@ -106,19 +106,17 @@ export default function AnnouncementsPage() {
                       >
                         {getCategoryIcon(ann.category)}
                       </div>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${getCategoryStyle(ann.category)}`}
-                      >
+                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${getCategoryStyle(ann.category)}`}>
                         {ann.category}
                       </span>
                       {ann.isPinned && (
-                        <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
                           <Pin className="h-3 w-3" />
                           Pinned
                         </span>
                       )}
                       {ann.priority === "urgent" && (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                        <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">
                           Urgent
                         </span>
                       )}
@@ -155,7 +153,7 @@ export default function AnnouncementsPage() {
           {announcements.length === 0 && (
             <div className="py-12 text-center">
               <Megaphone className="mx-auto h-12 w-12 text-slate-300" />
-              <p className="mt-2 text-sm text-slate-500">No announcements in this category</p>
+              <p className="mt-3 text-sm text-slate-500">No announcements in this category</p>
             </div>
           )}
         </div>
