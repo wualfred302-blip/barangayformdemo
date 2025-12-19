@@ -27,6 +27,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { SignatureModal } from "@/components/signature-modal"
 
 const exportToCSV = (certificates: CertificateRequest[]) => {
   const headers = [
@@ -102,6 +103,8 @@ export default function StaffCertificatesPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [signatureModalOpen, setSignatureModalOpen] = useState(false)
+  const [certificateToSign, setCertificateToSign] = useState<CertificateRequest | null>(null)
 
   const filteredCerts = useMemo(() => {
     return certificates.filter((cert) => {
@@ -196,19 +199,41 @@ export default function StaffCertificatesPage() {
     })
   }
 
-  const handleApprove = (id: string) => {
-    updateCertificateStatus(id, "ready")
-    setSelectedIds((prev) => prev.filter((i) => i !== id))
+  const handleApproveClick = (cert: CertificateRequest) => {
+    setCertificateToSign(cert)
+    setSignatureModalOpen(true)
+  }
+
+  const handleSignatureConfirm = (signature: string) => {
+    if (!certificateToSign || !staffUser) return
+
+    updateCertificateStatus(certificateToSign.id, "ready", {
+      signature,
+      signedBy: staffUser.fullName,
+      signedByRole: staffUser.role,
+    })
+
+    const remainingIds = selectedIds.filter((id) => id !== certificateToSign.id)
+    setSelectedIds(remainingIds)
+    setSignatureModalOpen(false)
+    setCertificateToSign(null)
+
+    // Continue bulk approval if there are more selected items
+    const nextCert = certificates.find((c) => remainingIds.includes(c.id) && c.status === "processing")
+    if (nextCert) {
+      setTimeout(() => {
+        handleApproveClick(nextCert)
+      }, 300)
+    }
   }
 
   const handleBulkApprove = () => {
-    selectedIds.forEach((id) => {
-      const cert = certificates.find((c) => c.id === id)
-      if (cert?.status === "processing") {
-        updateCertificateStatus(id, "ready")
-      }
-    })
-    setSelectedIds([])
+    // Get first processing certificate from selection
+    const firstCert = certificates.find((c) => selectedIds.includes(c.id) && c.status === "processing")
+
+    if (firstCert) {
+      handleApproveClick(firstCert)
+    }
   }
 
   const certsByDate = useMemo(() => {
@@ -278,7 +303,7 @@ export default function StaffCertificatesPage() {
           {cert.status === "processing" && !showCheckbox && (
             <Button
               size="sm"
-              onClick={() => handleApprove(cert.id)}
+              onClick={() => handleApproveClick(cert)}
               className={`bg-emerald-600 hover:bg-emerald-700 ${compact ? "h-7 text-xs" : ""}`}
             >
               <CheckCircle2 className={`mr-1 ${compact ? "h-3 w-3" : "h-4 w-4"}`} />
@@ -678,6 +703,17 @@ export default function StaffCertificatesPage() {
           </div>
         )}
       </main>
+
+      <SignatureModal
+        isOpen={signatureModalOpen}
+        onClose={() => {
+          setSignatureModalOpen(false)
+          setCertificateToSign(null)
+        }}
+        onConfirm={handleSignatureConfirm}
+        certificateType={certificateToSign?.certificateType || ""}
+        residentName={certificateToSign?.residentName || ""}
+      />
     </div>
   )
 }

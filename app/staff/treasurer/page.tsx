@@ -7,7 +7,17 @@ import { useAuth } from "@/lib/auth-context"
 import { useCertificates } from "@/lib/certificate-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Wallet, LogOut, TrendingUp, Banknote, Receipt, Calendar, ArrowUpRight, FileText } from "lucide-react"
+import {
+  Wallet,
+  LogOut,
+  TrendingUp,
+  Banknote,
+  Receipt,
+  Calendar,
+  ArrowUpRight,
+  FileText,
+  CheckCircle2,
+} from "lucide-react"
 
 export default function TreasurerDashboard() {
   const router = useRouter()
@@ -181,6 +191,12 @@ export default function TreasurerDashboard() {
                     <div>
                       <p className="text-xs font-medium text-gray-900">{cert.certificateType}</p>
                       <p className="text-[10px] text-gray-500">{cert.serialNumber}</p>
+                      {cert.staffSignature && (
+                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-emerald-600">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Signed by {cert.signedBy?.split(" ")[0]}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <span className="text-sm font-semibold text-emerald-600">

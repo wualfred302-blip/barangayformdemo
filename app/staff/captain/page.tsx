@@ -117,8 +117,8 @@ export default function CaptainDashboard() {
                 <CheckCircle2 className="h-5 w-5 text-white" />
               </div>
               <div>
-                <p className="text-xl font-bold text-emerald-900">{completedCerts}</p>
-                <p className="text-[10px] font-medium text-emerald-700">Issued Today</p>
+                <p className="text-xl font-bold text-emerald-900">{certificates.filter(c => c.staffSignature).length}</p>
+                <p className="text-[10px] font-medium text-emerald-700">Digitally Signed</p>
               </div>
             </CardContent>
           </Card>
@@ -229,6 +229,12 @@ export default function CaptainDashboard() {
                     <div>
                       <p className="text-xs font-medium text-gray-900">{cert.certificateType}</p>
                       <p className="text-[10px] text-gray-500">{cert.serialNumber}</p>
+                      {cert.staffSignature && (
+                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-emerald-600">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Signed by {cert.signedBy?.split(" ")[0]}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <span

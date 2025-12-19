@@ -115,13 +115,15 @@ export default function SecretaryDashboard() {
               <p className="mt-1 text-xl font-bold text-red-900">{activeComplaints}</p>
             </CardContent>
           </Card>
-          <Card className="h-[72px] min-w-[100px] shrink-0 border-0 bg-blue-50 shadow-sm">
+          <Card className="h-[72px] min-w-[100px] shrink-0 border-0 bg-emerald-50 shadow-sm">
             <CardContent className="p-3">
               <div className="flex items-center gap-1.5">
-                <Megaphone className="h-3.5 w-3.5 text-blue-600" />
-                <span className="text-[10px] font-medium text-blue-700">Drafts</span>
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="text-[10px] font-medium text-emerald-700">Signed</span>
               </div>
-              <p className="mt-1 text-xl font-bold text-blue-900">{draftAnnouncements}</p>
+              <p className="mt-1 text-xl font-bold text-emerald-900">
+                {certificates.filter((c) => c.staffSignature).length}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -180,6 +182,12 @@ export default function SecretaryDashboard() {
                           </span>
                         </div>
                         <p className="mt-1 text-xs text-gray-500">{cert.serialNumber}</p>
+                        {cert.staffSignature && (
+                          <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-600">
+                            <CheckCircle2 className="h-3 w-3" />
+                            <span>Signed by {cert.signedBy}</span>
+                          </div>
+                        )}
                       </div>
                       {cert.status === "processing" && (
                         <Button

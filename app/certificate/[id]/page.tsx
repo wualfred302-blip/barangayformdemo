@@ -6,7 +6,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowLeft, Download, Share2, Printer } from "lucide-react"
+import { ArrowLeft, Download, Share2, Printer, CheckCircle2 } from "lucide-react"
 import { useCertificates, type CertificateRequest } from "@/lib/certificate-context"
 import { useAuth } from "@/lib/auth-context"
 import { QRCodeSVG } from "qrcode.react"
@@ -67,10 +67,13 @@ export default function CertificatePage() {
     serial: certificate?.serialNumber,
     name: fullName,
     date: new Date().toISOString().split("T")[0],
+    signed: !!certificate?.staffSignature,
+    signedBy: certificate?.signedBy,
     verify: `https://mawaque.gov.ph/verify/${certificate?.serialNumber}`,
   })
 
   const handleDownload = async () => {
+    if (!certificate) return
     const { jsPDF } = await import("jspdf")
     const doc = new jsPDF("p", "mm", "a4")
 
@@ -185,11 +188,38 @@ export default function CertificatePage() {
     doc.text("Barangay Mawaque, Mabalacat, Pampanga.", contentX, 242)
 
     // Signature
+    const signatureY = 270
+
+    if (certificate.staffSignature) {
+      // Add signature image to PDF
+      try {
+        doc.addImage(certificate.staffSignature, "PNG", contentX + contentWidth - 50, signatureY - 15, 40, 12)
+      } catch (error) {
+        console.error("Failed to add signature to PDF:", error)
+      }
+    }
+
     doc.setFont("helvetica", "bold")
-    doc.text("HON. JOHN DOE", contentX + contentWidth - 30, 270, { align: "center" })
+    doc.text(certificate.signedBy || "HON. JOHN DOE", contentX + contentWidth - 30, signatureY, { align: "center" })
+
     doc.setFont("helvetica", "normal")
     doc.setFontSize(9)
-    doc.text("Punong Barangay", contentX + contentWidth - 30, 276, { align: "center" })
+    const roleText = certificate.signedByRole
+      ? certificate.signedByRole.charAt(0).toUpperCase() + certificate.signedByRole.slice(1)
+      : "Punong Barangay"
+    doc.text(roleText, contentX + contentWidth - 30, signatureY + 6, { align: "center" })
+
+    // Add digital signature timestamp
+    if (certificate.signedAt) {
+      doc.setFontSize(7)
+      doc.setTextColor(100, 100, 100)
+      doc.text(
+        `Digitally signed: ${new Date(certificate.signedAt).toLocaleDateString("en-PH")}`,
+        contentX + contentWidth - 30,
+        signatureY + 12,
+        { align: "center" },
+      )
+    }
 
     // Serial
     doc.setFontSize(8)
@@ -296,13 +326,40 @@ export default function CertificatePage() {
 
                 {/* Signature */}
                 <div className="mb-10 text-right">
-                  <p className="font-bold text-[#111827]">HON. JOHN DOE</p>
-                  <p className="text-sm text-[#6B7280]">Punong Barangay</p>
+                  {certificate.staffSignature && (
+                    <div className="mb-2 inline-block">
+                      <img src={certificate.staffSignature} alt="Digital Signature" className="h-16 w-auto" />
+                    </div>
+                  )}
+                  <p className="font-bold text-[#111827]">{certificate.signedBy || "HON. JOHN DOE"}</p>
+                  <p className="text-sm text-[#6B7280]">
+                    {certificate.signedByRole
+                      ? certificate.signedByRole.charAt(0).toUpperCase() + certificate.signedByRole.slice(1)
+                      : "Punong Barangay"}
+                  </p>
+                  {certificate.signedAt && (
+                    <p className="mt-1 text-xs text-[#9CA3AF]">
+                      Digitally signed on{" "}
+                      {new Date(certificate.signedAt).toLocaleDateString("en-PH", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  )}
                 </div>
 
                 {/* Footer */}
                 <div className="flex items-end justify-between">
-                  <p className="text-xs text-[#6B7280]">Serial No: {certificate.serialNumber}</p>
+                  <div>
+                    <p className="text-xs text-[#6B7280]">Serial No: {certificate.serialNumber}</p>
+                    {certificate.staffSignature && (
+                      <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
+                        <CheckCircle2 className="h-3 w-3" />
+                        <span>Digitally Signed</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="rounded-lg border border-[#E5E7EB] p-2">
                     <QRCodeSVG value={qrData} size={80} level="M" />
                   </div>

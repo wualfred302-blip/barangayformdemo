@@ -15,9 +15,9 @@ import { ArrowLeft, Shield, Loader2 } from "lucide-react"
 
 // Demo staff accounts
 const DEMO_STAFF = [
-  { id: "1", fullName: "Hon. Roberto Santos", email: "captain@mawaque.gov.ph", role: "captain" as const },
-  { id: "2", fullName: "Maria Cruz", email: "secretary@mawaque.gov.ph", role: "secretary" as const },
-  { id: "3", fullName: "Juan Dela Cruz", email: "treasurer@mawaque.gov.ph", role: "treasurer" as const },
+  { id: "1", fullName: 'DOMINGO "Lhoy" Gomez', email: "captain@mawaque.gov.ph", role: "captain" as const },
+  { id: "2", fullName: "Barangay Secretary", email: "secretary@mawaque.gov.ph", role: "secretary" as const },
+  { id: "3", fullName: "Barangay Treasurer", email: "treasurer@mawaque.gov.ph", role: "treasurer" as const },
 ]
 
 export default function StaffLoginPage() {
