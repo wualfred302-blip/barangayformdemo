@@ -148,17 +148,6 @@ export default function StaffLoginPage() {
                       <p className="text-sm font-medium text-slate-900">{staff.fullName}</p>
                       <p className="text-xs text-slate-500">{staff.email}</p>
                     </div>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${
-                        staff.role === "captain"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : staff.role === "secretary"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {staff.role}
-                    </span>
                   </button>
                 ))}
               </div>
