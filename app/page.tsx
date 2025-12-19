@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-12 md:py-24 lg:py-32">
+      <div className="container mx-auto px-4 py-4 md:py-12 lg:py-16">
         <div className="flex flex-col items-center justify-center">
           {/* TOP: Logo */}
           <div className="relative w-full flex justify-center">
@@ -55,6 +55,15 @@ export default function LandingPage() {
                 className="text-emerald-600 hover:text-emerald-700 font-semibold underline decoration-2 decoration-emerald-500 underline-offset-4 transition-colors"
               >
                 Sign In
+              </Link>
+            </div>
+
+            <div className="pt-8">
+              <Link
+                href="/staff/login"
+                className="text-sm font-medium text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                Staff Login
               </Link>
             </div>
           </div>
