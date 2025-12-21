@@ -1,4 +1,3 @@
-
 export interface PaymentTransaction {
   id: string;
   transactionReference: string;
