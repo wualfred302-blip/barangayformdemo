@@ -6,25 +6,42 @@ import { ArrowRight } from 'lucide-react';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full flex flex-col items-center text-center space-y-8">
+    <main className="min-h-screen bg-white flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      <div className="max-w-md w-full flex flex-col items-center text-center space-y-8 relative">
         {/* Logo Section */}
-        <div className="space-y-4">
+        <div className="flex flex-col items-center relative h-[380px] w-full mb-0 scale-[0.85] origin-top">
+          {/* Bagong Pilipinas Logo */}
           <Image
-            src="/images/linkod-app-logo-main.png"
+            src="/images/bagongpilipinas-logo-main.png"
             alt="Bagong Pilipinas Logo"
-            width={320}
-            height={320}
+            width={720}
+            height={720}
             priority
-            className="w-64 h-auto mx-auto object-contain"
+            className="w-[340px] h-auto object-contain relative z-10 top-10"
           />
+          
+          {/* Background Logo with Overlay */}
+          <div className="absolute top-[260px] left-1/2 -translate-x-1/2 w-[400px] pointer-events-none opacity-100 z-10">
+            <div className="relative">
+              <Image
+                src="/images/linkod-app-logo-main.png"
+                alt="Linkod App Logo Background"
+                width={780}
+                height={780}
+                priority
+                className="w-full h-auto object-contain"
+              />
+              {/* White Overlay (shortened to blend with header) */}
+              <div className="absolute inset-0 bg-gradient-to-t from-white from-[5%] via-white/20 to-transparent" />
+            </div>
+          </div>
         </div>
 
         {/* Hero Content */}
-        <div className="space-y-4">
+        <div className="space-y-4 relative z-20">
           <div className="space-y-1">
             <h1 className="text-3xl font-black text-[#003399]">
-              Barangay Mawague
+              Barangay
             </h1>
             <h2 className="text-4xl font-black text-[#22c55e]">
               Linkod App

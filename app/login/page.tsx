@@ -42,9 +42,9 @@ export default function LoginPage() {
       <div className="flex flex-1 items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader className="items-center">
-            <div className="relative mb-4 h-20 w-20">
-              <Image src="/images/image.png" alt="Barangay Seal" fill className="object-contain" />
-            </div>
+          <div className="relative mb-4 h-20 w-20">
+            <Image src="/images/mawaque-logo.png" alt="Barangay Seal" fill className="object-contain" />
+          </div>
             <CardTitle className="text-2xl">Sign In</CardTitle>
             <CardDescription>Welcome back to Barangay Mawaque</CardDescription>
           </CardHeader>

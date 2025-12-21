@@ -70,7 +70,7 @@ export default function StaffLoginPage() {
         {/* Logo */}
         <div className="mb-6 flex flex-col items-center">
           <div className="relative mb-4 h-16 w-16">
-            <Image src="/images/mawaque-logo.png" alt="Barangay Mawaque Seal" fill className="object-contain" />
+            <Image src="/images/logo.png" alt="Barangay Mawaque Seal" fill className="object-contain" />
           </div>
           <div className="flex items-center gap-2 text-emerald-600">
             <Shield className="h-5 w-5" />

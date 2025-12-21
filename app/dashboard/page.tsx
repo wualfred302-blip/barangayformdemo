@@ -55,7 +55,7 @@ export default function DashboardPage() {
       <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-slate-100 bg-white px-4">
         <div className="flex items-center gap-3">
           <div className="relative h-10 w-10">
-            <Image src="/images/mawaque-logo.png" alt="Barangay Seal" fill className="object-contain" />
+            <Image src="/images/logo.png" alt="Barangay Seal" fill className="object-contain" />
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-900">Barangay Mawaque</p>

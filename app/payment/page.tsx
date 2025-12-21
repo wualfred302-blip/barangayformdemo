@@ -129,7 +129,7 @@ export default function PaymentPage() {
         </Link>
         <div className="flex items-center gap-3">
           <div className="relative h-8 w-8">
-            <Image src="/images/image.png" alt="Barangay Seal" fill className="object-contain" />
+            <Image src="/images/logo.png" alt="Barangay Seal" fill className="object-contain" />
           </div>
           <h1 className="text-lg font-semibold text-[#111827]">Payment</h1>
         </div>

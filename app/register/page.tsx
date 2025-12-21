@@ -25,12 +25,14 @@ export default function RegisterPage() {
     agreedToTerms: false,
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [wasScanned, setWasScanned] = useState(false)
   const router = useRouter()
   const { login } = useAuth()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+    if (error) setError(null)
   }
 
   const handleIDDataExtracted = (data: {
@@ -58,15 +60,43 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
 
-    login({
-      id: `user_${Date.now()}`,
-      mobileNumber: formData.mobileNumber || "+63 912 345 6789",
-      fullName: formData.fullName || "Demo User",
-      email: formData.email || "demo@example.com",
-      address: formData.address || "Barangay Mawaque, Mabalacat, Pampanga",
-    })
-    router.push("/register/success")
+    // Validation
+    if (!formData.fullName || !formData.mobileNumber || !formData.address || !formData.email || !formData.password) {
+      setError("Please fill in all required fields.")
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.")
+      return
+    }
+
+    if (!formData.agreedToTerms) {
+      setError("You must agree to the Privacy Policy to proceed.")
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      login({
+        id: `user_${Date.now()}`,
+        mobileNumber: formData.mobileNumber,
+        fullName: formData.fullName,
+        email: formData.email,
+        address: formData.address,
+      })
+      router.push("/register/success")
+    } catch (err) {
+      setError("An error occurred during registration. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -79,13 +109,6 @@ export default function RegisterPage() {
       </header>
 
       <main className="flex-1 px-4 py-6">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="relative mb-3 h-20 w-20">
-            <Image src="/images/mawaque-logo.png" alt="Barangay Mawaque Seal" fill className="object-contain" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Register</h1>
-          <p className="mt-1 text-sm text-gray-500">Create your account</p>
-        </div>
 
         <IDScanner onDataExtracted={handleIDDataExtracted} disabled={isLoading} />
 
@@ -100,6 +123,7 @@ export default function RegisterPage() {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <form id="registration-form" onSubmit={handleRegister} className="space-y-4">
+              {error && <div className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-600">{error}</div>}
               <div className="space-y-2">
                 <Label htmlFor="fullName" className="text-sm font-medium">
                   Full Name (as appears on ID)
@@ -201,7 +225,7 @@ export default function RegisterPage() {
                   className="mt-0.5"
                 />
                 <Label htmlFor="agreedToTerms" className="text-sm leading-tight text-gray-600">
-                  I certify that I am a resident of Barangay Mawaque, Mabalacat, Pampanga
+                  I agree to the Privacy Policy
                 </Label>
               </div>
 
