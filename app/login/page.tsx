@@ -33,25 +33,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-b from-blue-50 to-white p-6">
-      <Link href="/" className="mb-6 flex items-center gap-2 text-sm text-gray-600">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 to-white p-4">
+      <Link href="/" className="mb-4 flex items-center gap-2 text-sm text-gray-600">
         <ArrowLeft className="h-4 w-4" />
         Back
       </Link>
 
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex flex-1 items-center justify-center py-8">
         <Card className="w-full max-w-md">
           <CardHeader className="items-center">
-          <div className="relative mb-4 h-20 w-20">
-            <Image src="/images/mawaque-logo.png" alt="Barangay Seal" fill className="object-contain" />
-          </div>
             <CardTitle className="text-2xl">Sign In</CardTitle>
-            <CardDescription>Welcome back to Barangay Mawaque</CardDescription>
+            <CardDescription>Welcome back</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin}>
-              <div className="flex flex-col gap-4">
-                <div className="grid gap-2">
+              <div className="flex flex-col gap-3">
+                <div className="grid gap-1.5">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
@@ -62,7 +59,7 @@ export default function LoginPage() {
                     disabled={isLoading}
                   />
                 </div>
-                <div className="grid gap-2">
+                <div className="grid gap-1.5">
                   <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
@@ -72,13 +69,13 @@ export default function LoginPage() {
                     disabled={isLoading}
                   />
                 </div>
-                <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
+                <Button type="submit" variant="default" size="lg" className="w-full" disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </div>
-              <div className="mt-4 text-center text-sm">
+              <div className="mt-3 text-center text-sm text-gray-600">
                 Don't have an account?{" "}
-                <Link href="/register" className="font-medium text-green-600 hover:underline">
+                <Link href="/register" className="font-medium text-emerald-600 hover:underline">
                   Register
                 </Link>
               </div>
