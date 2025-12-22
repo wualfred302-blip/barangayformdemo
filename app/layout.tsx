@@ -11,7 +11,6 @@ import { AnnouncementsProvider } from "@/lib/announcements-context"
 import { BayanihanProvider } from "@/lib/bayanihan-context"
 import { PaymentProvider } from "@/lib/payment-context"
 import { Toaster } from "sonner"
-
 import { Inter, Inter as V0_Font_Inter, Geist_Mono as V0_Font_Geist_Mono, Source_Serif_4 as V0_Font_Source_Serif_4 } from 'next/font/google'
 
 // Initialize fonts
