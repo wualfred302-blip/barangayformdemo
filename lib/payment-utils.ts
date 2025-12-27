@@ -6,6 +6,7 @@ export interface PaymentTransaction {
   amount: number;
   status: "pending" | "success" | "failed";
   certificateId: string;
+  qrtIdId?: string;
   createdAt: string;
   completedAt?: string;
 }

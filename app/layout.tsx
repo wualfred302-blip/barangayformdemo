@@ -10,6 +10,7 @@ import { BlotterProvider } from "@/lib/blotter-context"
 import { AnnouncementsProvider } from "@/lib/announcements-context"
 import { BayanihanProvider } from "@/lib/bayanihan-context"
 import { PaymentProvider } from "@/lib/payment-context"
+import { QRTProvider } from "@/lib/qrt-context"
 import { Toaster } from "sonner"
 import { Inter } from 'next/font/google'
 
@@ -53,15 +54,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <ResidentsProvider>
             <PaymentProvider>
-              <CertificateProvider>
-                <BlotterProvider>
-                  <AnnouncementsProvider>
-                    <BayanihanProvider>
-                      {children}
-                    </BayanihanProvider>
-                  </AnnouncementsProvider>
-                </BlotterProvider>
-              </CertificateProvider>
+              <QRTProvider>
+                <CertificateProvider>
+                  <BlotterProvider>
+                    <AnnouncementsProvider>
+                      <BayanihanProvider>
+                        {children}
+                      </BayanihanProvider>
+                    </AnnouncementsProvider>
+                  </BlotterProvider>
+                </CertificateProvider>
+              </QRTProvider>
             </PaymentProvider>
           </ResidentsProvider>
         </AuthProvider>

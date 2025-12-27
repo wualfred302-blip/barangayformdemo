@@ -8,6 +8,7 @@ interface PaymentContextType {
   addPayment: (payment: PaymentTransaction) => void
   getPayments: () => PaymentTransaction[]
   getPaymentByCertificate: (certId: string) => PaymentTransaction | undefined
+  getPaymentByQRTId: (qrtId: string) => PaymentTransaction | undefined
   updatePaymentStatus: (id: string, status: "pending" | "success" | "failed") => void
 }
 
@@ -55,6 +56,10 @@ export const PaymentProvider = memo(({ children }: { children: React.ReactNode }
     return payments.find((p) => p.certificateId === certId)
   }, [payments])
 
+  const getPaymentByQRTId = useCallback((qrtId: string) => {
+    return payments.find((p) => p.qrtIdId === qrtId)
+  }, [payments])
+
   const updatePaymentStatus = useCallback((id: string, status: "pending" | "success" | "failed") => {
     setPayments(prev => prev.map((p) =>
       p.id === id ? { ...p, status, completedAt: status === "success" ? new Date().toISOString() : p.completedAt } : p
@@ -66,12 +71,14 @@ export const PaymentProvider = memo(({ children }: { children: React.ReactNode }
     addPayment,
     getPayments,
     getPaymentByCertificate,
+    getPaymentByQRTId,
     updatePaymentStatus,
   }), [
     payments,
     addPayment,
     getPayments,
     getPaymentByCertificate,
+    getPaymentByQRTId,
     updatePaymentStatus,
   ])
 

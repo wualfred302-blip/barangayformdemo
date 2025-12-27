@@ -147,7 +147,7 @@ export default function SecretaryDashboard() {
 
         {/* Tabs */}
         <Tabs defaultValue="certificates" className="w-full">
-          <TabsList className="mb-3 grid w-full grid-cols-4 bg-slate-100">
+          <TabsList className="mb-3 grid w-full grid-cols-5 bg-slate-100">
             <TabsTrigger value="certificates" className="text-xs">
               Certificates
             </TabsTrigger>
@@ -159,6 +159,9 @@ export default function SecretaryDashboard() {
             </TabsTrigger>
             <TabsTrigger value="bayanihan" className="text-xs">
               Bayanihan
+            </TabsTrigger>
+            <TabsTrigger value="qrt-verify" className="text-xs">
+              QRT Verify
             </TabsTrigger>
           </TabsList>
 
@@ -362,6 +365,24 @@ export default function SecretaryDashboard() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="qrt-verify" className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900">QRT Verification</h3>
+              <Link href="/staff/qrt-verify">
+                <Button size="sm" className="h-8 bg-emerald-600 text-xs hover:bg-emerald-700">
+                  Open Scanner
+                </Button>
+              </Link>
+            </div>
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm text-gray-600">
+                  Scan QRT ID QR codes or enter codes manually to verify resident identities
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
