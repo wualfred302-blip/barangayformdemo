@@ -1,4 +1,3 @@
-
 export async function generateSignatureHash(signature: string): Promise<string> {
   if (!signature) return "";
   
