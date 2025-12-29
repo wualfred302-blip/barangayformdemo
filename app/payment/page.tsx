@@ -58,20 +58,29 @@ function PaymentPageContent() {
   const [lastTransaction, setLastTransaction] = useState<PaymentTransaction | null>(null)
   const [showReceipt, setShowReceipt] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Track if payment was completed to prevent redirect after clearing contexts
   const [paymentCompleted, setPaymentCompleted] = useState(false)
 
-  // Get payment type from URL parameter - this is the source of truth for the flow type
-  const paymentType = searchParams.get("type") // "qrt" or "certificate" or null
+  const paymentType = searchParams.get("type")
 
-  // Wait for QRT context to load before checking if we should redirect
+  useEffect(() => {
+    console.log("[v0] Payment Page State:", {
+      qrtContextLoaded,
+      hasQrtRequest: !!qrtRequest,
+      hasCertRequest: !!currentRequest,
+      paymentType,
+      paymentCompleted,
+      showReceipt,
+    })
+  }, [qrtContextLoaded, qrtRequest, currentRequest, paymentType, paymentCompleted, showReceipt])
+
   useEffect(() => {
     if (paymentCompleted || showReceipt) {
+      console.log("[v0] Payment completed or showing receipt, skipping redirect")
       return
     }
 
     if (qrtContextLoaded && !currentRequest && !qrtRequest) {
+      console.log("[v0] No request found after context loaded, redirecting...")
       if (paymentType === "qrt") {
         router.push("/qrt-id/request")
       } else {
@@ -80,11 +89,14 @@ function PaymentPageContent() {
     }
   }, [qrtContextLoaded, currentRequest, qrtRequest, router, paymentCompleted, showReceipt, paymentType])
 
-  // Show loading spinner while QRT context is loading from localStorage
   if (!qrtContextLoaded) {
+    console.log("[v0] QRT context still loading...")
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F9FAFB]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#10B981]" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#10B981] mx-auto" />
+          <p className="mt-4 text-sm text-gray-500">Loading payment details...</p>
+        </div>
       </div>
     )
   }
