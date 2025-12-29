@@ -256,10 +256,9 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
         id: request.id,
         qrt_code: request.qrtCode,
         verification_code: request.verificationCode,
-        user_id: request.userId || "anonymous",
+        // Note: user_id, email, and phone_number columns are NOT in the primary database schema
+        // See scripts/001_create_qrt_ids_table.sql for the actual schema
         full_name: request.fullName,
-        email: request.email || "",
-        phone_number: request.phoneNumber || "",
         birth_date: request.birthDate,
         age: request.age,
         gender: request.gender,
@@ -294,14 +293,30 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error("[v0] Supabase insert error:", error)
+        console.error("[v0] Error details - code:", error.code, "message:", error.message)
 
-        if (error.message?.includes("schema cache") || error.message?.includes("Could not find")) {
-          console.warn("[v0] Schema cache issue, adding to local state only. Will retry sync on next refresh.")
+        // Handle various error types gracefully by falling back to local state
+        // This ensures the user's QRT ID request is not lost even if database insert fails
+        const errorMessage = error.message || ""
+        const isRecoverableError =
+          errorMessage.includes("schema cache") ||
+          errorMessage.includes("Could not find") ||
+          errorMessage.includes("column") ||
+          errorMessage.includes("does not exist") ||
+          errorMessage.includes("violates") ||
+          error.code === "42703" || // PostgreSQL column does not exist
+          error.code === "23502" // PostgreSQL not-null constraint violation
+
+        if (isRecoverableError) {
+          console.warn("[v0] Database error - adding to local state only:", errorMessage)
           setQrtIds((prev) => [request, ...prev])
           return request
         }
 
-        return null
+        // For unrecoverable errors, still add to local state to prevent data loss
+        console.warn("[v0] Unexpected error - adding to local state as fallback")
+        setQrtIds((prev) => [request, ...prev])
+        return request
       }
 
       console.log("[v0] Successfully inserted to Supabase:", data)

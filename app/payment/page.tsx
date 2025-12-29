@@ -224,8 +224,8 @@ function PaymentPageContent() {
           console.error("[v0] Error generating ID images:", imgError)
         }
 
-        // 5. Create Complete QRT Record
-        const qrtId = `qrt_${Date.now()}`
+        // 5. Create Complete QRT Record (use UUID for database compatibility)
+        const qrtId = crypto.randomUUID()
         const newQRTRecord = {
           id: qrtId,
           qrtCode,
