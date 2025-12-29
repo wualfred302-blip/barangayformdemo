@@ -256,8 +256,7 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
         id: request.id,
         qrt_code: request.qrtCode,
         verification_code: request.verificationCode,
-        // Note: user_id, email, and phone_number columns are NOT in the primary database schema
-        // See scripts/001_create_qrt_ids_table.sql for the actual schema
+        user_id: request.userId,
         full_name: request.fullName,
         birth_date: request.birthDate,
         age: request.age,

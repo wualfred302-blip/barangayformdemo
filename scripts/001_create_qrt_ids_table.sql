@@ -3,7 +3,10 @@ CREATE TABLE IF NOT EXISTS public.qrt_ids (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   qrt_code TEXT UNIQUE NOT NULL,
   verification_code TEXT UNIQUE NOT NULL,
-  
+
+  -- User tracking
+  user_id TEXT,
+
   -- Personal Information
   full_name TEXT NOT NULL,
   birth_date TEXT NOT NULL,
@@ -49,6 +52,7 @@ CREATE TABLE IF NOT EXISTS public.qrt_ids (
 CREATE INDEX IF NOT EXISTS idx_qrt_ids_qrt_code ON public.qrt_ids(qrt_code);
 CREATE INDEX IF NOT EXISTS idx_qrt_ids_verification_code ON public.qrt_ids(verification_code);
 CREATE INDEX IF NOT EXISTS idx_qrt_ids_status ON public.qrt_ids(status);
+CREATE INDEX IF NOT EXISTS idx_qrt_ids_user_id ON public.qrt_ids(user_id);
 
 -- Enable Row Level Security
 ALTER TABLE public.qrt_ids ENABLE ROW LEVEL SECURITY;

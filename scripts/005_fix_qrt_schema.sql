@@ -13,6 +13,9 @@ CREATE TABLE public.qrt_ids (
   qrt_code TEXT UNIQUE NOT NULL,
   verification_code TEXT UNIQUE NOT NULL,
 
+  -- User tracking
+  user_id TEXT,
+
   -- Personal Information
   full_name TEXT NOT NULL,
   birth_date TEXT NOT NULL,
@@ -58,6 +61,7 @@ CREATE TABLE public.qrt_ids (
 CREATE INDEX idx_qrt_ids_qrt_code ON public.qrt_ids(qrt_code);
 CREATE INDEX idx_qrt_ids_verification_code ON public.qrt_ids(verification_code);
 CREATE INDEX idx_qrt_ids_status ON public.qrt_ids(status);
+CREATE INDEX idx_qrt_ids_user_id ON public.qrt_ids(user_id);
 CREATE INDEX idx_qrt_ids_created_at ON public.qrt_ids(created_at DESC);
 
 -- Enable Row Level Security
@@ -130,6 +134,6 @@ DO $$
 BEGIN
   RAISE NOTICE 'QRT IDs schema successfully fixed and aligned with code expectations';
   RAISE NOTICE 'Table structure now matches: scripts/001_create_qrt_ids_table.sql';
-  RAISE NOTICE 'Removed columns: user_id, email, phone_number (not in code)';
-  RAISE NOTICE 'All required columns present: verification_code, request_type, payment fields';
+  RAISE NOTICE 'Added column: user_id (for tracking QRT requests by user)';
+  RAISE NOTICE 'All required columns present: verification_code, request_type, payment fields, user_id';
 END $$;
