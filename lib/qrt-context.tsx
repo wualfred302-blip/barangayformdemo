@@ -14,6 +14,7 @@ import React, {
 export interface QRTIDRequest {
   id: string
   qrtCode: string
+  verificationCode: string
   userId: string
   fullName: string
   birthDate: string
@@ -45,10 +46,19 @@ export interface QRTIDRequest {
   amount: number
 }
 
+export interface QRTVerificationLog {
+  qrtCode: string
+  verificationCode: string
+  verifiedBy: string
+  timestamp: string
+  action: "qrt_verification"
+}
+
 interface QRTContextType {
   qrtIds: QRTIDRequest[]
   currentRequest: Partial<QRTIDRequest> | null
   isLoaded: boolean
+  verificationLogs: QRTVerificationLog[]
   setCurrentRequest: (request: Partial<QRTIDRequest> | null) => void
   setCurrentRequestImmediate: (request: Partial<QRTIDRequest> | null) => void
   addQRTRequest: (request: QRTIDRequest) => void
@@ -58,18 +68,40 @@ interface QRTContextType {
     imageData?: { frontUrl: string; backUrl: string }
   ) => void
   getQRTByCode: (code: string) => QRTIDRequest | undefined
+  findQRTByVerificationCode: (code: string) => QRTIDRequest | undefined
   getUserQRTIds: (userId: string) => QRTIDRequest[]
   getQRTById: (id: string) => QRTIDRequest | undefined
+  logVerification: (qrtCode: string, verificationCode: string, verifiedBy: string) => void
+  getVerificationLogs: () => QRTVerificationLog[]
+  getQRTVerificationHistory: (qrtCode: string) => QRTVerificationLog[]
 }
 
 const QRTContext = createContext<QRTContextType | undefined>(undefined)
 
 const STORAGE_KEY = "barangay_qrt_ids"
 const CURRENT_REQUEST_KEY = "barangay_qrt_current_request"
+const VERIFICATION_LOGS_KEY = "barangay_verification_logs"
+
+// Utility function to generate unique verification code
+function generateVerificationCode(existingCodes: string[]): string {
+  const year = new Date().getFullYear()
+  let code: string
+  let attempts = 0
+  const maxAttempts = 100
+
+  do {
+    const randomNum = Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
+    code = `VRF-${year}-${randomNum}`
+    attempts++
+  } while (existingCodes.includes(code) && attempts < maxAttempts)
+
+  return code
+}
 
 export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
   const [qrtIds, setQrtIds] = useState<QRTIDRequest[]>([])
   const [currentRequest, setCurrentRequest] = useState<Partial<QRTIDRequest> | null>(null)
+  const [verificationLogs, setVerificationLogs] = useState<QRTVerificationLog[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
 
   // Load from localStorage on mount
@@ -86,10 +118,17 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
         const parsedCurrent = JSON.parse(storedCurrent)
         setCurrentRequest(parsedCurrent)
       }
+
+      const storedLogs = localStorage.getItem(VERIFICATION_LOGS_KEY)
+      if (storedLogs) {
+        const parsedLogs = JSON.parse(storedLogs)
+        setVerificationLogs(parsedLogs)
+      }
     } catch (error) {
       console.error("Failed to load QRT IDs from localStorage:", error)
       localStorage.removeItem(STORAGE_KEY)
       localStorage.removeItem(CURRENT_REQUEST_KEY)
+      localStorage.removeItem(VERIFICATION_LOGS_KEY)
     } finally {
       setIsLoaded(true)
     }
@@ -128,6 +167,21 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
 
     return () => clearTimeout(timeoutId)
   }, [currentRequest, isLoaded])
+
+  // Save verification logs to localStorage with debounce
+  useEffect(() => {
+    if (!isLoaded) return
+
+    const timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem(VERIFICATION_LOGS_KEY, JSON.stringify(verificationLogs))
+      } catch (error) {
+        console.error("Failed to save verification logs to localStorage:", error)
+      }
+    }, 1000)
+
+    return () => clearTimeout(timeoutId)
+  }, [verificationLogs, isLoaded])
 
   const addQRTRequest = useCallback((request: QRTIDRequest) => {
     setQrtIds((prev) => [request, ...prev])
@@ -180,6 +234,50 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
     [qrtIds]
   )
 
+  const findQRTByVerificationCode = useCallback(
+    (code: string) => {
+      return qrtIds.find((qrt) => qrt.verificationCode === code)
+    },
+    [qrtIds]
+  )
+
+  const logVerification = useCallback(
+    (qrtCode: string, verificationCode: string, verifiedBy: string) => {
+      const newLog: QRTVerificationLog = {
+        qrtCode,
+        verificationCode,
+        verifiedBy,
+        timestamp: new Date().toISOString(),
+        action: "qrt_verification",
+      }
+
+      setVerificationLogs((prev) => [newLog, ...prev])
+
+      // Also call API endpoint for server-side logging (fire-and-forget)
+      fetch('/api/qrt-id/verify/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newLog),
+      }).catch((error) => {
+        console.error('[Verification Log] Failed to log to API:', error)
+      })
+
+      console.log('[Verification Log] Saved to localStorage:', newLog)
+    },
+    []
+  )
+
+  const getVerificationLogs = useCallback(() => {
+    return verificationLogs
+  }, [verificationLogs])
+
+  const getQRTVerificationHistory = useCallback(
+    (qrtCode: string) => {
+      return verificationLogs.filter((log) => log.qrtCode === qrtCode)
+    },
+    [verificationLogs]
+  )
+
   const setCurrentRequestImmediate = useCallback((request: Partial<QRTIDRequest> | null) => {
     setCurrentRequest(request)
     try {
@@ -198,23 +296,33 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
       qrtIds,
       currentRequest,
       isLoaded,
+      verificationLogs,
       setCurrentRequest,
       setCurrentRequestImmediate,
       addQRTRequest,
       updateQRTStatus,
       getQRTByCode,
+      findQRTByVerificationCode,
       getUserQRTIds,
       getQRTById,
+      logVerification,
+      getVerificationLogs,
+      getQRTVerificationHistory,
     }),
     [
       qrtIds,
       currentRequest,
       isLoaded,
+      verificationLogs,
       addQRTRequest,
       updateQRTStatus,
       getQRTByCode,
+      findQRTByVerificationCode,
       getUserQRTIds,
       getQRTById,
+      logVerification,
+      getVerificationLogs,
+      getQRTVerificationHistory,
       setCurrentRequestImmediate,
     ]
   )
@@ -231,3 +339,6 @@ export function useQRT() {
   }
   return context
 }
+
+// Export utility function for use in components
+export { generateVerificationCode }

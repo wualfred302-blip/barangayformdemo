@@ -28,6 +28,7 @@ export interface QRTEmergencyContact {
 export interface QRTIDRequest extends QRTPersonalInfo, QRTEmergencyContact {
   id: string
   qrtCode: string
+  verificationCode: string
   userId: string
   photoUrl: string
   idFrontImageUrl?: string
@@ -45,11 +46,14 @@ export interface QRTIDRequest extends QRTPersonalInfo, QRTEmergencyContact {
 }
 
 export interface QRCodeData {
-  qrtCode: string
-  fullName: string
-  birthDate: string
-  issuedDate: string
+  verificationCode: string
   verifyUrl: string
+}
+
+export interface QRTVerificationResult {
+  valid: boolean
+  data?: QRTIDRequest
+  error?: string
 }
 
 export interface NanoBananaRequest {

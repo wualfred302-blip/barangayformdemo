@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, Download, ExternalLink, Copy, Check } from "lucide-react"
 import { PaymentTransaction, generateReceiptPDF } from "@/lib/payment-utils"
@@ -39,7 +39,9 @@ export function PaymentReceiptModal({ transaction, open, onClose, onViewCertific
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/20">
             <CheckCircle2 className="h-10 w-10 text-white animate-pulse" />
           </div>
-          <h2 className="text-2xl font-bold">Payment Successful</h2>
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white">Payment Successful</DialogTitle>
+          </DialogHeader>
           <p className="text-emerald-100">Thank you for your payment!</p>
         </div>
         

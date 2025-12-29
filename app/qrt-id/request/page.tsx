@@ -2,10 +2,9 @@
 
 import { useState, useEffect, ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
-import { useQRT } from "@/lib/qrt-context"
+import { useQRT, generateVerificationCode } from "@/lib/qrt-context"
 import { useCertificates } from "@/lib/certificate-context"
 import { cn } from "@/lib/utils"
 import {
@@ -17,10 +16,20 @@ import {
   Zap,
   User,
   Phone,
-  IdCard,
   Check,
   ChevronRight,
+  Info,
+  Calendar,
+  MapPin,
+  TrendingUp,
+  Weight,
+  HelpCircle,
+  CheckCircle2,
+  Trash2,
+  Shield,
 } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { slideUp } from "@/lib/animations"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -49,7 +58,7 @@ const calculateAge = (birthDate: string): number => {
 
 export default function QrtIdRequestPage() {
   const { user } = useAuth()
-  const { setCurrentRequestImmediate } = useQRT()
+  const { setCurrentRequestImmediate, qrtIds } = useQRT()
   const { setCurrentRequest: setCertificateRequest } = useCertificates()
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
@@ -62,7 +71,7 @@ export default function QrtIdRequestPage() {
     age: 0,
     gender: "",
     civilStatus: "",
-    birthPlace: "",
+    birthPlace: "Mawaque, Mabalacat",
     address: user?.address || "",
     height: "",
     weight: "",
@@ -131,9 +140,19 @@ export default function QrtIdRequestPage() {
 
   const handleNext = () => {
     if (currentStep === 1) {
+      if (!validateStep1()) {
+        setShowErrors(true)
+        return
+      }
+      setShowErrors(false)
       setCurrentStep(2)
       window.scrollTo(0, 0)
     } else if (currentStep === 2) {
+      if (!validateStep2()) {
+        setShowErrors(true)
+        return
+      }
+      setShowErrors(false)
       setCurrentStep(3)
       window.scrollTo(0, 0)
     }
@@ -158,498 +177,573 @@ export default function QrtIdRequestPage() {
         <h1 className="text-[17px] font-bold text-[#111827]">Request QRT ID</h1>
       </header>
 
-      {/* Progress Indicator */}
-      <div className="mx-auto flex max-w-md items-center justify-center gap-0 px-8 py-8">
-        {[1, 2, 3].map((step) => (
-          <div key={step} className="flex flex-1 items-center last:flex-none">
-            <div className="flex flex-col items-center gap-1.5">
-              <div
-                className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-full text-[15px] font-bold transition-all duration-300",
-                  currentStep === step
-                    ? "bg-[#10B981] text-white ring-4 ring-[#10B981]/20"
-                    : currentStep > step
-                    ? "bg-[#10B981] text-white"
-                    : "bg-[#E5E7EB] text-[#9CA3AF]"
-                )}
-              >
-                {currentStep > step ? <Check className="h-5 w-5 stroke-[3]" /> : step}
-              </div>
-              <span
-                className={cn(
-                  "text-[10px] font-bold uppercase tracking-widest",
-                  currentStep >= step ? "text-[#10B981]" : "text-[#9CA3AF]"
-                )}
-              >
-                {step === 1 ? "Info" : step === 2 ? "Contact" : "Review"}
-              </span>
-            </div>
-            {step < 3 && (
-              <div
-                className={cn(
-                  "mx-4 h-[2px] flex-1 transition-all duration-500",
-                  currentStep > step ? "bg-[#10B981]" : "bg-[#E5E7EB]"
-                )}
-              />
-            )}
+      {/* Progress Indicator Enhancement */}
+      <div className="mx-auto max-w-md px-6 py-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#10B981]">Step {currentStep} of 3</span>
+            <h2 className="text-xl font-black text-gray-900">
+              {currentStep === 1 ? "Personal Details" : currentStep === 2 ? "Emergency Contact" : "Review Request"}
+            </h2>
           </div>
-        ))}
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 font-bold border border-emerald-100">
+            {Math.round(((currentStep - 1) / 2) * 100)}%
+          </div>
+        </div>
+
+        <div className="relative h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+          <motion.div
+            initial={{ width: "33.33%" }}
+            animate={{ width: `${(currentStep / 3) * 100}%` }}
+            transition={{ duration: 0.5, ease: "circOut" }}
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+          />
+        </div>
+
+        <div className="mt-4 flex justify-between px-1">
+          {[1, 2, 3].map((step) => (
+            <div
+              key={step}
+              className={cn(
+                "h-1.5 flex-1 mx-0.5 rounded-full transition-all duration-500",
+                currentStep >= step ? "bg-emerald-500" : "bg-gray-200"
+              )}
+            />
+          ))}
+        </div>
       </div>
 
       <main className="px-4">
-        {currentStep === 1 && (
-          <div className="space-y-4">
-            {/* Personal Details Card */}
-            <Card className="overflow-hidden border-none shadow-sm rounded-2xl">
-              <CardContent className="p-5 space-y-5">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-bold text-[#374151]">
-                    Full Name <span className="text-red-500 ml-0.5">*</span>
-                  </Label>
-                  <Input
-                    placeholder="Juan Dela Cruz"
-                    value={formData.fullName}
-                    onChange={(e) => handleInputChange("fullName", e.target.value)}
-                    className="h-11 rounded-xl border-[#E5E7EB] bg-[#F9FAFB] focus:bg-white transition-colors"
-                  />
-                  {showErrors && !formData.fullName && (
-                    <p className="text-[11px] font-medium text-red-500 pl-1">Full name is required</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-[1.2fr_0.8fr] gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-[13px] font-bold text-[#374151]">
-                      Birth Date <span className="text-red-500 ml-0.5">*</span>
+        <AnimatePresence mode="wait">
+          {currentStep === 1 && (
+            <motion.div
+              key="step1"
+              variants={slideUp}
+              initial="hidden"
+              animate="visible"
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-4"
+            >
+              {/* Personal Details Card */}
+              <Card className="overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[24px] bg-white">
+                <CardContent className="p-6 space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
+                      <User className="h-4 w-4 text-emerald-500" />
+                      Full Name
                     </Label>
-                    <Input
-                      type="date"
-                      value={formData.birthDate}
-                      onChange={(e) => handleInputChange("birthDate", e.target.value)}
-                      className="h-11 rounded-xl border-[#E5E7EB] bg-[#F9FAFB] focus:bg-white transition-colors"
-                    />
-                    {showErrors && !formData.birthDate && (
-                      <p className="text-[11px] font-medium text-red-500 pl-1">Required</p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[13px] font-bold text-[#374151]">Age</Label>
-                    <div className="flex h-11 items-center justify-center bg-[#F3F4F6] rounded-xl border border-[#E5E7EB]">
-                      <span className="text-lg font-bold text-[#111827]">{formData.age}</span>
+                    <div className="relative group">
+                      <Input
+                        placeholder="Juan Dela Cruz"
+                        value={formData.fullName}
+                        onChange={(e) => handleInputChange("fullName", e.target.value)}
+                        className={cn(
+                          "h-14 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-300 font-medium",
+                          showErrors && !formData.fullName && "border-red-200 bg-red-50"
+                        )}
+                      />
+                      {formData.fullName && (
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-500 animate-in zoom-in" />
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-[13px] font-bold text-[#374151]">
-                      Gender <span className="text-red-500 ml-0.5">*</span>
-                    </Label>
-                    <Select
-                      value={formData.gender}
-                      onValueChange={(value) => handleInputChange("gender", value)}
-                    >
-                      <SelectTrigger className="h-11 rounded-xl border-[#E5E7EB] bg-[#F9FAFB] transition-all focus:ring-[#10B981]/10">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {showErrors && !formData.gender && (
-                      <p className="text-[11px] font-medium text-red-500 pl-1">Required</p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[13px] font-bold text-[#374151]">
-                      Civil Status <span className="text-red-500 ml-0.5">*</span>
-                    </Label>
-                    <Select
-                      value={formData.civilStatus}
-                      onValueChange={(value) => handleInputChange("civilStatus", value)}
-                    >
-                      <SelectTrigger className="h-11 rounded-xl border-[#E5E7EB] bg-[#F9FAFB] transition-all focus:ring-[#10B981]/10">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Single">Single</SelectItem>
-                        <SelectItem value="Married">Married</SelectItem>
-                        <SelectItem value="Widowed">Widowed</SelectItem>
-                        <SelectItem value="Separated">Separated</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {showErrors && !formData.civilStatus && (
-                      <p className="text-[11px] font-medium text-red-500 pl-1">Required</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-bold text-[#374151]">Birth Place</Label>
-                  <Input
-                    placeholder="City/Municipality, Province"
-                    value={formData.birthPlace}
-                    onChange={(e) => handleInputChange("birthPlace", e.target.value)}
-                    className="h-11 rounded-xl border-[#E5E7EB] bg-[#F9FAFB] focus:bg-white transition-colors"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-bold text-[#374151]">
-                    Address <span className="text-red-500 ml-0.5">*</span>
-                  </Label>
-                  <Textarea
-                    placeholder="Complete residential address"
-                    value={formData.address}
-                    onChange={(e) => handleInputChange("address", e.target.value)}
-                    className="min-h-[80px] rounded-xl border-[#E5E7EB] bg-[#F9FAFB] focus:bg-white transition-colors py-3"
-                  />
-                  {showErrors && !formData.address && (
-                    <p className="text-[11px] font-medium text-red-500 pl-1">Address is required</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Physical Details Card */}
-            <Card className="overflow-hidden border-none shadow-sm rounded-2xl">
-              <CardContent className="p-5 space-y-5">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-[13px] font-bold text-[#374151]">Height (cm)</Label>
-                    <Input
-                      type="number"
-                      placeholder="170"
-                      value={formData.height}
-                      onChange={(e) => handleInputChange("height", e.target.value)}
-                      className="h-11 rounded-xl border-[#E5E7EB] bg-[#F9FAFB]"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[13px] font-bold text-[#374151]">Weight (kg)</Label>
-                    <Input
-                      type="number"
-                      placeholder="65"
-                      value={formData.weight}
-                      onChange={(e) => handleInputChange("weight", e.target.value)}
-                      className="h-11 rounded-xl border-[#E5E7EB] bg-[#F9FAFB]"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-bold text-[#374151]">Years Resident</Label>
-                  <div className="flex items-center justify-between h-11 px-3 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]">
-                    <button
-                      onClick={() => handleInputChange("yearsResident", Math.max(0, formData.yearsResident - 1))}
-                      className="p-1 rounded-full bg-[#F3F4F6] text-[#4B5563]"
-                    >
-                      <Minus className="h-5 w-5" />
-                    </button>
-                    <span className="text-xl font-bold text-[#111827]">{formData.yearsResident}</span>
-                    <button
-                      onClick={() => handleInputChange("yearsResident", Math.min(100, formData.yearsResident + 1))}
-                      className="p-1 rounded-full bg-[#F3F4F6] text-[#4B5563]"
-                    >
-                      <Plus className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-bold text-[#374151]">Citizenship</Label>
-                  <Input
-                    value={formData.citizenship}
-                    onChange={(e) => handleInputChange("citizenship", e.target.value)}
-                    className="h-11 rounded-xl border-[#E5E7EB] bg-[#F9FAFB]"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Photo Upload Card */}
-            <Card className="overflow-hidden border-none shadow-sm rounded-2xl mb-6">
-              <CardContent className="p-5 space-y-4">
-                <Label className="text-[13px] font-bold text-[#374151]">
-                  Photo Upload <span className="text-red-500 ml-0.5">*</span>
-                </Label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    id="photo-upload"
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                    className="hidden"
-                  />
-                  {formData.photoBase64 ? (
-                    <div className="relative h-48 w-full overflow-hidden rounded-xl border-2 border-dashed border-[#10B981]">
-                      <Image
-                        src={formData.photoBase64}
-                        alt="Preview"
-                        fill
-                        className="object-cover"
+                  <div className="grid grid-cols-[1.2fr_0.8fr] gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-emerald-500" />
+                        Birth Date
+                      </Label>
+                      <Input
+                        type="date"
+                        value={formData.birthDate}
+                        onChange={(e) => handleInputChange("birthDate", e.target.value)}
+                        className={cn(
+                          "h-14 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all",
+                          showErrors && !formData.birthDate && "border-red-200 bg-red-50"
+                        )}
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[13px] font-bold text-gray-700">Age</Label>
+                      <div className="flex h-14 items-center justify-center bg-gray-50 rounded-2xl border border-gray-100">
+                        <span className="text-xl font-black text-gray-900">{formData.age}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[13px] font-bold text-gray-700">Gender</Label>
+                      <Select
+                        value={formData.gender}
+                        onValueChange={(value) => handleInputChange("gender", value)}
+                      >
+                        <SelectTrigger className={cn(
+                          "h-14 rounded-2xl border-gray-100 bg-gray-50/50 focus:ring-emerald-500/10 transition-all",
+                          showErrors && !formData.gender && "border-red-200 bg-red-50"
+                        )}>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-gray-100">
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[13px] font-bold text-gray-700">Civil Status</Label>
+                      <Select
+                        value={formData.civilStatus}
+                        onValueChange={(value) => handleInputChange("civilStatus", value)}
+                      >
+                        <SelectTrigger className={cn(
+                          "h-14 rounded-2xl border-gray-100 bg-gray-50/50 focus:ring-emerald-500/10 transition-all",
+                          showErrors && !formData.civilStatus && "border-red-200 bg-red-50"
+                        )}>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-gray-100">
+                          <SelectItem value="Single">Single</SelectItem>
+                          <SelectItem value="Married">Married</SelectItem>
+                          <SelectItem value="Widowed">Widowed</SelectItem>
+                          <SelectItem value="Separated">Separated</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-emerald-500" />
+                      Current Address
+                    </Label>
+                    <Textarea
+                      placeholder="Street, Barangay, City, Province"
+                      value={formData.address}
+                      onChange={(e) => handleInputChange("address", e.target.value)}
+                      className={cn(
+                        "min-h-[100px] rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all py-4 px-4 resize-none",
+                        showErrors && !formData.address && "border-red-200 bg-red-50"
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Physical Details Card */}
+              <Card className="overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[24px] bg-white">
+                <CardContent className="p-6 space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                        Height (cm)
+                      </Label>
+                      <Input
+                        type="number"
+                        placeholder="170"
+                        value={formData.height}
+                        onChange={(e) => handleInputChange("height", e.target.value)}
+                        className="h-14 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
+                        <Weight className="h-4 w-4 text-emerald-500" />
+                        Weight (kg)
+                      </Label>
+                      <Input
+                        type="number"
+                        placeholder="65"
+                        value={formData.weight}
+                        onChange={(e) => handleInputChange("weight", e.target.value)}
+                        className="h-14 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[13px] font-bold text-gray-700">Years in Barangay</Label>
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        Residency
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between h-16 px-4 rounded-2xl border border-gray-100 bg-gray-50/50">
+                      <button
+                        onClick={() => handleInputChange("yearsResident", Math.max(0, formData.yearsResident - 1))}
+                        className="h-10 w-10 flex items-center justify-center rounded-xl bg-white text-gray-600 shadow-sm border border-gray-100 active:scale-95 transition-transform"
+                      >
+                        <Minus className="h-5 w-5" />
+                      </button>
+                      <span className="text-2xl font-black text-gray-900">{formData.yearsResident}</span>
+                      <button
+                        onClick={() => handleInputChange("yearsResident", Math.min(100, formData.yearsResident + 1))}
+                        className="h-10 w-10 flex items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
+                      >
+                        <Plus className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Photo Upload Card */}
+              <Card className="overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[24px] bg-white mb-6">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
+                      <Camera className="h-4 w-4 text-emerald-500" />
+                      ID Photo
+                    </Label>
+                    <div className="group relative">
+                      <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                      <div className="absolute bottom-full right-0 mb-2 w-48 scale-0 rounded-xl bg-gray-900 p-3 text-[10px] text-white transition-all group-hover:scale-100 origin-bottom-right">
+                        Center your face, look forward, and ensure good lighting.
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="photo-upload"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                    {formData.photoBase64 ? (
+                      <div className="relative h-60 w-full overflow-hidden rounded-[20px] ring-2 ring-emerald-500 ring-offset-4 ring-offset-white group">
+                        <Image
+                          src={formData.photoBase64}
+                          alt="Preview"
+                          fill
+                          className="object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-4">
+                          <label
+                            htmlFor="photo-upload"
+                            className="h-12 w-12 flex items-center justify-center rounded-full bg-white text-gray-900 cursor-pointer hover:scale-110 transition-transform"
+                          >
+                            <Plus className="h-5 w-5" />
+                          </label>
+                          <button
+                            onClick={() => setFormData(p => ({ ...p, photoBase64: "" }))}
+                            className="h-12 w-12 flex items-center justify-center rounded-full bg-red-500 text-white cursor-pointer hover:scale-110 transition-transform"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
                       <label
                         htmlFor="photo-upload"
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                        className={cn(
+                          "flex flex-col items-center justify-center h-60 w-full border-2 border-dashed border-gray-200 rounded-[20px] cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/50 transition-all duration-300 group",
+                          showErrors && !formData.photoBase64 && "border-red-200 bg-red-50"
+                        )}
                       >
-                        <span className="text-white font-medium">Change Photo</span>
+                        <div className="h-16 w-16 mb-4 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-emerald-100 group-hover:text-emerald-500 transition-colors">
+                          <Camera className="h-8 w-8" />
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">Upload Resident Photo</span>
+                        <span className="text-[11px] text-gray-500 mt-1">PNG, JPG up to 5MB</span>
                       </label>
-                    </div>
-                  ) : (
-                    <label
-                      htmlFor="photo-upload"
-                      className="flex flex-col items-center justify-center h-48 w-full border-2 border-dashed border-[#E5E7EB] rounded-xl cursor-pointer hover:border-[#10B981] transition-colors"
-                    >
-                      <Camera className="h-10 w-10 text-[#9CA3AF] mb-2" />
-                      <span className="text-sm text-[#6B7280]">Upload Photo</span>
-                    </label>
-                  )}
-                </div>
-                {showErrors && !formData.photoBase64 && (
-                  <p className="text-xs text-red-500 text-center">Photo is required</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {currentStep === 2 && (
-          <div className="space-y-4">
-            <Card className="overflow-hidden border-none shadow-sm rounded-2xl">
-              <CardContent className="p-5 space-y-5">
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-bold text-[#374151]">
-                    Emergency Contact Name <span className="text-red-500 ml-0.5">*</span>
-                  </Label>
-                  <Input
-                    placeholder="Full name of emergency contact"
-                    value={formData.emergencyContactName}
-                    onChange={(e) => handleInputChange("emergencyContactName", e.target.value)}
-                    className="h-11 rounded-xl border-[#E5E7EB] bg-[#F9FAFB] focus:bg-white transition-colors"
-                  />
-                  {showErrors && !formData.emergencyContactName && (
-                    <p className="text-[11px] font-medium text-red-500 pl-1">Required</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-bold text-[#374151]">
-                    Emergency Contact Address <span className="text-red-500 ml-0.5">*</span>
-                  </Label>
-                  <Textarea
-                    placeholder="Complete residential address"
-                    value={formData.emergencyContactAddress}
-                    onChange={(e) => handleInputChange("emergencyContactAddress", e.target.value)}
-                    className="min-h-[80px] rounded-xl border-[#E5E7EB] bg-[#F9FAFB] focus:bg-white transition-colors py-3"
-                  />
-                  {showErrors && !formData.emergencyContactAddress && (
-                    <p className="text-[11px] font-medium text-red-500 pl-1">Required</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-bold text-[#374151]">
-                    Emergency Contact Phone <span className="text-red-500 ml-0.5">*</span>
-                  </Label>
-                  <Input
-                    type="tel"
-                    placeholder="+63 912 345 6789"
-                    value={formData.emergencyContactPhone}
-                    onChange={(e) => handleInputChange("emergencyContactPhone", e.target.value)}
-                    className="h-11 rounded-xl border-[#E5E7EB] bg-[#F9FAFB] focus:bg-white transition-colors"
-                  />
-                  {showErrors && !formData.emergencyContactPhone && (
-                    <p className="text-[11px] font-medium text-red-500 pl-1">Required</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-bold text-[#374151]">
-                    Relationship <span className="text-red-500 ml-0.5">*</span>
-                  </Label>
-                  <Select
-                    value={formData.emergencyContactRelationship}
-                    onValueChange={(value) => handleInputChange("emergencyContactRelationship", value)}
-                  >
-                    <SelectTrigger className="h-11 rounded-xl border-[#E5E7EB] bg-[#F9FAFB] transition-all">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Spouse">Spouse</SelectItem>
-                      <SelectItem value="Parent">Parent</SelectItem>
-                      <SelectItem value="Sibling">Sibling</SelectItem>
-                      <SelectItem value="Child">Child</SelectItem>
-                      <SelectItem value="Friend">Friend</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {showErrors && !formData.emergencyContactRelationship && (
-                    <p className="text-[11px] font-medium text-red-500 pl-1">Required</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {currentStep === 3 && (
-          <div className="space-y-6">
-            {/* Personal Info Summary */}
-            <Card className="overflow-hidden border-none shadow-sm rounded-2xl">
-              <div className="flex items-center justify-between px-6 pt-6">
-                <h3 className="text-sm font-bold text-[#111827] uppercase tracking-wider">Personal Information</h3>
-                <button
-                  onClick={() => setCurrentStep(1)}
-                  className="text-xs font-semibold text-[#10B981] hover:underline"
-                >
-                  Edit
-                </button>
-              </div>
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-4 pb-4 border-b border-[#F3F4F6]">
-                  <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-[#F3F4F6]">
-                    {formData.photoBase64 ? (
-                      <Image src={formData.photoBase64} alt="Avatar" fill className="object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        <User className="h-8 w-8 text-[#9CA3AF]" />
-                      </div>
                     )}
                   </div>
-                  <div>
-                    <p className="text-lg font-bold text-[#111827]">{formData.fullName}</p>
-                    <p className="text-sm text-[#6B7280]">{formData.citizenship}</p>
-                  </div>
-                </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
-                <div className="grid grid-cols-2 gap-y-4 text-sm">
-                  <div>
-                    <p className="text-[#6B7280]">Birth Date</p>
-                    <p className="font-semibold text-[#111827]">{formData.birthDate}</p>
+          {currentStep === 2 && (
+            <motion.div
+              key="step2"
+              variants={slideUp}
+              initial="hidden"
+              animate="visible"
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-4"
+            >
+              <Card className="overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[24px] bg-white">
+                <CardContent className="p-6 space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
+                      <User className="h-4 w-4 text-emerald-500" />
+                      Contact Person
+                    </Label>
+                    <Input
+                      placeholder="Full name of emergency contact"
+                      value={formData.emergencyContactName}
+                      onChange={(e) => handleInputChange("emergencyContactName", e.target.value)}
+                      className={cn(
+                        "h-14 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all",
+                        showErrors && !formData.emergencyContactName && "border-red-200 bg-red-50"
+                      )}
+                    />
                   </div>
-                  <div>
-                    <p className="text-[#6B7280]">Age</p>
-                    <p className="font-semibold text-[#111827]">{formData.age} yrs old</p>
-                  </div>
-                  <div>
-                    <p className="text-[#6B7280]">Gender</p>
-                    <p className="font-semibold text-[#111827]">{formData.gender}</p>
-                  </div>
-                  <div>
-                    <p className="text-[#6B7280]">Civil Status</p>
-                    <p className="font-semibold text-[#111827]">{formData.civilStatus}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-[#6B7280]">Address</p>
-                    <p className="font-semibold text-[#111827]">{formData.address}</p>
-                  </div>
-                  <div>
-                    <p className="text-[#6B7280]">Height/Weight</p>
-                    <p className="font-semibold text-[#111827]">
-                      {formData.height}cm / {formData.weight}kg
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[#6B7280]">Residency</p>
-                    <p className="font-semibold text-[#111827]">{formData.yearsResident} years</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Emergency Contact Summary */}
-            <Card className="overflow-hidden border-none shadow-sm rounded-2xl">
-              <div className="flex items-center justify-between px-6 pt-6">
-                <h3 className="text-sm font-bold text-[#111827] uppercase tracking-wider">Emergency Contact</h3>
-                <button
-                  onClick={() => setCurrentStep(2)}
-                  className="text-xs font-semibold text-[#10B981] hover:underline"
-                >
-                  Edit
-                </button>
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-emerald-500" />
+                      Phone Number
+                    </Label>
+                    <Input
+                      type="tel"
+                      placeholder="+63 912 345 6789"
+                      value={formData.emergencyContactPhone}
+                      onChange={(e) => handleInputChange("emergencyContactPhone", e.target.value)}
+                      className={cn(
+                        "h-14 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all font-medium",
+                        showErrors && !formData.emergencyContactPhone && "border-red-200 bg-red-50"
+                      )}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold text-gray-700">Relationship</Label>
+                    <Select
+                      value={formData.emergencyContactRelationship}
+                      onValueChange={(value) => handleInputChange("emergencyContactRelationship", value)}
+                    >
+                      <SelectTrigger className={cn(
+                        "h-14 rounded-2xl border-gray-100 bg-gray-50/50 focus:ring-emerald-500/10",
+                        showErrors && !formData.emergencyContactRelationship && "border-red-200 bg-red-50"
+                      )}>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-gray-100">
+                        <SelectItem value="Spouse">Spouse</SelectItem>
+                        <SelectItem value="Parent">Parent</SelectItem>
+                        <SelectItem value="Sibling">Sibling</SelectItem>
+                        <SelectItem value="Child">Child</SelectItem>
+                        <SelectItem value="Friend">Friend</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-emerald-500" />
+                      Contact Address
+                    </Label>
+                    <Textarea
+                      placeholder="Complete residential address"
+                      value={formData.emergencyContactAddress}
+                      onChange={(e) => handleInputChange("emergencyContactAddress", e.target.value)}
+                      className={cn(
+                        "min-h-[100px] rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all py-4 px-4 resize-none",
+                        showErrors && !formData.emergencyContactAddress && "border-red-200 bg-red-50"
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex gap-3">
+                <Info className="h-5 w-5 text-amber-600 shrink-0" />
+                <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                  This person will be contacted in case of emergencies related to your health or safety.
+                </p>
               </div>
-              <CardContent className="p-6 space-y-4">
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-[#6B7280]">Contact Person</p>
-                    <p className="font-semibold text-[#111827]">{formData.emergencyContactName}</p>
-                  </div>
-                  <div>
-                    <p className="text-[#6B7280]">Relationship</p>
-                    <p className="font-semibold text-[#111827]">{formData.emergencyContactRelationship}</p>
-                  </div>
-                  <div>
-                    <p className="text-[#6B7280]">Phone Number</p>
-                    <p className="font-semibold text-[#111827]">{formData.emergencyContactPhone}</p>
-                  </div>
-                  <div>
-                    <p className="text-[#6B7280]">Address</p>
-                    <p className="font-semibold text-[#111827]">{formData.emergencyContactAddress}</p>
-                  </div>
+            </motion.div>
+          )}
+
+          {currentStep === 3 && (
+            <motion.div
+              key="step3"
+              variants={slideUp}
+              initial="hidden"
+              animate="visible"
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="space-y-6"
+            >
+              {/* Summary Header */}
+              <div className="px-1 flex items-center justify-between">
+                <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Application Review</h3>
+                <div className="h-8 w-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                  <Check className="h-4 w-4" />
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Request Type Selection */}
-            <div className="space-y-3 mb-8">
-              <h3 className="text-sm font-bold text-[#111827] uppercase tracking-wider px-1">Request Type</h3>
-              <div className="grid grid-cols-1 gap-3">
-                <button
-                  onClick={() => handleInputChange("requestType", "regular")}
-                  className={cn(
-                    "relative flex items-center justify-between p-4 rounded-xl border-2 transition-all text-left",
-                    formData.requestType === "regular"
-                      ? "border-[#10B981] bg-[#F0FDF4]"
-                      : "border-transparent bg-white shadow-sm"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "p-2 rounded-lg",
-                      formData.requestType === "regular" ? "bg-white text-[#10B981]" : "bg-[#F3F4F6] text-[#6B7280]"
-                    )}>
-                      <Clock className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-[#111827]">Regular</p>
-                      <p className="text-xs text-[#6B7280]">Ready in 3 days</p>
-                    </div>
-                  </div>
-                  <p className="text-lg font-bold text-[#111827]">₱100</p>
-                </button>
-
-                <button
-                  onClick={() => handleInputChange("requestType", "rush")}
-                  className={cn(
-                    "relative flex items-center justify-between p-4 rounded-xl border-2 transition-all text-left",
-                    formData.requestType === "rush"
-                      ? "border-[#10B981] bg-[#F0FDF4]"
-                      : "border-transparent bg-white shadow-sm"
-                  )}
-                >
-                  <div className="absolute -top-2 right-4 bg-[#F59E0B] text-white text-[10px] font-black px-2 py-0.5 rounded-full tracking-wider">
-                    FAST
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "p-2 rounded-lg",
-                      formData.requestType === "rush" ? "bg-white text-[#10B981]" : "bg-[#F3F4F6] text-[#6B7280]"
-                    )}>
-                      <Zap className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-[#111827]">Rush</p>
-                      <p className="text-xs text-[#6B7280]">Ready in 1 day</p>
-                    </div>
-                  </div>
-                  <p className="text-lg font-bold text-[#111827]">₱200</p>
-                </button>
               </div>
-            </div>
-          </div>
-        )}
+
+              {/* Personal Info Summary */}
+              <Card className="overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[24px] bg-white">
+                <CardContent className="p-6 space-y-6">
+                  <div className="flex items-center gap-5">
+                    <div className="relative h-20 w-20 overflow-hidden rounded-2xl bg-gray-50 ring-2 ring-gray-100">
+                      {formData.photoBase64 ? (
+                        <Image src={formData.photoBase64} alt="Avatar" fill className="object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <User className="h-8 w-8 text-gray-300" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xl font-black text-gray-900">{formData.fullName}</p>
+                      <p className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1">
+                        {formData.citizenship}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setCurrentStep(1)}
+                      className="h-10 w-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:text-emerald-500 transition-colors"
+                    >
+                      <Plus className="h-5 w-5 rotate-45" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Birth Date</p>
+                      <p className="text-sm font-bold text-gray-900">{formData.birthDate}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Age / Gender</p>
+                      <p className="text-sm font-bold text-gray-900">{formData.age} yrs • {formData.gender}</p>
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Residential Address</p>
+                      <p className="text-sm font-bold text-gray-900 leading-relaxed">{formData.address}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Stats</p>
+                      <p className="text-sm font-bold text-gray-900">
+                        {formData.height}cm / {formData.weight}kg
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Years Resident</p>
+                      <p className="text-sm font-bold text-gray-900">{formData.yearsResident} years</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Emergency Contact Summary */}
+              <Card className="overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[24px] bg-white">
+                <CardContent className="p-6 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Emergency Contact</h4>
+                    <button
+                      onClick={() => setCurrentStep(2)}
+                      className="text-xs font-bold text-emerald-600"
+                    >
+                      Modify
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
+                        <Phone className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-gray-900">{formData.emergencyContactName}</p>
+                        <p className="text-[11px] font-bold text-gray-500 uppercase">{formData.emergencyContactRelationship}</p>
+                      </div>
+                    </div>
+                    <div className="pl-14">
+                      <p className="text-sm font-bold text-gray-900">{formData.emergencyContactPhone}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{formData.emergencyContactAddress}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Request Type Selection */}
+              <div className="space-y-4 mb-8">
+                <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest px-1">Processing Priority</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  <button
+                    onClick={() => handleInputChange("requestType", "regular")}
+                    className={cn(
+                      "group relative flex items-center justify-between p-6 rounded-[24px] border-2 transition-all duration-300 text-left",
+                      formData.requestType === "regular"
+                        ? "border-emerald-500 bg-emerald-50 shadow-lg shadow-emerald-500/10"
+                        : "border-gray-100 bg-white hover:border-emerald-200"
+                    )}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-300",
+                        formData.requestType === "regular" ? "bg-white text-emerald-600 shadow-sm" : "bg-gray-50 text-gray-400"
+                      )}>
+                        <Clock className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-black text-gray-900">Standard</p>
+                        <p className="text-xs font-bold text-gray-500 mt-0.5">Ready in 3 business days</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-black text-gray-900">₱100</p>
+                      <div className={cn(
+                        "h-6 w-6 rounded-full border-2 border-emerald-500 mt-2 ml-auto flex items-center justify-center transition-all",
+                        formData.requestType === "regular" ? "bg-emerald-500" : "bg-transparent border-gray-200"
+                      )}>
+                        {formData.requestType === "regular" && <Check className="h-3 w-3 text-white stroke-[4]" />}
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleInputChange("requestType", "rush")}
+                    className={cn(
+                      "group relative flex items-center justify-between p-6 rounded-[24px] border-2 transition-all duration-300 text-left",
+                      formData.requestType === "rush"
+                        ? "border-amber-500 bg-amber-50 shadow-lg shadow-amber-500/10"
+                        : "border-gray-100 bg-white hover:border-amber-200"
+                    )}
+                  >
+                    {formData.requestType === "rush" && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full tracking-widest shadow-lg">
+                        POPULAR CHOICE
+                      </div>
+                    )}
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-300",
+                        formData.requestType === "rush" ? "bg-white text-amber-600 shadow-sm" : "bg-gray-50 text-gray-400"
+                      )}>
+                        <Zap className="h-7 w-7" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-black text-gray-900">Express</p>
+                        <p className="text-xs font-bold text-gray-500 mt-0.5">Ready in 24 hours</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-black text-gray-900">₱200</p>
+                      <div className={cn(
+                        "h-6 w-6 rounded-full border-2 border-amber-500 mt-2 ml-auto flex items-center justify-center transition-all",
+                        formData.requestType === "rush" ? "bg-amber-500" : "bg-transparent border-gray-200"
+                      )}>
+                        {formData.requestType === "rush" && <Check className="h-3 w-3 text-white stroke-[4]" />}
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Confidence Indicator */}
+              <div className="p-6 rounded-[24px] bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-xl shadow-emerald-200 mb-8">
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                    <Shield className="h-6 w-6" />
+                  </div>
+                  <h4 className="font-black text-lg">Application ready!</h4>
+                </div>
+                <p className="text-emerald-50 text-xs leading-relaxed font-medium">
+                  Your information looks complete and verified. You're ready to proceed with the QRT ID issuance.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Fixed Bottom Navigation */}
@@ -658,7 +752,7 @@ export default function QrtIdRequestPage() {
           {currentStep === 1 ? (
             <Button
               onClick={handleNext}
-              className="h-14 w-full rounded-xl bg-[#10B981] text-lg font-bold hover:bg-[#059669] transition-colors"
+              className="h-14 w-full rounded-2xl bg-[#10B981] text-lg font-bold hover:bg-[#059669] transition-colors"
             >
               Next: Emergency Contact
               <ChevronRight className="ml-2 h-5 w-5" />
@@ -668,13 +762,13 @@ export default function QrtIdRequestPage() {
               <Button
                 variant="outline"
                 onClick={handleBack}
-                className="h-14 w-[40%] rounded-xl border-[#E5E7EB] text-lg font-bold text-[#4B5563]"
+                className="h-14 w-[40%] rounded-2xl border-[#E5E7EB] text-lg font-bold text-[#4B5563]"
               >
                 Back
               </Button>
               <Button
                 onClick={handleNext}
-                className="h-14 w-[60%] rounded-xl bg-[#10B981] text-lg font-bold hover:bg-[#059669] transition-colors"
+                className="h-14 w-[60%] rounded-2xl bg-[#10B981] text-lg font-bold hover:bg-[#059669] transition-colors"
               >
                 Next: Review
                 <ChevronRight className="ml-2 h-5 w-5" />
@@ -686,11 +780,36 @@ export default function QrtIdRequestPage() {
                 // Clear any stale certificate data
                 setCertificateRequest(null)
 
+                // Generate unique identifiers
+                const year = new Date().getFullYear()
+                const qrtSequence = (qrtIds.length + 1).toString().padStart(6, '0')
+                const qrtCode = `QRT-${year}-${qrtSequence}`
+
+                // Generate verification code using existing codes
+                const existingVerificationCodes = qrtIds.map(q => q.verificationCode)
+                const verificationCode = generateVerificationCode(existingVerificationCodes)
+
+                // Generate payment reference
+                const paymentReference = `PAY-${Date.now()}`
+
                 // Save QRT request data to context before navigation
                 const amount = formData.requestType === "rush" ? 200 : 100
                 const now = new Date().toISOString()
+
+                // Build QR code data JSON matching scanner format
+                const qrCodeData = JSON.stringify({
+                  qrtCode: qrtCode,
+                  verificationCode: verificationCode,
+                  fullName: formData.fullName || "Demo User",
+                  birthDate: formData.birthDate || "1990-01-01",
+                  issueDate: now.split('T')[0],
+                  verifyUrl: `${window.location.origin}/verify/qrt/${qrtCode}`
+                })
+
                 const qrtRequestData = {
                   id: `temp_qrt_${Date.now()}`,
+                  qrtCode: qrtCode,
+                  verificationCode: verificationCode,
                   userId: user?.id || "demo_user",
                   fullName: formData.fullName || "Demo User",
                   birthDate: formData.birthDate || "1990-01-01",
@@ -708,6 +827,9 @@ export default function QrtIdRequestPage() {
                   emergencyContactAddress: formData.emergencyContactAddress || "Same Address",
                   emergencyContactPhone: formData.emergencyContactPhone || "09123456789",
                   emergencyContactRelationship: formData.emergencyContactRelationship || "Parent",
+                  qrCodeData: qrCodeData,
+                  paymentReference: paymentReference,
+                  paymentTransactionId: "",
                   requestType: formData.requestType,
                   amount,
                   status: "pending" as const,
@@ -716,7 +838,7 @@ export default function QrtIdRequestPage() {
                 setCurrentRequestImmediate(qrtRequestData)
                 router.push("/payment?type=qrt")
               }}
-              className="h-14 w-full rounded-xl bg-[#10B981] text-lg font-bold hover:bg-[#059669] transition-colors"
+              className="h-14 w-full rounded-2xl bg-[#10B981] text-lg font-bold hover:bg-[#059669] transition-colors"
             >
               Proceed to Payment • ₱{formData.requestType === "rush" ? "200" : "100"}
             </Button>

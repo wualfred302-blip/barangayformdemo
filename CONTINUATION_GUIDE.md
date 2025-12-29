@@ -1,8 +1,8 @@
 # QRT ID Payment & Card Generation - Continuation Guide
 
-**Last Updated:** 2025-12-28
-**Current Status:** Implementation complete, awaiting user testing feedback
-**Model Used:** Claude Haiku 4.5
+**Last Updated:** 2025-12-29
+**Current Status:** Konva.js implementation complete - html2canvas files removed
+**Model Used:** Claude Sonnet 4.5
 
 ---
 
@@ -12,19 +12,20 @@
 1. **Payment Flow Bug Fixes** - Fixed redirect loops and context leaks with URL parameters and state flags
 2. **Share/Print/Download Buttons** - Implemented Web Share API, print window, and image download functionality
 3. **Payment Form Simplification** - Removed mobile number/PIN inputs, auto-submit with demo data
-4. **QRT ID Card Image Generation (6-Step Comprehensive Fix)**
-   - Fixed React ref forwarding (removed wrapper divs)
-   - Fixed DOM visibility strategy (opacity 1, visibility hidden, z-index 0)
-   - Fixed html2canvas configuration (removed width/height conflict)
-   - Added image loading verification with waitForDOMImages function
-   - Added retry logic (3 attempts with 500ms delay)
-   - Enhanced error handling with extensive logging
+4. **Konva.js Migration for QRT ID Card Generation** - Replaced html2canvas with direct canvas rendering
+   - Created `components/qrt-id-front-konva.tsx` using react-konva
+   - Created `components/qrt-id-back-konva.tsx` using react-konva
+   - Created `lib/qrt-id-generator-konva.ts` with stage.toDataURL() export
+   - Added dependencies: konva 10.0.12, react-konva 19.2.1, use-image 1.1.4
+   - Eliminated html2canvas visibility issues with direct canvas rendering
+   - Set pixelRatio: 2 for high-resolution exports
 
 ### ⏳ Pending
-- **User Testing:** Confirm QRT ID card images generate successfully after payment
-  - Open browser console to check for `[QRT ID Generation]` and `[html2canvas]` logs
+- **User Testing:** Verify Konva.js rendering produces correct QRT ID card images
+  - Open browser console to check for `[Konva ID Generation]` logs
   - Verify images appear on `/app/qrt-id/[id]` page
   - Test share, print, and download functionality
+  - Compare quality/rendering accuracy with previous implementation
 
 ### 🔧 Build Status
 - **Last Build:** SUCCESS (2025-12-28)
@@ -35,153 +36,115 @@
 
 ## Current Git State
 
-\`\`\`
+```
 Branch: main
-Modified files:
-  - app/install/page.tsx
-  - app/payment/page.tsx (CRITICAL CHANGES)
+Modified files (Konva.js migration):
+  - app/payment/page.tsx (updated to use Konva components)
   - app/qrt-id/[id]/page.tsx (share/print/download)
-  - app/qrt-id/request/page.tsx (type parameter)
-  - app/request/page.tsx (type parameter)
-  - components/payment-methods.tsx (simplified forms)
-  - components/qrt-id-front-template.tsx (CORS/display fixes)
-  - components/qrt-id-back-template.tsx (CORS/display fixes)
-  - lib/payment-utils.ts
-  - lib/qrt-id-generator.ts (retry logic, config fixes)
 
-Untracked:
-  - install.cmd
-\`\`\`
+New files (Konva.js):
+  - components/qrt-id-front-konva.tsx (react-konva front card)
+  - components/qrt-id-back-konva.tsx (react-konva back card)
+  - lib/qrt-id-generator-konva.ts (Konva export function)
+
+Deleted (html2canvas cleanup - 2025-12-29):
+  - ~~components/qrt-id-front-template.tsx~~ (removed)
+  - ~~components/qrt-id-back-template.tsx~~ (removed)
+  - ~~lib/qrt-id-generator.ts~~ (removed)
+  - html2canvas package uninstalled from dependencies
+  - downloadImage utility migrated to lib/qrt-id-generator-konva.ts
+
+Legacy files still present:
+  - app/install/page.tsx
+  - app/qrt-id/request/page.tsx
+  - app/request/page.tsx
+  - components/payment-methods.tsx (simplified forms)
+  - lib/payment-utils.ts
+```
 
 ---
 
 ## Critical Implementation Details
 
-### Problem Solved: QRT ID Card Generation (10 Critical Issues Fixed)
+### Migration from html2canvas to Konva.js
 
-#### Root Causes Identified
-1. **Refs attached to wrapper divs** instead of template components
-2. **z-index: -1000 + opacity: 0.01** made elements invisible to html2canvas
-3. **Width/height + scale conflict** in html2canvas configuration
-4. **Image CORS/timing issues** - photos and QR codes not ready when captured
-5. **Tailwind CSS** not computing correctly with extreme opacity/z-index
-6. **State race conditions** - templateData could be null during render
+#### Why the Migration?
+**html2canvas Limitations:**
+- Cannot capture `visibility: hidden` elements (fundamental limitation)
+- DOM-scraping approach requires perfect CSS rendering
+- Timing issues with image loading and CORS
+- Opacity/z-index visibility tricks unreliable
 
-#### Solution Implemented (6 Steps)
+**Konva.js Advantages:**
+- Renders directly to canvas, no DOM visibility issues
+- Full control over rendering pipeline
+- Faster execution and more reliable output
+- Cleaner implementation using react-konva components
+- pixelRatio: 2 for high-resolution exports
 
-**Step 1: Fixed Refs and Visibility** (`app/payment/page.tsx` ~line 502-541)
-\`\`\`tsx
-// BEFORE (BROKEN):
-<div style={{ zIndex: -1000, opacity: 0.01 }}>
-  <QRTIDFrontTemplate ref={frontRefWrapper} />
-</div>
+#### Solution Implemented
 
-// AFTER (FIXED):
-<QRTIDFrontTemplate
-  ref={frontRef}
-  qrtCode={templateData?.qrtCode || "TEMP-QRT-CODE"}
-  // ... props
-/>
+**Step 1: Created Konva Front Card Component** (`components/qrt-id-front-konva.tsx`)
+- Uses `react-konva` for declarative canvas rendering
+- Loads images using `use-image` hook
+- Renders card layout with photo, QR code, personal info
+- No visibility or CSS tricks needed - draws directly to canvas
 
-// Container styling:
-style={{
-  position: "fixed",
-  left: "0",
-  top: "0",
-  opacity: "1",              // Changed from 0.01
-  visibility: "hidden",      // NEW - keeps element rendered but invisible
-  pointerEvents: "none",
-  zIndex: 0                  // Changed from -1000
-}}
-\`\`\`
-**Why:** `visibility: hidden` keeps element in layout with all CSS applied, unlike opacity tricks or negative z-index which break rendering.
+**Step 2: Created Konva Back Card Component** (`components/qrt-id-back-konva.tsx`)
+- Similar structure to front card
+- Renders back side content
+- Consistent styling with front side
 
-**Step 2: Fixed Image Rendering** (both templates)
-\`\`\`tsx
-// Added to all <img> tags:
-<img
-  src={photoUrl}
-  alt={fullName}
-  crossOrigin="anonymous"        // NEW - enable CORS
-  style={{ display: "block" }}   // NEW - force rendering
-  className="w-full h-full object-cover"
-/>
-\`\`\`
-
-**Step 3: Fixed html2canvas Config** (`lib/qrt-id-generator.ts` ~line 44-52)
-\`\`\`typescript
-const canvasOptions = {
-  scale: 2,
-  useCORS: true,
-  allowTaint: false,             // Changed from true
-  backgroundColor: "#ffffff",
-  logging: true,                 // Enable for debugging
-  // REMOVED: width and height (conflicted with scale)
-}
-\`\`\`
-
-**Step 4: Added Image Loading Verification** (`app/payment/page.tsx` ~line 236-244)
-\`\`\`typescript
-const waitForDOMImages = async (ref: React.RefObject<HTMLDivElement>) => {
-  if (!ref.current) return
-  const images = ref.current.querySelectorAll('img')
-  console.log(`[QRT ID Generation] Found ${images.length} images in template`)
-
-  await Promise.all(Array.from(images).map((img, index) => {
-    if (img.complete) {
-      console.log(`[QRT ID Generation] Image ${index} already loaded`)
-      return Promise.resolve()
-    }
-    return new Promise<void>(resolve => {
-      img.onload = () => {
-        console.log(`[QRT ID Generation] Image ${index} loaded successfully`)
-        resolve()
-      }
-      img.onerror = (err) => {
-        console.warn(`[QRT ID Generation] Image ${index} failed to load:`, err)
-        resolve()
-      }
-      setTimeout(() => {
-        console.warn(`[QRT ID Generation] Image ${index} load timeout (3s)`)
-        resolve()
-      }, 3000)
-    })
-  }))
-}
-\`\`\`
-
-**Step 5: Added Retry Logic** (`lib/qrt-id-generator.ts` ~line 54-67)
-\`\`\`typescript
-let frontCanvas
-for (let attempt = 1; attempt <= 3; attempt++) {
-  try {
-    frontCanvas = await html2canvas(frontElement, canvasOptions)
-    console.log("[html2canvas] Front side SUCCESS on attempt", attempt)
-    break
-  } catch (error) {
-    console.error(`[html2canvas] Front side attempt ${attempt} failed:`, error)
-    if (attempt === 3) throw error
-    await new Promise(resolve => setTimeout(resolve, 500))
+**Step 3: Created Konva Export Function** (`lib/qrt-id-generator-konva.ts`)
+```typescript
+export async function generateQRTIDImagesKonva(
+  frontStageRef: React.RefObject<Konva.Stage>,
+  backStageRef: React.RefObject<Konva.Stage>
+): Promise<{ frontImageUrl: string; backImageUrl: string }> {
+  if (!frontStageRef.current || !backStageRef.current) {
+    throw new Error("Stage refs not found")
   }
-}
-\`\`\`
 
-**Step 6: Enhanced Error Handling** (`app/payment/page.tsx` ~line 248-266)
-- Verify refs exist before capture
-- Verify images are loaded with warnings if they're not
-- Clear logging with success/failure indicators
-- Graceful fallbacks for missing data
+  // Convert stages to data URLs with pixelRatio: 2 for high resolution
+  const frontImageUrl = frontStageRef.current.toDataURL({ pixelRatio: 2 })
+  const backImageUrl = backStageRef.current.toDataURL({ pixelRatio: 2 })
+
+  return { frontImageUrl, backImageUrl }
+}
+```
+
+**Step 4: Updated payment/page.tsx**
+- Imported Konva components instead of template components
+- Use direct stage refs to Konva.Stage components
+- Call `generateQRTIDImagesKonva()` during payment processing
+- No need for image loading verification or retry logic
+
+**Step 5: Added New Dependencies** (`package.json`)
+```json
+{
+  "konva": "^10.0.12",
+  "react-konva": "^19.2.1",
+  "use-image": "^1.1.4"
+}
+```
+
+**Key Technical Differences:**
+- **No DOM visibility issues** - Konva draws to canvas, not using DOM hiding
+- **Cleaner refs** - Direct Stage refs instead of wrapper divs
+- **Faster rendering** - Canvas drawing is synchronous, no timing issues
+- **Better quality** - pixelRatio: 2 ensures high-resolution exports
+- **Simpler code** - No retry logic or image loading verification needed
 
 ---
 
 ## Testing Instructions
 
-### Test Case: Generate QRT ID with Photo
+### Test Case: Generate QRT ID with Photo (Konva.js)
 
 1. **Navigate to QRT Request Page**
-   \`\`\`
+   ```
    http://localhost:3000/qrt-id/request
-   \`\`\`
+   ```
 
 2. **Fill Form and Submit**
    - Fill all required fields including uploading a photo
@@ -190,15 +153,11 @@ for (let attempt = 1; attempt <= 3; attempt++) {
 3. **Check Payment Page Console**
    - Open browser DevTools (F12)
    - Go to Console tab
-   - Look for logs with prefix `[QRT ID Generation]` and `[html2canvas]`
-   - Expected sequence:
-     \`\`\`
-     [QRT ID Generation] Found 1 images in template
-     [QRT ID Generation] Image 0 already loaded
-     [QRT ID Generation] Starting front side capture...
-     [html2canvas] Front side SUCCESS on attempt 1
-     [QRT ID Generation] Both sides generated successfully
-     \`\`\`
+   - Look for logs with prefix `[Konva ID Generation]`
+   - Expected behavior:
+     - No visible hidden elements (Konva renders in canvas background)
+     - Card components render in background Konva stages
+     - Images export smoothly to data URLs
 
 4. **Complete Payment**
    - Select payment method (GCash/Maya/Bank Transfer)
@@ -208,7 +167,7 @@ for (let attempt = 1; attempt <= 3; attempt++) {
 5. **Verify Images Generated**
    - Look for `idFrontImageUrl` and `idBackImageUrl` in the QRT object
    - Navigate to the QRT ID view page (`/app/qrt-id/[id]`)
-   - Verify both card front and back images display
+   - Verify both card front and back images display with high quality (2x resolution)
    - Test Share button (should use Web Share API or copy link)
    - Test Print button (should open print window with card sides)
    - Test Download button (should save both PNG files)
@@ -216,72 +175,72 @@ for (let attempt = 1; attempt <= 3; attempt++) {
 ### Test Case: Generate QRT ID without Photo
 
 1. Same as above but **skip the photo upload**
-2. Should show placeholder SVG icon instead of photo
-3. Card should still generate successfully
+2. Should show placeholder icon instead of photo
+3. Card should render successfully with placeholder
+4. Konva canvas should handle gracefully without image
 
 ### Expected Success Indicators
-- ✅ Console shows all `[QRT ID Generation] SUCCESS` logs
-- ✅ Both card images visible on QRT ID view page
+- ✅ No console errors related to rendering or image loading
+- ✅ Both card images visible on QRT ID view page with sharp, high quality (2x resolution)
 - ✅ Share/Print/Download buttons functional
-- ✅ No console errors related to html2canvas
+- ✅ Images are properly sized and centered
 - ✅ Images can be downloaded and saved
+- ✅ Faster rendering compared to html2canvas version
 
 ---
 
-## File-by-File Critical Changes
+## File-by-File Changes Summary
 
-### `/app/payment/page.tsx`
-**Lines changed:** 502-541 (refs/visibility), 236-244 (waitForDOMImages)
+### New Konva.js Files
 
-**Key changes:**
-- Removed wrapper divs around `QRTIDFrontTemplate` and `QRTIDBackTemplate`
-- Attached refs directly: `ref={frontRef}` and `ref={backRef}`
-- Changed container: `visibility: "hidden"` instead of `zIndex: -1000, opacity: 0.01`
-- Added `waitForDOMImages()` function call before `generateQRTIDImages()`
-- Added Suspense boundary for `useSearchParams()`
-- Added `paymentCompleted` state to prevent redirect loops
-- Added `?type=qrt` or `?type=certificate` URL parameter handling
+#### `/components/qrt-id-front-konva.tsx`
+- React-Konva component for front card rendering
+- Uses `use-image` hook for image loading
+- Draws card layout directly to canvas
+- Handles photo and QR code positioning
+- No DOM visibility needed
 
-### `/components/qrt-id-front-template.tsx`
-**Lines changed:** 54-60 (image attributes)
+#### `/components/qrt-id-back-konva.tsx`
+- React-Konva component for back card rendering
+- Consistent styling with front card
+- Canvas-based rendering eliminates HTML/CSS issues
 
-**Key changes:**
-- Added `crossOrigin="anonymous"` to photo `<img>` tag
-- Added `style={{ display: "block" }}` to photo `<img>` tag
+#### `/lib/qrt-id-generator-konva.ts`
+- Exports `generateQRTIDImagesKonva()` function
+- Accepts refs to Konva.Stage components
+- Returns `{ frontImageUrl, backImageUrl }` as base64 data URLs
+- Uses `pixelRatio: 2` for high-resolution exports
 
-### `/components/qrt-id-back-template.tsx`
-**Lines changed:** 140-146 (image attributes)
+### Modified Files
 
-**Key changes:**
-- Added `crossOrigin="anonymous"` to QR code `<img>` tag
-- Added `style={{ display: "block" }}` to QR code `<img>` tag
+#### `/app/payment/page.tsx`
+**Changes:**
+- Imports Konva components instead of template components
+- Creates refs for Konva.Stage elements: `frontStageRef`, `backStageRef`
+- Calls `generateQRTIDImagesKonva()` instead of `generateQRTIDImages()`
+- Removed `waitForDOMImages()` function (no longer needed)
+- Removed visibility container styling
+- Simplified image generation logic (no retries needed)
 
-### `/lib/qrt-id-generator.ts`
-**Lines changed:** 44-52 (config), 54-67 (retry logic)
+#### `/app/qrt-id/[id]/page.tsx`
+**Changes (2025-12-29):**
+- Updated downloadImage import from `@/lib/qrt-id-generator` to `@/lib/qrt-id-generator-konva`
+- Still handles display, sharing, printing, and downloading
 
-**Key changes:**
-- Removed `width` and `height` from canvasOptions
-- Changed `allowTaint` from `true` to `false`
-- Enabled `logging: true` for debugging
-- Added retry loop for both front and back capture (3 attempts, 500ms delay)
-- Added detailed console logging with `[html2canvas]` prefix
+### ~~Deprecated Files~~ DELETED (2025-12-29)
 
-### `/components/payment-methods.tsx`
-**Lines changed:** 15-43 (GCash), 45-73 (Maya)
+#### ~~`/components/qrt-id-front-template.tsx`~~ ❌ DELETED
+- Old HTML/CSS implementation for html2canvas
+- Removed during cleanup - no longer needed
 
-**Key changes:**
-- Removed mobile number input field from GCash form
-- Removed PIN input field from GCash form
-- Removed mobile number input field from Maya form
-- Removed password input field from Maya form
-- Auto-submit with demo credentials on button click
+#### ~~`/components/qrt-id-back-template.tsx`~~ ❌ DELETED
+- Old HTML/CSS implementation for html2canvas
+- Removed during cleanup - no longer needed
 
-### `/app/qrt-id/[id]/page.tsx`
-**Share/Print/Download Implementation**
-- Implemented Web Share API with clipboard fallback for Share button
-- Implemented window.open() print layout for Print button
-- Implemented downloadImage() function for Download button
-- Added proper error handling and user feedback
+#### ~~`/lib/qrt-id-generator.ts`~~ ❌ DELETED
+- Old html2canvas implementation
+- Replaced by Konva.js version
+- downloadImage utility function migrated to qrt-id-generator-konva.ts before deletion
 
 ---
 
@@ -289,7 +248,7 @@ for (let attempt = 1; attempt <= 3; attempt++) {
 
 ### If System Provides Auto-Summary (Like Now)
 
-\`\`\`
+```
 1. Review the system-provided summary:
    - Conversation summary at top of context
    - Git status showing modified files
@@ -301,13 +260,13 @@ for (let attempt = 1; attempt <= 3; attempt++) {
    "Test the QRT ID generation fix"
    or
    "What's the next step?"
-\`\`\`
+```
 
 ### If Starting Fresh Without Auto-Summary
 
 Provide this information:
 
-\`\`\`
+```
 1. Reference the conversation:
    "Continue from [date/task description]"
    or
@@ -320,25 +279,25 @@ Provide this information:
    "I tested the QRT ID generation and got this error: [error message]"
    or
    "The images are now generating! They appear on the QRT ID page."
-\`\`\`
+```
 
 ### Most Effective Context Format
 
 If restarting, provide:
 
-\`\`\`
+```
 Project: Barangay QRT ID Payment System
 Status: Just completed 6-step fix for image generation
 Files modified: app/payment/page.tsx, components/*-template.tsx, lib/qrt-id-generator.ts
 Next step: Test if QRT ID images now generate after payment
 Link to this guide: /home/user/barangayformdemo/CONTINUATION_GUIDE.md
-\`\`\`
+```
 
 ---
 
 ## Quick Command Reference
 
-\`\`\`bash
+```bash
 # Check build status
 npm run build
 
@@ -356,62 +315,78 @@ npm run type-check
 
 # Format code
 npm run format
-\`\`\`
+```
 
 ---
 
 ## Key Dependencies & Versions
 
 - **Next.js 14+** - App Router with useSearchParams
-- **html2canvas** - DOM to canvas conversion
+- **konva 10.0.12** - Direct canvas rendering library
+- **react-konva 19.2.1** - React bindings for Konva
+- **use-image 1.1.4** - Image loading hook for react-konva
 - **qrcode** - QR code generation
 - **lucide-react** - UI icons
 - **@shadcn/ui** - UI components
 - **Tailwind CSS** - Styling
 
+**Deprecated (legacy):**
+- **html2canvas** - No longer used, replaced by Konva.js
+
 ---
 
 ## Debugging Checklist
 
-If QRT ID images still aren't generating:
+If QRT ID images still aren't generating with Konva.js:
 
-- [ ] Check browser console for `[QRT ID Generation]` logs
-- [ ] Look for `[html2canvas]` logs showing attempt count
-- [ ] Verify no CORS errors in browser Network tab
-- [ ] Check that `ref.current` is not null (log refs before capture)
-- [ ] Verify `templateData` object has all required fields
+- [ ] Verify Konva stages are rendering (no console errors about Stage refs)
+- [ ] Check browser console for `[Konva ID Generation]` logs
+- [ ] Verify stage refs exist and are properly connected to components
+- [ ] Check that `use-image` hook loaded images successfully
+- [ ] Verify no TypeScript errors about Konva types
 - [ ] Test with simple placeholder data first (not user-uploaded photo)
-- [ ] Check that html2canvas library is properly imported
-- [ ] Verify no other z-index/opacity CSS overriding visibility settings
+- [ ] Check React DevTools to see if Konva components mounted
+- [ ] Verify no conflicting event handlers on stage elements
+- [ ] Check that data URL generation didn't hit size limits
 
 ---
 
 ## Known Limitations & Edge Cases
 
-1. **Network images:** CORS-protected images may fail to load
-2. **Timeout:** Image loading times out after 3 seconds
-3. **Retry limit:** Maximum 3 attempts before failing
-4. **Data URL size:** Very large images may create very large data URLs
-5. **Browser compatibility:** html2canvas works best on modern browsers
+1. **Browser compatibility:** Konva.js requires modern browser with Canvas API support
+2. **Data URL size:** Very large QRT ID cards may create large data URLs (store URLs, not base64)
+3. **Memory usage:** pixelRatio: 2 doubles memory consumption for canvas rendering
+4. **Image loading:** External images must be CORS-enabled or loaded from same origin
+5. **Stage dimensions:** Fixed card dimensions (85.6mm × 53.98mm at 300 DPI) required for sizing
 
 ---
 
 ## Contact Points in Code
 
-Search for these prefixes to find logging/debugging points:
-- `[QRT ID Generation]` - Image loading and verification logs
-- `[html2canvas]` - Canvas capture and retry logs
-- `waitForDOMImages` - Image loading verification function
-- `generateQRTIDImages` - Main image generation function
+Search for these to find Konva.js implementation:
+- **`qrt-id-front-konva.tsx`** - Front card Konva component
+- **`qrt-id-back-konva.tsx`** - Back card Konva component
+- **`qrt-id-generator-konva.ts`** - Image export function (includes downloadImage utility)
+- **`[Konva ID Generation]`** - Logging prefix for debugging
+- **`generateQRTIDImagesKonva()`** - Main image generation function call
+- **`downloadImage()`** - Image download utility (migrated from old generator)
+
+~~Deprecated~~ DELETED (2025-12-29):
+- ~~`qrt-id-front-template.tsx`~~ - DELETED
+- ~~`qrt-id-back-template.tsx`~~ - DELETED
+- ~~`qrt-id-generator.ts`~~ - DELETED
+- ~~`waitForDOMImages()`~~ - No longer exists
+- ~~`[html2canvas]`~~ - Package removed
+- ~~`generateQRTIDImages()`~~ - Function no longer exists
 
 ---
 
 ## Plan Mode Details
 
 If needed, the plan file is located at:
-\`\`\`
+```
 /home/user/.claude/plans/glimmering-exploring-metcalfe.md
-\`\`\`
+```
 
 This contains the detailed 6-step implementation plan with all technical decisions.
 
@@ -419,14 +394,30 @@ This contains the detailed 6-step implementation plan with all technical decisio
 
 ## Next Immediate Steps
 
-1. **User Testing:** Run test cases above and report results
-2. **Console Logs:** Share any `[QRT ID Generation]` or `[html2canvas]` error logs
-3. **Verification:** Confirm images display on QRT ID view page
+1. **User Testing:** Run test cases above and verify Konva rendering
+2. **Quality Check:** Compare image quality and rendering with html2canvas version
+3. **Performance Testing:** Measure generation time (should be faster than html2canvas)
 4. **Button Testing:** Test share/print/download functionality
-5. **Feedback:** Report any remaining issues or unexpected behavior
+5. **Edge Cases:** Test with and without photos, verify fallback handling
+6. **Feedback:** Report any remaining issues or unexpected behavior
 
 ---
 
-**Document Version:** 1.0
-**Last Updated By:** Claude Haiku 4.5
+## Summary of Migration Impact
+
+| Aspect | html2canvas | Konva.js |
+|--------|-------------|----------|
+| **Approach** | DOM scraping | Direct canvas rendering |
+| **Visibility** | CSS tricks (opacity, z-index) | Native canvas elements |
+| **Image loading** | Requires verification loop | Handled by use-image hook |
+| **Retry logic** | 3 attempts needed | Synchronous, no retries |
+| **Resolution** | scale: 2 | pixelRatio: 2 |
+| **Code complexity** | More complex | Simpler, cleaner |
+| **Speed** | Slower due to DOM scanning | Faster, synchronous |
+
+---
+
+**Document Version:** 2.1 (html2canvas Cleanup Complete)
+**Last Updated:** 2025-12-29
+**Last Updated By:** Claude Sonnet 4.5
 **For Questions:** Provide error logs with timestamps and steps to reproduce

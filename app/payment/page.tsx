@@ -9,15 +9,16 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowLeft, FileText, ShieldCheck, Loader2 } from "lucide-react"
 import { useCertificates, type CertificateRequest } from "@/lib/certificate-context"
-import { useQRT } from "@/lib/qrt-context"
+import { useQRT, generateVerificationCode } from "@/lib/qrt-context"
 import { usePayment } from "@/lib/payment-context"
 import { processPayment, validatePaymentMethod, PaymentTransaction } from "@/lib/payment-utils"
 import { GCashForm, MayaForm, BankTransferForm } from "@/components/payment-methods"
 import { PaymentReceiptModal } from "@/components/payment-receipt-modal"
 import QRCode from "qrcode"
-import { QRTIDFrontTemplate } from "@/components/qrt-id-front-template"
-import { QRTIDBackTemplate } from "@/components/qrt-id-back-template"
-import { generateQRTIDImages } from "@/lib/qrt-id-generator"
+import { QRTIDFrontKonva } from "@/components/qrt-id-front-konva"
+import { QRTIDBackKonva } from "@/components/qrt-id-back-konva"
+import { generateQRTIDImagesKonva } from "@/lib/qrt-id-generator-konva"
+import Konva from "konva"
 
 // Wrapper component to handle Suspense for useSearchParams
 export default function PaymentPage() {
@@ -54,13 +55,14 @@ function PaymentPageContent() {
   // State for computed template data (needed for image generation)
   const [templateData, setTemplateData] = useState<{
     qrtCode: string
+    verificationCode: string
     qrCodeDataUrl: string
     issuedDate: string
     expiryDate: string
   } | null>(null)
 
-  const frontRef = useRef<HTMLDivElement>(null)
-  const backRef = useRef<HTMLDivElement>(null)
+  const frontRef = useRef<Konva.Stage>(null)
+  const backRef = useRef<Konva.Stage>(null)
 
   // Wait for QRT context to load before checking if we should redirect
   // IMPORTANT: Don't redirect if payment was completed (contexts are intentionally cleared)
@@ -147,16 +149,20 @@ function PaymentPageContent() {
         const sequentialNumber = String(Math.floor(Math.random() * 1000000)).padStart(6, "0")
         const qrtCode = `QRT-${year}-${sequentialNumber}`
 
-        // 2. Generate QR Code Data URL
+        // 2. Generate Verification Code
+        const existingCodes = [] // In production, this would be fetched from context
+        const verificationCode = generateVerificationCode(existingCodes)
+        console.log(`[Verification Code] Generated: ${verificationCode}`)
+
+        // 3. Generate QR Code Data URL with only verification code (security enhancement)
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
         const qrData = {
-          qrtCode,
-          fullName: qrtRequest.fullName,
-          birthDate: qrtRequest.birthDate,
-          issuedDate: new Date().toISOString(),
+          verificationCode,
+          verifyUrl: `${baseUrl}/api/qrt-id/verify/${verificationCode}`,
         }
         const qrCodeDataUrl = await QRCode.toDataURL(JSON.stringify(qrData))
 
-        // 3. Calculate Dates (format for display)
+        // 4. Calculate Dates (format for display)
         const now = new Date()
         const issuedDate = now.toISOString()
         const issuedDateFormatted = now.toLocaleDateString("en-US", {
@@ -173,151 +179,59 @@ function PaymentPageContent() {
           year: "numeric",
         })
 
-        // 4. Set template data and wait for re-render before capturing images
+        // 5. Set template data and wait for re-render before capturing images
         setTemplateData({
           qrtCode,
+          verificationCode,
           qrCodeDataUrl,
           issuedDate: issuedDateFormatted,
           expiryDate: expiryDateFormatted,
         })
 
-        // 5. Generate ID Card Images
-        // Wait for React to fully re-render and for images to load
+        // 6. Generate ID Card Images with Konva
         let frontImageUrl = ""
         let backImageUrl = ""
 
-        console.log("[QRT ID Generation] Starting image generation...")
-        console.log("[QRT ID Generation] Photo URL:", qrtRequest?.photoUrl ? "Present" : "MISSING")
-        console.log("[QRT ID Generation] QR Code:", qrCodeDataUrl ? "Generated" : "MISSING")
-        console.log("[QRT ID Generation] Front Ref:", frontRef.current ? "Ready" : "NOT FOUND")
-        console.log("[QRT ID Generation] Back Ref:", backRef.current ? "Ready" : "NOT FOUND")
+        console.log("[QRT ID Generation - Konva] Starting image generation...")
+        console.log("[QRT ID Generation - Konva] Photo URL:", qrtRequest?.photoUrl ? "Present" : "MISSING")
+        console.log("[QRT ID Generation - Konva] QR Code:", qrCodeDataUrl ? "Generated" : "MISSING")
+        console.log("[QRT ID Generation - Konva] Front Ref:", frontRef.current ? "Ready" : "NOT FOUND")
+        console.log("[QRT ID Generation - Konva] Back Ref:", backRef.current ? "Ready" : "NOT FOUND")
 
         try {
-          // Helper function to wait for an image to load
-          const waitForImageLoad = (imgSrc: string): Promise<void> => {
-            return new Promise((resolve) => {
-              if (!imgSrc) {
-                console.log("[QRT ID Generation] No image to load")
-                resolve()
-                return
-              }
-              const img = new window.Image()
-              img.onload = () => {
-                console.log("[QRT ID Generation] Image loaded successfully")
-                resolve()
-              }
-              img.onerror = (err) => {
-                console.error("[QRT ID Generation] Image load failed:", err)
-                resolve() // Continue even if image fails
-              }
-              img.src = imgSrc
-              // Timeout after 3 seconds
-              setTimeout(() => {
-                console.log("[QRT ID Generation] Image load timeout (3s)")
-                resolve()
-              }, 3000)
-            })
-          }
-
-          // Pre-load the photo and QR code to ensure they're in browser cache
-          const preloadPromises: Promise<void>[] = []
-          if (qrtRequest?.photoUrl) {
-            console.log("[QRT ID Generation] Preloading user photo...")
-            preloadPromises.push(waitForImageLoad(qrtRequest.photoUrl))
-          }
-          if (qrCodeDataUrl) {
-            console.log("[QRT ID Generation] Preloading QR code...")
-            preloadPromises.push(waitForImageLoad(qrCodeDataUrl))
-          }
-          await Promise.all(preloadPromises)
-
-          console.log("[QRT ID Generation] Images preloaded, waiting for DOM render...")
-
-          // Wait for React to re-render the templates with new data
-          // Use multiple animation frames to ensure DOM is painted
+          // Wait for React to re-render Konva stages with new data
           await new Promise((resolve) => {
             requestAnimationFrame(() => {
               requestAnimationFrame(() => {
-                setTimeout(resolve, 1000) // Increased to 1 second for more reliable rendering
+                setTimeout(resolve, 500) // Wait for Konva stages to render and images to load
               })
             })
           })
 
-          console.log("[QRT ID Generation] DOM rendered, checking refs...")
+          console.log("[QRT ID Generation - Konva] Calling generateQRTIDImagesKonva...")
 
-          // Verify refs exist
-          if (!frontRef.current || !backRef.current) {
-            console.error("[QRT ID Generation] FAILED: Refs not available", {
-              frontRef: !!frontRef.current,
-              backRef: !!backRef.current
-            })
-            throw new Error("Templates not ready - refs missing")
-          }
-
-          console.log("[QRT ID Generation] Refs ready, waiting for images to load in DOM...")
-
-          // Wait for all images in the templates to fully load
-          const waitForDOMImages = async (ref: React.RefObject<HTMLDivElement>) => {
-            if (!ref.current) return
-
-            const images = ref.current.querySelectorAll('img')
-            console.log(`[QRT ID Generation] Found ${images.length} images in template`)
-
-            await Promise.all(Array.from(images).map((img, index) => {
-              if (img.complete) {
-                console.log(`[QRT ID Generation] Image ${index} already loaded`)
-                return Promise.resolve()
-              }
-              return new Promise<void>(resolve => {
-                img.onload = () => {
-                  console.log(`[QRT ID Generation] Image ${index} loaded successfully`)
-                  resolve()
-                }
-                img.onerror = (err) => {
-                  console.warn(`[QRT ID Generation] Image ${index} failed to load:`, err)
-                  resolve() // Continue even if image fails
-                }
-                // Timeout fallback - don't wait forever
-                setTimeout(() => {
-                  console.warn(`[QRT ID Generation] Image ${index} load timeout (3s)`)
-                  resolve()
-                }, 3000)
-              })
-            }))
-          }
-
-          await waitForDOMImages(frontRef)
-          await waitForDOMImages(backRef)
-
-          console.log("[QRT ID Generation] All images loaded, calling generateQRTIDImages...")
-
-          // Verify photo is present if provided
-          const frontImg = frontRef.current.querySelector('img')
-          if (qrtRequest?.photoUrl && frontImg && !frontImg.complete) {
-            console.warn("[QRT ID Generation] Photo not fully loaded, proceeding anyway...")
-          }
-
-          const result = await generateQRTIDImages(frontRef.current, backRef.current)
-          console.log("[QRT ID Generation] Generation result:", result)
+          const result = await generateQRTIDImagesKonva(frontRef.current, backRef.current)
+          console.log("[QRT ID Generation - Konva] Generation result:", result)
 
           if (result.success) {
             frontImageUrl = result.frontImageUrl || ""
             backImageUrl = result.backImageUrl || ""
-            console.log("[QRT ID Generation] SUCCESS - Front image:", frontImageUrl ? `${frontImageUrl.substring(0, 50)}...` : "EMPTY")
-            console.log("[QRT ID Generation] SUCCESS - Back image:", backImageUrl ? `${backImageUrl.substring(0, 50)}...` : "EMPTY")
+            console.log("[QRT ID Generation - Konva] SUCCESS - Front image:", frontImageUrl ? `${frontImageUrl.substring(0, 50)}...` : "EMPTY")
+            console.log("[QRT ID Generation - Konva] SUCCESS - Back image:", backImageUrl ? `${backImageUrl.substring(0, 50)}...` : "EMPTY")
           } else {
-            console.error("[QRT ID Generation] FAILED:", result.error)
+            console.error("[QRT ID Generation - Konva] FAILED:", result.error)
           }
         } catch (imgError) {
-          console.error("[QRT ID Generation] EXCEPTION:", imgError)
+          console.error("[QRT ID Generation - Konva] EXCEPTION:", imgError)
           // Continue without images - they can be generated later
         }
 
-        // 6. Create Complete QRT Record
+        // 7. Create Complete QRT Record
         const qrtId = `qrt_${Date.now()}`
         const newQRTRecord = {
           id: qrtId,
           qrtCode,
+          verificationCode,
           userId: qrtRequest.userId || "",
           fullName: qrtRequest.fullName || "",
           birthDate: qrtRequest.birthDate || "",
@@ -538,23 +452,20 @@ function PaymentPageContent() {
         </div>
       </main>
 
-      {/* Hidden QRT ID Templates for Image Generation */}
-      {/* CRITICAL FIX: Use visibility:hidden instead of opacity/z-index tricks */}
-      {/* This keeps elements fully rendered with proper styles for html2canvas */}
-      {/* Refs are now attached directly to template components (not wrapper divs) */}
-      {isQRTPayment && qrtRequest && (
+      {/* Hidden QRT ID Konva Templates for Image Generation */}
+      {/* Konva stages can be hidden with display:none or opacity:0 */}
+      {/* No need for visibility:hidden since Konva renders to canvas */}
+      {isQRTPayment && qrtRequest && templateData && (
         <div style={{
           position: "fixed",
-          left: "0",
+          left: "-9999px",
           top: "0",
-          opacity: "1",           // Full opacity so styles compute correctly
-          visibility: "hidden",    // Hidden but fully rendered in layout
-          pointerEvents: "none",
-          zIndex: 0               // Normal stacking context
+          pointerEvents: "none"
         }}>
-          <QRTIDFrontTemplate
+          <QRTIDFrontKonva
             ref={frontRef}
-            qrtCode={templateData?.qrtCode || "TEMP-QRT-CODE"}
+            qrtCode={templateData.qrtCode}
+            verificationCode={templateData.verificationCode}
             fullName={qrtRequest.fullName || "Test User"}
             birthDate={qrtRequest.birthDate || "01/01/1990"}
             address={qrtRequest.address || "Test Address"}
@@ -562,11 +473,12 @@ function PaymentPageContent() {
             civilStatus={qrtRequest.civilStatus || "Single"}
             birthPlace={qrtRequest.birthPlace || "Manila"}
             photoUrl={qrtRequest.photoUrl || ""}
-            issuedDate={templateData?.issuedDate || new Date().toLocaleDateString()}
+            issuedDate={templateData.issuedDate}
           />
-          <QRTIDBackTemplate
+          <QRTIDBackKonva
             ref={backRef}
-            qrtCode={templateData?.qrtCode || "TEMP-QRT-CODE"}
+            qrtCode={templateData.qrtCode}
+            verificationCode={templateData.verificationCode}
             height={qrtRequest.height || "170cm"}
             weight={qrtRequest.weight || "70kg"}
             yearsResident={qrtRequest.yearsResident || 5}
@@ -575,9 +487,9 @@ function PaymentPageContent() {
             emergencyContactAddress={qrtRequest.emergencyContactAddress || "Same Address"}
             emergencyContactPhone={qrtRequest.emergencyContactPhone || "09123456789"}
             emergencyContactRelationship={qrtRequest.emergencyContactRelationship || "Family"}
-            qrCodeDataUrl={templateData?.qrCodeDataUrl || ""}
-            issuedDate={templateData?.issuedDate || new Date().toLocaleDateString()}
-            expiryDate={templateData?.expiryDate || new Date(Date.now() + 365*24*60*60*1000).toLocaleDateString()}
+            qrCodeDataUrl={templateData.qrCodeDataUrl}
+            issuedDate={templateData.issuedDate}
+            expiryDate={templateData.expiryDate}
           />
         </div>
       )}

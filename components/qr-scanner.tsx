@@ -81,13 +81,13 @@ export function QRScanner({ onScan, onError, disabled }: QRScannerProps) {
     e.preventDefault()
     if (!manualCode.trim()) return
 
-    // Simple validation for QRT format (QRT-YYYY-NNNNNN)
-    // Adjust regex as needed based on specific requirements, here allowing some flexibility but checking basic structure if needed.
-    // The plan mentioned "QRT-YYYY-NNNNNN", let's do a basic check or just pass it through if strict validation isn't enforced here.
-    // Plan says "Validate format before calling onScan".
+    // Validation for both QRT and VRF formats (backward compatibility)
+    // QRT-YYYY-NNNNNN or VRF-YYYY-NNNNNN
     const qrtRegex = /^QRT-\d{4}-\d{6}$/
-    if (!qrtRegex.test(manualCode)) {
-      const errorMsg = "Invalid format. Expected: QRT-YYYY-NNNNNN"
+    const vrfRegex = /^VRF-\d{4}-\d{6}$/
+
+    if (!qrtRegex.test(manualCode) && !vrfRegex.test(manualCode)) {
+      const errorMsg = "Invalid format. Expected: VRF-YYYY-NNNNNN or QRT-YYYY-NNNNNN"
       setError(errorMsg)
       if (onError) onError(errorMsg)
       return
@@ -174,11 +174,11 @@ export function QRScanner({ onScan, onError, disabled }: QRScannerProps) {
           <form onSubmit={handleManualSubmit} className="w-full space-y-4">
             <div className="space-y-2">
               <Label htmlFor="manual-code" className="text-sm font-medium text-gray-700">
-                Enter QRT Code
+                Enter Code
               </Label>
               <Input
                 id="manual-code"
-                placeholder="QRT-YYYY-NNNNNN"
+                placeholder="VRF-YYYY-NNNNNN or QRT-YYYY-NNNNNN"
                 value={manualCode}
                 onChange={(e) => {
                   setManualCode(e.target.value.toUpperCase())

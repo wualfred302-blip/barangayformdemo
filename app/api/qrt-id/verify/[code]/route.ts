@@ -5,22 +5,23 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const { code } = await params
+    const { code: verificationCode } = await params
 
     // NOTE: This is a localStorage-based demo system.
     // In production, this would query the database:
-    // const qrtId = await db.query('SELECT * FROM qrt_ids WHERE qrt_code = $1', [code])
+    // const qrtId = await db.query('SELECT * FROM qrt_ids WHERE verification_code = $1', [verificationCode])
 
     // Since this is a client-side demo, the server cannot access localStorage.
-    // The verification must be performed client-side by looking up the QRT code
+    // Client must call findQRTByVerificationCode() from context to look up the verification code
     // in the browser's localStorage.
 
     // Optional: Mock data for testing
-    if (code === "QRT-2025-000001") {
+    if (verificationCode === "VRF-2025-000001") {
       return NextResponse.json({
         valid: true,
         data: {
           qrtCode: "QRT-2025-000001",
+          verificationCode: "VRF-2025-000001",
           fullName: "Juan Dela Cruz",
           address: "123 Sample St., Barangay Demo",
           birthDate: "1990-01-01",
@@ -35,8 +36,7 @@ export async function GET(
     return NextResponse.json(
       {
         valid: false,
-        message:
-          "QRT ID not found in central database. Client should check localStorage.",
+        error: "Verification code not found. Check localStorage on client.",
       },
       { status: 404 }
     )

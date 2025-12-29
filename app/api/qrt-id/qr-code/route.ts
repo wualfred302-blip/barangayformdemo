@@ -4,14 +4,14 @@ import QRCode from "qrcode"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { qrtCode, fullName, birthDate, issuedDate } = body
+    const { verificationCode } = body
 
     // Validate required fields
-    if (!qrtCode || !fullName || !birthDate || !issuedDate) {
+    if (!verificationCode) {
       return NextResponse.json(
         {
           success: false,
-          error: "Missing required fields: qrtCode, fullName, birthDate, issuedDate",
+          error: "Missing required field: verificationCode",
         },
         { status: 400 }
       )
@@ -20,13 +20,10 @@ export async function POST(request: NextRequest) {
     // Get base URL for verification
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin
 
-    // Create QR data object
+    // Create QR data object (security-first: only verification code, no personal data)
     const qrData = {
-      qrtCode,
-      fullName,
-      birthDate,
-      issuedDate,
-      verifyUrl: `${baseUrl}/verify/qrt/${qrtCode}`,
+      verificationCode,
+      verifyUrl: `${baseUrl}/api/qrt-id/verify/${verificationCode}`,
     }
 
     // Generate QR code as data URL
