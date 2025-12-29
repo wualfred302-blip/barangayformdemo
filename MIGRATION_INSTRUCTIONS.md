@@ -23,41 +23,41 @@ This migration adds a `user_id` column to the `qrt_ids` table to properly track 
 1. Go to your Supabase project dashboard
 2. Navigate to **SQL Editor**
 3. Run the updated schema script:
-   ```sql
+   \`\`\`sql
    -- Copy the contents of scripts/005_fix_qrt_schema.sql
    -- This will drop and recreate the table with user_id column
-   ```
+   \`\`\`
 
 ### Option B: If you have existing QRT ID data you want to keep
 1. Go to your Supabase project dashboard
 2. Navigate to **SQL Editor**
 3. Run the migration script:
-   ```sql
+   \`\`\`sql
    -- Copy the contents of scripts/006_add_user_id_column.sql
    -- This will add the user_id column without dropping the table
-   ```
+   \`\`\`
 
 ### Step 2: Verify the Migration
 After running either option, verify the column was added:
 
-```sql
+\`\`\`sql
 SELECT column_name, data_type
 FROM information_schema.columns
 WHERE table_name = 'qrt_ids'
 AND column_name = 'user_id';
-```
+\`\`\`
 
 You should see:
-```
+\`\`\`
 column_name | data_type
 ------------|----------
 user_id     | text
-```
+\`\`\`
 
 ### Step 3: Handle Existing Data (if applicable)
 If you have existing QRT ID records and know which users created them, you can update them:
 
-```sql
+\`\`\`sql
 -- Example: Update a specific QRT ID with known user_id
 UPDATE public.qrt_ids
 SET user_id = 'the-actual-user-id'
@@ -67,7 +67,7 @@ WHERE qrt_code = 'QRT-2024-123456';
 -- UPDATE public.qrt_ids
 -- SET user_id = 'user-id-here'
 -- WHERE full_name = 'John Doe' AND user_id IS NULL;
-```
+\`\`\`
 
 **Note:** Rows with `NULL` user_id will not show up in the "My QRT IDs" page for any user.
 
@@ -82,13 +82,13 @@ WHERE qrt_code = 'QRT-2024-123456';
 
 If you need to rollback this migration:
 
-```sql
+\`\`\`sql
 -- Remove the user_id column
 ALTER TABLE public.qrt_ids DROP COLUMN IF EXISTS user_id;
 
 -- Remove the index
 DROP INDEX IF EXISTS idx_qrt_ids_user_id;
-```
+\`\`\`
 
 Then revert the code changes in `lib/qrt-context.tsx` by removing the `user_id` line from the insert payload.
 
