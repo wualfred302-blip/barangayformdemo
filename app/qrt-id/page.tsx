@@ -18,8 +18,9 @@ type FilterType = "all" | "processing" | "ready"
 export default function QrtIdListPage() {
   const router = useRouter()
   const { isAuthenticated, isLoading, user } = useAuth()
-  const { qrtIds, getUserQRTIds } = useQRT()
+  const { qrtIds, getUserQRTIds, refreshQRTIds } = useQRT()
   const [filter, setFilter] = useState<FilterType>("all")
+  const [isRefreshing, setIsRefreshing] = useState(true)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -27,7 +28,16 @@ export default function QrtIdListPage() {
     }
   }, [isLoading, isAuthenticated, router])
 
-  if (isLoading) {
+  useEffect(() => {
+    const loadQRTIds = async () => {
+      setIsRefreshing(true)
+      await refreshQRTIds()
+      setIsRefreshing(false)
+    }
+    loadQRTIds()
+  }, [refreshQRTIds])
+
+  if (isLoading || isRefreshing) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F8F9FA]">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#10B981] border-t-transparent" />
@@ -35,7 +45,6 @@ export default function QrtIdListPage() {
     )
   }
 
-  // Filter QRT IDs for the current user
   const myQrtIds = user?.id ? getUserQRTIds(user.id) : qrtIds
 
   const filteredIds = myQrtIds.filter((item) => {

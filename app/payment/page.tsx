@@ -263,6 +263,9 @@ function PaymentPageContent() {
         // 6. Save to Context
         addQRTRequest(newQRTRecord)
 
+        console.log("[v0] QRT ID created, waiting for Supabase sync...")
+        await new Promise((resolve) => setTimeout(resolve, 500)) // Brief delay for Supabase consistency
+
         // IMPORTANT: Set paymentCompleted BEFORE clearing context to prevent redirect
         setPaymentCompleted(true)
         setQrtRequest(null)
