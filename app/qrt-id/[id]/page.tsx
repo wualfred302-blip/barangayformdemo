@@ -339,7 +339,7 @@ export default function QrtIdDetailPage() {
                 <div className="relative p-6 rounded-3xl bg-white border-4 border-gray-100 shadow-inner">
                   <QRCodeSVG
                     value={qrData}
-                    size={200}
+                    size={280}
                     level="H"
                     includeMargin={true}
                     bgColor="#ffffff"

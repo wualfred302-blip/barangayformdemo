@@ -9,31 +9,41 @@ export default function Home() {
     <main className="min-h-screen bg-white flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="max-w-md w-full flex flex-col items-center text-center space-y-8 relative">
         {/* Logo Section */}
-        <div className="flex flex-col items-center relative h-[380px] w-full mb-0 scale-[0.85] origin-top">
+        <div className="flex flex-row flex-wrap items-center justify-center gap-y-14 gap-x-2 w-full -mb-3 mt-12 px-1">
           {/* Bagong Pilipinas Logo */}
-          <Image
-            src="/images/bagongpilipinas-logo-main.png"
-            alt="Bagong Pilipinas Logo"
-            width={720}
-            height={720}
-            priority
-            className="w-[340px] h-auto object-contain relative z-10 top-10"
-          />
+          <div className="w-[48%] flex justify-center -translate-y-[30px]">
+            <Image
+              src="/images/bagongpilipinas-logo-main.png"
+              alt="Bagong Pilipinas Logo"
+              width={300}
+              height={300}
+              priority
+              className="w-full h-auto object-contain drop-shadow-sm scale-[1.55]"
+            />
+          </div>
           
-          {/* Background Logo with Overlay */}
-          <div className="absolute top-[260px] left-1/2 -translate-x-1/2 w-[400px] pointer-events-none opacity-100 z-10">
-            <div className="relative">
-              <Image
-                src="/images/linkod-app-logo-main.png"
-                alt="Linkod App Logo Background"
-                width={780}
-                height={780}
-                priority
-                className="w-full h-auto object-contain"
-              />
-              {/* White Overlay (shortened to blend with header) */}
-              <div className="absolute inset-0 bg-gradient-to-t from-white from-[5%] via-white/20 to-transparent" />
-            </div>
+          {/* Punong Barangay Logo */}
+          <div className="w-[48%] flex justify-center -translate-y-[30px]">
+            <Image
+              src="/images/Punongbarangay.logo.png"
+              alt="Punong Barangay Logo"
+              width={300}
+              height={300}
+              priority
+              className="w-full h-auto object-contain drop-shadow-sm scale-135"
+            />
+          </div>
+
+          {/* Linkod App Logo */}
+          <div className="w-[48%] flex justify-center mt-2 -translate-y-[20px]">
+            <Image
+              src="/images/linkod-app-logo-main.png"
+              alt="Linkod App Logo"
+              width={300}
+              height={300}
+              priority
+              className="w-full h-auto object-contain drop-shadow-md scale-[1.70]"
+            />
           </div>
         </div>
 
