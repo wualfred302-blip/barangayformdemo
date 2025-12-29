@@ -21,7 +21,7 @@ export default function Home() {
           />
           
           {/* Background Logo with Overlay */}
-          <div className="absolute top-[260px] left-1/2 -translate-x-1/2 w-[400px] pointer-events-none opacity-100 z-10">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] pointer-events-none opacity-100 z-10">
             <div className="relative">
               <Image
                 src="/images/linkod-app-logo-main.png"
