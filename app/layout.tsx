@@ -1,17 +1,9 @@
-import type React from "react"
+import React from "react"
 import type { Metadata, Viewport } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
-// Direct imports (no dynamic/ssr:false) - Next.js handles hydration
-import { AuthProvider } from "@/lib/auth-context"
-import { ResidentsProvider } from "@/lib/residents-context"
-import { CertificateProvider } from "@/lib/certificate-context"
-import { BlotterProvider } from "@/lib/blotter-context"
-import { AnnouncementsProvider } from "@/lib/announcements-context"
-import { BayanihanProvider } from "@/lib/bayanihan-context"
-import { PaymentProvider } from "@/lib/payment-context"
-import { QRTProvider } from "@/lib/qrt-context"
 import { Toaster } from "sonner"
+import { ProvidersWrapper } from "@/components/providers-wrapper"
 
 import { Inter, Inter as V0_Font_Inter, Geist_Mono as V0_Font_Geist_Mono, Source_Serif_4 as V0_Font_Source_Serif_4 } from 'next/font/google'
 
@@ -55,25 +47,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} antialiased`}>
-        <AuthProvider>
-          <ResidentsProvider>
-            <PaymentProvider>
-              <QRTProvider>
-                <CertificateProvider>
-                  <BlotterProvider>
-                    <AnnouncementsProvider>
-                      <BayanihanProvider>
-                        {children}
-                      </BayanihanProvider>
-                    </AnnouncementsProvider>
-                  </BlotterProvider>
-                </CertificateProvider>
-              </QRTProvider>
-            </PaymentProvider>
-          </ResidentsProvider>
-        </AuthProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
+        <ProvidersWrapper>{children}</ProvidersWrapper>
         <Toaster />
         <Analytics />
       </body>
