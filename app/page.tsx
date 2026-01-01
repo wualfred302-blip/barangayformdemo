@@ -9,40 +9,28 @@ export default function Home() {
     <main className="min-h-screen bg-white flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="max-w-md w-full flex flex-col items-center text-center space-y-8 relative">
         {/* Logo Section */}
-        <div className="flex flex-row flex-wrap items-center justify-center gap-y-14 gap-x-2 w-full -mb-3 mt-12 px-1">
+        <div className="flex flex-col items-center justify-center space-y-6 w-full -mt-10 mb-2 px-1">
           {/* Bagong Pilipinas Logo */}
-          <div className="w-[48%] flex justify-center -translate-y-[30px]">
+          <div className="w-[60%] flex justify-center">
             <Image
               src="/images/bagongpilipinas-logo-main.png"
               alt="Bagong Pilipinas Logo"
-              width={300}
-              height={300}
+              width={400}
+              height={400}
               priority
-              className="w-full h-auto object-contain drop-shadow-sm scale-[1.55]"
-            />
-          </div>
-          
-          {/* Punong Barangay Logo */}
-          <div className="w-[48%] flex justify-center -translate-y-[30px]">
-            <Image
-              src="/images/Punongbarangay.logo.png"
-              alt="Punong Barangay Logo"
-              width={300}
-              height={300}
-              priority
-              className="w-full h-auto object-contain drop-shadow-sm scale-135"
+              className="w-full h-auto object-contain drop-shadow-sm"
             />
           </div>
 
           {/* Linkod App Logo */}
-          <div className="w-[48%] flex justify-center mt-2 -translate-y-[20px]">
+          <div className="w-[45%] flex justify-center">
             <Image
               src="/images/linkod-app-logo-main.png"
               alt="Linkod App Logo"
-              width={300}
-              height={300}
+              width={400}
+              height={400}
               priority
-              className="w-full h-auto object-contain drop-shadow-md scale-[1.70]"
+              className="w-full h-auto object-contain drop-shadow-md scale-[1.25]"
             />
           </div>
         </div>
