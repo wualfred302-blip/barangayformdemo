@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, ChangeEvent } from "react"
+import { useState, useEffect, useCallback, ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
@@ -56,6 +56,120 @@ const calculateAge = (birthDate: string): number => {
   return age
 }
 
+const getDaysInMonth = (month: number, year: number): number => {
+  if (!month || !year) return 31
+  const lastDay = new Date(year, month, 0)
+  return lastDay.getDate()
+}
+
+interface DateDropdownProps {
+  value: string
+  onChange: (isoDate: string) => void
+  hasError?: boolean
+}
+
+function DateDropdown({ value, onChange, hasError }: DateDropdownProps) {
+  const parsedDate = value ? new Date(value) : null
+  const [selectedMonth, setSelectedMonth] = useState<number>(parsedDate?.getMonth() + 1 || 0)
+  const [selectedDay, setSelectedDay] = useState<number>(parsedDate?.getDate() || 0)
+  const [selectedYear, setSelectedYear] = useState<number>(parsedDate?.getFullYear() || 0)
+  const [lastCalledIsoDate, setLastCalledIsoDate] = useState<string>("")
+
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ]
+
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: currentYear - 1920 + 1 }, (_, i) => currentYear - i)
+
+  const maxDays = getDaysInMonth(selectedMonth, selectedYear)
+  const days = Array.from({ length: maxDays }, (_, i) => i + 1)
+
+  useEffect(() => {
+    if (selectedMonth && selectedDay && selectedYear) {
+      const validDay = Math.min(selectedDay, maxDays)
+      const isoDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(validDay).padStart(2, '0')}`
+      
+      // Only call onChange if the ISO date has actually changed
+      if (isoDate !== lastCalledIsoDate) {
+        onChange(isoDate)
+        setLastCalledIsoDate(isoDate)
+      }
+
+      if (validDay !== selectedDay) {
+        setSelectedDay(validDay)
+      }
+    }
+  }, [selectedMonth, selectedDay, selectedYear, maxDays, onChange, lastCalledIsoDate])
+
+  return (
+    <div className="grid grid-cols-[2fr_1fr_1.5fr] gap-3">
+      {/* Month */}
+      <Select
+        value={selectedMonth ? String(selectedMonth) : ""}
+        onValueChange={(val) => setSelectedMonth(parseInt(val))}
+      >
+        <SelectTrigger className={cn(
+          "h-14 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all font-medium",
+          hasError && !selectedMonth && "border-red-200 bg-red-50"
+        )}>
+          <SelectValue placeholder="Month" />
+        </SelectTrigger>
+        <SelectContent className="rounded-2xl max-h-[300px]">
+          {months.map((month, index) => (
+            <SelectItem key={month} value={String(index + 1)} className="font-medium">
+              {month}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Day */}
+      <Select
+        value={selectedDay ? String(selectedDay) : ""}
+        onValueChange={(val) => setSelectedDay(parseInt(val))}
+        disabled={!selectedMonth || !selectedYear}
+      >
+        <SelectTrigger className={cn(
+          "h-14 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all font-bold text-center",
+          hasError && !selectedDay && "border-red-200 bg-red-50",
+          (!selectedMonth || !selectedYear) && "opacity-50 cursor-not-allowed"
+        )}>
+          <SelectValue placeholder="Day" />
+        </SelectTrigger>
+        <SelectContent className="rounded-2xl max-h-[300px]">
+          {days.map((day) => (
+            <SelectItem key={day} value={String(day)} className="font-bold text-center">
+              {day}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Year */}
+      <Select
+        value={selectedYear ? String(selectedYear) : ""}
+        onValueChange={(val) => setSelectedYear(parseInt(val))}
+      >
+        <SelectTrigger className={cn(
+          "h-14 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all font-bold text-center",
+          hasError && !selectedYear && "border-red-200 bg-red-50"
+        )}>
+          <SelectValue placeholder="Year" />
+        </SelectTrigger>
+        <SelectContent className="rounded-2xl max-h-[300px]">
+          {years.map((year) => (
+            <SelectItem key={year} value={String(year)} className="font-bold">
+              {year}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
 export default function QrtIdRequestPage() {
   const { user } = useAuth()
   const { setCurrentRequestImmediate, qrtIds } = useQRT()
@@ -106,6 +220,11 @@ export default function QrtIdRequestPage() {
       return newData
     })
   }
+
+  // Memoize the birth-date handler to provide stable reference to DateDropdown
+  const handleBirthDateChange = useCallback((isoDate: string) => {
+    handleInputChange("birthDate", isoDate)
+  }, [handleInputChange])
 
   const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -256,14 +375,10 @@ export default function QrtIdRequestPage() {
                         <Calendar className="h-4 w-4 text-emerald-500" />
                         Birth Date
                       </Label>
-                      <Input
-                        type="date"
+                      <DateDropdown
                         value={formData.birthDate}
-                        onChange={(e) => handleInputChange("birthDate", e.target.value)}
-                        className={cn(
-                          "h-14 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all",
-                          showErrors && !formData.birthDate && "border-red-200 bg-red-50"
-                        )}
+                        onChange={handleBirthDateChange}
+                        hasError={showErrors && !formData.birthDate}
                       />
                     </div>
                     <div className="space-y-2">

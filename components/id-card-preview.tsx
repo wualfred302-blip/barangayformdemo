@@ -57,8 +57,27 @@ export function IDCardPreview({
   return (
     <>
       <Card className="overflow-hidden rounded-[32px] border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white">
-        <CardContent className="p-6">
-          <div className="mb-5 flex items-center justify-between">
+        <CardContent className="px-6 pb-6 pt-0">
+          {/* Green Banner */}
+          <div className="relative h-20 bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 -mx-6 -mt-0 mb-0 rounded-t-[32px] overflow-hidden">
+            {/* Subtle background pattern */}
+            <div className="absolute inset-0 bg-[url('/images/bagongpilipinas-logo-main.png')] bg-center bg-no-repeat opacity-5 bg-[length:150px]" />
+
+            {/* Content */}
+            <div className="relative z-10 h-full flex items-center justify-center gap-3 px-6">
+              <div className="relative h-12 w-12 flex-shrink-0">
+                <Image
+                  src="/images/bagongpilipinas-logo-main.png"
+                  alt="Bagong Pilipinas"
+                  fill
+                  className="object-contain drop-shadow-lg"
+                />
+              </div>
+              <h2 className="text-white font-black text-lg leading-tight">Official ID Card</h2>
+            </div>
+          </div>
+
+          <div className="mt-5 mb-5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-emerald-50 flex items-center justify-center">
                 <ShieldCheck className="h-5 w-5 text-emerald-600" />

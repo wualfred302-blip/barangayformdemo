@@ -73,10 +73,19 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
 
     // Header bar
     const headerGradient = frontCtx.createLinearGradient(0, 0, 856, 0)
-    headerGradient.addColorStop(0, "#2563eb")
-    headerGradient.addColorStop(1, "#1e40af")
+    headerGradient.addColorStop(0, "#10b981")
+    headerGradient.addColorStop(0.5, "#059669")
+    headerGradient.addColorStop(1, "#10b981")
     frontCtx.fillStyle = headerGradient
     frontCtx.fillRect(0, 0, 856, 60)
+
+    // Try to load and draw Bagong Pilipinas logo in header
+    try {
+      const logo = await loadImage("/images/bagongpilipinas-logo-main.png")
+      frontCtx.drawImage(logo, 20, 10, 45, 40)
+    } catch (e) {
+      console.log("[v0] Could not load Bagong Pilipinas logo")
+    }
 
     // Header text - left
     frontCtx.fillStyle = "#ffffff"
@@ -92,7 +101,7 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
     frontCtx.fillText("QRT ID", 650, 46)
 
     // Photo placeholder/frame
-    frontCtx.strokeStyle = "#2563eb"
+    frontCtx.strokeStyle = "#10b981"
     frontCtx.lineWidth = 3
     frontCtx.strokeRect(32, 80, 180, 220)
     frontCtx.fillStyle = "#f3f4f6"
@@ -115,8 +124,8 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
 
     // Verification code box
     const vcGradient = frontCtx.createLinearGradient(32, 315, 212, 315)
-    vcGradient.addColorStop(0, "#2563eb")
-    vcGradient.addColorStop(1, "#1e40af")
+    vcGradient.addColorStop(0, "#10b981")
+    vcGradient.addColorStop(1, "#059669")
     frontCtx.fillStyle = vcGradient
     roundRect(frontCtx, 32, 315, 180, 60, 4)
     frontCtx.fill()
