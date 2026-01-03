@@ -25,7 +25,7 @@ The product-planner will:
 
 After all steps are complete, output the following to inform the user:
 
-```
+\`\`\`
 Your product planning is all set!
 
 ✅ Product mission: `agent-os/product/mission.md`
@@ -33,4 +33,4 @@ Your product planning is all set!
 ✅ Product tech stack: `agent-os/product/tech-stack.md`
 
 NEXT STEP 👉 Run `/shape-spec` or `/write-spec` to start work on a feature!
-```
+\`\`\`

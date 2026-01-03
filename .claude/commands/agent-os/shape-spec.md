@@ -41,7 +41,7 @@ The spec-shaper will give you several separate responses that you MUST show to t
 
 After all steps complete, inform the user:
 
-```
+\`\`\`
 Spec shaping is complete!
 
 ✅ Spec folder created: `[spec-path]`
@@ -49,4 +49,4 @@ Spec shaping is complete!
 ✅ Visual assets: [Found X files / No files provided]
 
 NEXT STEP 👉 Run `/write-spec` to generate the detailed specification document.
-```
+\`\`\`
