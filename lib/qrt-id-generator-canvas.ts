@@ -89,109 +89,120 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
 
     // Header text - left
     frontCtx.fillStyle = "#ffffff"
-    frontCtx.font = "bold 10px Arial"
-    frontCtx.fillText("REPUBLIKA NG PILIPINAS", 80, 26)
-    frontCtx.font = "bold 12px Arial"
-    frontCtx.fillText("BARANGAY MAWAQUE", 80, 42)
+    frontCtx.font = "bold 18px Arial"
+    frontCtx.fillText("REPUBLIKA NG PILIPINAS", 80, 24)
+    frontCtx.font = "bold 22px Arial"
+    frontCtx.fillText("BARANGAY MAWAQUE", 80, 48)
 
     // Header text - right
-    frontCtx.font = "bold 14px Arial"
-    frontCtx.fillText("QUICK RESPONSE TEAM", 650, 22)
     frontCtx.font = "bold 20px Arial"
-    frontCtx.fillText("QRT ID", 650, 46)
+    frontCtx.fillText("QUICK RESPONSE TEAM", 620, 24)
+    frontCtx.font = "bold 28px Arial"
+    frontCtx.fillText("QRT ID", 620, 52)
 
     // Photo placeholder/frame
     frontCtx.strokeStyle = "#10b981"
     frontCtx.lineWidth = 3
-    frontCtx.strokeRect(32, 80, 180, 220)
+    frontCtx.strokeRect(32, 60, 180, 220)
     frontCtx.fillStyle = "#f3f4f6"
-    frontCtx.fillRect(35, 83, 174, 214)
+    frontCtx.fillRect(35, 63, 174, 214)
 
     // Try to load and draw photo
     try {
       if (data.photoUrl && data.photoUrl.startsWith("data:")) {
         const photo = await loadImage(data.photoUrl)
-        frontCtx.drawImage(photo, 35, 83, 174, 214)
+        frontCtx.drawImage(photo, 35, 63, 174, 214)
       }
     } catch (e) {
       console.log("[v0] Could not load photo, using placeholder")
       frontCtx.fillStyle = "#9ca3af"
-      frontCtx.font = "14px Arial"
+      frontCtx.font = "16px Arial"
       frontCtx.textAlign = "center"
-      frontCtx.fillText("Photo", 122, 190)
+      frontCtx.fillText("Photo", 122, 170)
       frontCtx.textAlign = "left"
     }
 
+    // Sideways QRT (left edge, CCW)
+    frontCtx.save()
+    frontCtx.translate(25, 270)
+    frontCtx.rotate(-Math.PI / 2)
+    frontCtx.font = "bold 22px Arial"
+    frontCtx.fillStyle = "#10b981"
+    frontCtx.textAlign = "center"
+    frontCtx.textBaseline = "middle"
+    frontCtx.fillText(data.qrtCode, 0, 0)
+    frontCtx.restore()
+
     // Verification code box
-    const vcGradient = frontCtx.createLinearGradient(32, 315, 212, 315)
+    const vcGradient = frontCtx.createLinearGradient(32, 295, 212, 295)
     vcGradient.addColorStop(0, "#10b981")
     vcGradient.addColorStop(1, "#059669")
     frontCtx.fillStyle = vcGradient
-    roundRect(frontCtx, 32, 315, 180, 60, 4)
+    roundRect(frontCtx, 32, 295, 180, 60, 4)
     frontCtx.fill()
 
     frontCtx.fillStyle = "#ffffff"
-    frontCtx.font = "bold 9px Arial"
+    frontCtx.font = "bold 14px Arial"
     frontCtx.textAlign = "center"
-    frontCtx.fillText("VERIFICATION CODE", 122, 332)
-    frontCtx.font = "bold 11px Arial"
-    frontCtx.fillText(data.verificationCode, 122, 350)
-    frontCtx.font = "8px Arial"
+    frontCtx.fillText("VERIFICATION CODE", 122, 312)
+    frontCtx.font = "bold 16px Arial"
+    frontCtx.fillText(data.verificationCode, 122, 332)
+    frontCtx.font = "12px Arial"
     frontCtx.fillStyle = "#d1d5db"
-    frontCtx.fillText("Scan for secure verification", 122, 365)
+    frontCtx.fillText("Scan for secure verification", 122, 348)
     frontCtx.textAlign = "left"
 
     // Personal info section
     frontCtx.fillStyle = "#374151"
-    frontCtx.font = "bold 11px Arial"
-    frontCtx.fillText("FULL NAME", 240, 100)
+    frontCtx.font = "bold 16px Arial"
+    frontCtx.fillText("FULL NAME", 240, 80)
     frontCtx.fillStyle = "#111827"
-    frontCtx.font = "bold 18px Arial"
-    frontCtx.fillText(data.fullName.toUpperCase(), 240, 122)
+    frontCtx.font = "bold 38px Arial"
+    frontCtx.fillText(data.fullName.toUpperCase(), 240, 120)
 
     frontCtx.fillStyle = "#6b7280"
-    frontCtx.font = "10px Arial"
+    frontCtx.font = "bold 16px Arial"
     frontCtx.fillText("DATE OF BIRTH", 240, 155)
     frontCtx.fillStyle = "#111827"
-    frontCtx.font = "bold 13px Arial"
-    frontCtx.fillText(data.birthDate, 240, 172)
+    frontCtx.font = "bold 24px Arial"
+    frontCtx.fillText(data.birthDate, 240, 182)
 
     frontCtx.fillStyle = "#6b7280"
-    frontCtx.font = "10px Arial"
+    frontCtx.font = "bold 16px Arial"
     frontCtx.fillText("GENDER", 450, 155)
     frontCtx.fillStyle = "#111827"
-    frontCtx.font = "bold 13px Arial"
-    frontCtx.fillText(data.gender, 450, 172)
+    frontCtx.font = "bold 24px Arial"
+    frontCtx.fillText(data.gender, 450, 182)
 
     frontCtx.fillStyle = "#6b7280"
-    frontCtx.font = "10px Arial"
-    frontCtx.fillText("CIVIL STATUS", 240, 205)
+    frontCtx.font = "bold 16px Arial"
+    frontCtx.fillText("CIVIL STATUS", 240, 215)
     frontCtx.fillStyle = "#111827"
-    frontCtx.font = "bold 13px Arial"
-    frontCtx.fillText(data.civilStatus, 240, 222)
+    frontCtx.font = "bold 24px Arial"
+    frontCtx.fillText(data.civilStatus, 240, 242)
 
     frontCtx.fillStyle = "#6b7280"
-    frontCtx.font = "10px Arial"
-    frontCtx.fillText("BIRTH PLACE", 450, 205)
+    frontCtx.font = "bold 16px Arial"
+    frontCtx.fillText("BIRTH PLACE", 450, 215)
     frontCtx.fillStyle = "#111827"
-    frontCtx.font = "bold 13px Arial"
-    frontCtx.fillText(data.birthPlace.substring(0, 40), 450, 222)
+    frontCtx.font = "bold 24px Arial"
+    frontCtx.fillText(data.birthPlace.substring(0, 35), 450, 242)
 
     frontCtx.fillStyle = "#6b7280"
-    frontCtx.font = "10px Arial"
-    frontCtx.fillText("ADDRESS", 240, 255)
+    frontCtx.font = "bold 16px Arial"
+    frontCtx.fillText("ADDRESS", 240, 275)
     frontCtx.fillStyle = "#111827"
-    frontCtx.font = "bold 13px Arial"
+    frontCtx.font = "bold 24px Arial"
     // Word wrap address
     const words = data.address.split(" ")
     let line = ""
-    let y = 272
+    let y = 302
     for (const word of words) {
       const testLine = line + word + " "
-      if (frontCtx.measureText(testLine).width > 580) {
+      if (frontCtx.measureText(testLine).width > 560) {
         frontCtx.fillText(line, 240, y)
         line = word + " "
-        y += 18
+        y += 26
       } else {
         line = testLine
       }
@@ -210,18 +221,19 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
 
     // Footer bar
     frontCtx.fillStyle = "#374151"
-    frontCtx.fillRect(0, 490, 856, 50)
+    frontCtx.fillRect(0, 480, 856, 60)
 
     frontCtx.fillStyle = "#ffffff"
-    frontCtx.font = "bold 11px Arial"
-    frontCtx.fillText(`Issued: ${data.issuedDate}`, 32, 508)
-    frontCtx.font = "9px Arial"
+    frontCtx.font = "bold 16px Arial"
+    frontCtx.fillText(`Issued: ${data.issuedDate}`, 32, 505)
+    frontCtx.font = "14px Arial"
     frontCtx.fillStyle = "#d1d5db"
-    frontCtx.fillText("BARANGAY MAWAQUE LINKOD", 32, 525)
+    frontCtx.fillText("BARANGAY MAWAQUE LINKOD", 32, 527)
 
     frontCtx.textAlign = "right"
-    frontCtx.fillText("This card is property of Barangay Mawaque", 824, 508)
-    frontCtx.fillText("Return if found. Valid for one year from issue date.", 824, 523)
+    frontCtx.font = "bold 14px Arial"
+    frontCtx.fillText("This card is property of Barangay Mawaque", 824, 505)
+    frontCtx.fillText("Return if found. Valid for one year from issue date.", 824, 527)
     frontCtx.textAlign = "left"
 
     // Generate back image
@@ -245,43 +257,54 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
     backCtx.fillRect(0, 0, 856, 50)
 
     backCtx.fillStyle = "#ffffff"
-    backCtx.font = "bold 16px Arial"
+    backCtx.font = "bold 26px Arial"
     backCtx.textAlign = "center"
-    backCtx.fillText("EMERGENCY CONTACT INFORMATION", 428, 32)
+    backCtx.fillText("EMERGENCY CONTACT INFORMATION", 428, 36)
     backCtx.textAlign = "left"
+
+    // Sideways QRT (right edge, CW)
+    backCtx.save()
+    backCtx.translate(830, 270)
+    backCtx.rotate(Math.PI / 2)
+    backCtx.font = "bold 28px Arial"
+    backCtx.fillStyle = "#374151"
+    backCtx.textAlign = "center"
+    backCtx.textBaseline = "middle"
+    backCtx.fillText(data.qrtCode, 0, 0)
+    backCtx.restore()
 
     // Emergency contact details
     backCtx.fillStyle = "#6b7280"
-    backCtx.font = "10px Arial"
-    backCtx.fillText("CONTACT PERSON", 50, 90)
-    backCtx.fillStyle = "#111827"
     backCtx.font = "bold 16px Arial"
-    backCtx.fillText(data.emergencyContactName, 50, 115)
-
-    backCtx.fillStyle = "#6b7280"
-    backCtx.font = "10px Arial"
-    backCtx.fillText("RELATIONSHIP", 50, 150)
+    backCtx.fillText("CONTACT PERSON", 50, 85)
     backCtx.fillStyle = "#111827"
-    backCtx.font = "bold 14px Arial"
-    backCtx.fillText(data.emergencyContactRelationship, 50, 172)
+    backCtx.font = "bold 28px Arial"
+    backCtx.fillText(data.emergencyContactName, 50, 118)
 
     backCtx.fillStyle = "#6b7280"
-    backCtx.font = "10px Arial"
-    backCtx.fillText("CONTACT NUMBER", 50, 210)
+    backCtx.font = "bold 16px Arial"
+    backCtx.fillText("RELATIONSHIP", 50, 155)
+    backCtx.fillStyle = "#111827"
+    backCtx.font = "bold 24px Arial"
+    backCtx.fillText(data.emergencyContactRelationship, 50, 182)
+
+    backCtx.fillStyle = "#6b7280"
+    backCtx.font = "bold 16px Arial"
+    backCtx.fillText("CONTACT NUMBER", 50, 220)
     backCtx.fillStyle = "#dc2626"
-    backCtx.font = "bold 18px Arial"
-    backCtx.fillText(data.emergencyContactPhone, 50, 235)
+    backCtx.font = "bold 34px Arial"
+    backCtx.fillText(data.emergencyContactPhone, 50, 258)
 
     backCtx.fillStyle = "#6b7280"
-    backCtx.font = "10px Arial"
-    backCtx.fillText("ADDRESS", 50, 275)
+    backCtx.font = "bold 16px Arial"
+    backCtx.fillText("ADDRESS", 50, 300)
     backCtx.fillStyle = "#111827"
-    backCtx.font = "bold 13px Arial"
-    backCtx.fillText(data.emergencyContactAddress.substring(0, 60), 50, 297)
+    backCtx.font = "bold 24px Arial"
+    backCtx.fillText(data.emergencyContactAddress.substring(0, 55), 50, 330)
 
     // QR Code section
     backCtx.fillStyle = "#ffffff"
-    roundRect(backCtx, 550, 80, 260, 260, 12)
+    roundRect(backCtx, 540, 70, 260, 260, 12)
     backCtx.fill()
     backCtx.strokeStyle = "#e5e7eb"
     backCtx.lineWidth = 1
@@ -295,7 +318,7 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
       } catch (e) {
         console.log("[v0] Could not load QR code image")
         backCtx.fillStyle = "#9ca3af"
-        backCtx.font = "14px Arial"
+        backCtx.font = "16px Arial"
         backCtx.textAlign = "center"
         backCtx.fillText("QR Code", 680, 210)
         backCtx.textAlign = "left"
@@ -303,7 +326,7 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
     }
 
     backCtx.fillStyle = "#6b7280"
-    backCtx.font = "10px Arial"
+    backCtx.font = "12px Arial"
     backCtx.textAlign = "center"
     backCtx.fillText("Scan to verify authenticity", 680, 355)
     backCtx.textAlign = "left"
@@ -313,20 +336,24 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
     backCtx.fillRect(0, 400, 856, 140)
 
     backCtx.fillStyle = "#fbbf24"
-    backCtx.font = "bold 12px Arial"
-    backCtx.fillText("IMPORTANT NOTICES:", 50, 430)
+    backCtx.font = "bold 18px Arial"
+    backCtx.fillText("IMPORTANT NOTICES:", 50, 428)
 
     backCtx.fillStyle = "#d1d5db"
-    backCtx.font = "11px Arial"
-    backCtx.fillText("• This ID is valid for one (1) year from the date of issue.", 50, 455)
-    backCtx.fillText("• Report lost or stolen IDs immediately to Barangay Hall.", 50, 475)
-    backCtx.fillText("• Tampering or unauthorized reproduction is punishable by law.", 50, 495)
+    backCtx.font = "bold 16px Arial"
+    backCtx.fillText("• This ID is valid for one (1) year from the date of issue.", 50, 458)
+    backCtx.fillText("• Report lost or stolen IDs immediately to Barangay Hall.", 50, 485)
+    backCtx.fillText("• Tampering or unauthorized reproduction is punishable by law.", 50, 512)
 
     backCtx.fillStyle = "#9ca3af"
-    backCtx.font = "9px Arial"
+    backCtx.font = "bold 16px Arial"
     backCtx.textAlign = "center"
-    backCtx.fillText(`QRT Code: ${data.qrtCode} | Expires: ${data.expiryDate}`, 428, 525)
+    backCtx.fillText(`QRT Code: ${data.qrtCode} | Expires: ${data.expiryDate}`, 428, 530)
     backCtx.textAlign = "left"
+
+    // Set smoothing to false for crisp text
+    frontCtx.imageSmoothingEnabled = false
+    backCtx.imageSmoothingEnabled = false
 
     // Export to data URLs
     const frontImageUrl = frontCanvas.toDataURL("image/png")

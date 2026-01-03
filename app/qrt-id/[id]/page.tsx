@@ -268,9 +268,9 @@ export default function QrtIdDetailPage() {
   const isReady = ["ready", "issued"].includes(qrtId.status)
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F9FAFB]">
+    <div className="flex min-h-screen flex-col bg-[#F9FAFB] pb-24 pt-12 px-4 max-w-none">
       {/* Premium Header */}
-      <header className="sticky top-0 z-30 flex h-16 items-center bg-white/80 backdrop-blur-xl px-4 border-b border-gray-100">
+      <header className="fixed top-0 left-0 right-0 z-30 flex h-16 items-center bg-white/80 backdrop-blur-xl px-4 border-b border-gray-100">
         <button
           onClick={() => router.back()}
           className="mr-4 h-10 w-10 flex items-center justify-center rounded-xl hover:bg-gray-50 transition-colors"
@@ -286,7 +286,7 @@ export default function QrtIdDetailPage() {
         </div>
       </header>
 
-      <main className="flex-1 space-y-6 px-4 pt-6 pb-32 max-w-2xl mx-auto w-full">
+      <main className="flex-1 space-y-6 w-full max-w-2xl mx-auto">
         {/* ID Card Experience */}
         <motion.div variants={slideUp} initial="hidden" animate="visible">
           <IDCardPreview
@@ -299,36 +299,43 @@ export default function QrtIdDetailPage() {
           />
         </motion.div>
 
-        {/* Action Grid */}
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-2 gap-3">
-          <motion.div variants={fadeIn}>
-            <Button
-              variant="outline"
-              onClick={handleShare}
-              className="h-16 w-full rounded-2xl border-gray-100 bg-white shadow-sm flex flex-col items-center justify-center gap-1 group active:scale-95 transition-all"
-            >
-              {isCopied ? (
-                <Check className="h-5 w-5 text-emerald-500 animate-in zoom-in" />
-              ) : (
-                <Share2 className="h-5 w-5 text-gray-400 group-hover:text-emerald-500 transition-colors" />
-              )}
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                {isCopied ? "Copied" : "Share ID"}
-              </span>
-            </Button>
+        {/* Action Grid - Bottom Fixed */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-white/80 backdrop-blur-xl border-t border-gray-100">
+          <motion.div 
+            variants={staggerContainer} 
+            initial="hidden" 
+            animate="visible" 
+            className="grid grid-cols-2 gap-2 max-w-2xl mx-auto"
+          >
+            <motion.div variants={fadeIn}>
+              <Button
+                variant="outline"
+                onClick={handleShare}
+                className="h-14 w-full rounded-2xl border-gray-100 bg-white shadow-sm flex flex-col items-center justify-center gap-1 group active:scale-95 transition-all"
+              >
+                {isCopied ? (
+                  <Check className="h-5 w-5 text-emerald-500 animate-in zoom-in" />
+                ) : (
+                  <Share2 className="h-5 w-5 text-gray-400 group-hover:text-emerald-500 transition-colors" />
+                )}
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                  {isCopied ? "Copied" : "Share ID"}
+                </span>
+              </Button>
+            </motion.div>
+            <motion.div variants={fadeIn}>
+              <Button
+                variant="outline"
+                onClick={handlePrint}
+                disabled={!isReady}
+                className="h-14 w-full rounded-2xl border-gray-100 bg-white shadow-sm flex flex-col items-center justify-center gap-1 group active:scale-95 transition-all disabled:opacity-50"
+              >
+                <Printer className="h-5 w-5 text-gray-400 group-hover:text-emerald-500 transition-colors" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Print Copy</span>
+              </Button>
+            </motion.div>
           </motion.div>
-          <motion.div variants={fadeIn}>
-            <Button
-              variant="outline"
-              onClick={handlePrint}
-              disabled={!isReady}
-              className="h-16 w-full rounded-2xl border-gray-100 bg-white shadow-sm flex flex-col items-center justify-center gap-1 group active:scale-95 transition-all disabled:opacity-50"
-            >
-              <Printer className="h-5 w-5 text-gray-400 group-hover:text-emerald-500 transition-colors" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Print Copy</span>
-            </Button>
-          </motion.div>
-        </motion.div>
+        </div>
 
         {/* Verification QR Section */}
         <motion.div variants={slideUp} initial="hidden" animate="visible">

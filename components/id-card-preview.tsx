@@ -95,58 +95,86 @@ export function IDCardPreview({
             </Button>
           </div>
           
-          <div className="perspective-1000">
-            <motion.div 
-              animate={{ rotateY: showBackSide ? 180 : 0 }}
-              transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
-              className="relative aspect-[1.586] w-full preserve-3d cursor-zoom-in group"
-              onClick={() => setIsZoomed(true)}
+          {/* Portrait container - sized for rotated card display */}
+          <div
+            className="relative w-full mx-auto overflow-visible"
+            style={{
+              maxWidth: '320px',
+              aspectRatio: '540 / 856'  // Portrait ratio (card height / card width when rotated)
+            }}
+          >
+            {/* Rotation wrapper - rotates the landscape card to portrait */}
+            <div
+              className="absolute left-1/2 top-1/2"
+              style={{
+                width: 'calc(856 / 540 * 100%)',  // Landscape width relative to portrait container
+                aspectRatio: '856 / 540',
+                transform: 'translate(-50%, -50%) rotate(90deg)',
+                transformOrigin: 'center'
+              }}
             >
-              {/* Front Side */}
-              <div className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden bg-gray-50 shadow-sm border border-gray-100">
-                {frontImageUrl ? (
-                  <Image 
-                    src={frontImageUrl} 
-                    alt={`Front of ID for ${fullName}`} 
-                    fill 
-                    className="object-cover transition-transform duration-500 group-hover:scale-105" 
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 text-gray-400">
-                    <div className="h-12 w-12 rounded-full bg-white/50 flex items-center justify-center mb-2">
-                      <RefreshCw className="h-6 w-6 animate-spin-slow opacity-20" />
-                    </div>
-                    <p className="text-sm font-bold opacity-60">Processing Front Side...</p>
+              {/* Perspective container - SEPARATE from rotation for proper 3D */}
+              <div className="perspective-2000 w-full h-full">
+                <motion.div
+                  animate={{ rotateX: showBackSide ? 180 : 0 }}
+                  transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
+                  className="relative w-full h-full preserve-3d cursor-zoom-in group"
+                  onClick={() => setIsZoomed(true)}
+                >
+                  {/* Front Side */}
+                  <div
+                    className="absolute inset-0 rounded-2xl overflow-hidden bg-gray-50 shadow-xl border border-gray-200"
+                    style={{ backfaceVisibility: 'hidden' }}
+                  >
+                    {frontImageUrl ? (
+                      <Image
+                        src={frontImageUrl}
+                        alt={`Front of ID for ${fullName}`}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        priority
+                      />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 text-gray-400">
+                        <div className="h-12 w-12 rounded-full bg-white/50 flex items-center justify-center mb-2">
+                          <RefreshCw className="h-6 w-6 animate-spin-slow opacity-20" />
+                        </div>
+                        <p className="text-sm font-bold opacity-60">Processing Front Side...</p>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/5" />
                   </div>
-                )}
-                {/* Overlay Hint */}
-                <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/5" />
-              </div>
 
-              {/* Back Side */}
-              <div className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden bg-gray-50 shadow-sm border border-gray-100 rotate-y-180">
-                {backImageUrl ? (
-                  <Image 
-                    src={backImageUrl} 
-                    alt={`Back of ID for ${fullName}`} 
-                    fill 
-                    className="object-cover transition-transform duration-500 group-hover:scale-105" 
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 text-gray-400">
-                    <div className="h-12 w-12 rounded-full bg-white/50 flex items-center justify-center mb-2">
-                      <RefreshCw className="h-6 w-6 animate-spin-slow opacity-20" />
-                    </div>
-                    <p className="text-sm font-bold opacity-60">Processing Back Side...</p>
+                  {/* Back Side */}
+                  <div
+                    className="absolute inset-0 rounded-2xl overflow-hidden bg-gray-50 shadow-xl border border-gray-200"
+                    style={{ backfaceVisibility: 'hidden', transform: 'rotateX(180deg)' }}
+                  >
+                    {backImageUrl ? (
+                      <Image
+                        src={backImageUrl}
+                        alt={`Back of ID for ${fullName}`}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        priority
+                      />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 text-gray-400">
+                        <div className="h-12 w-12 rounded-full bg-white/50 flex items-center justify-center mb-2">
+                          <RefreshCw className="h-6 w-6 animate-spin-slow opacity-20" />
+                        </div>
+                        <p className="text-sm font-bold opacity-60">Processing Back Side...</p>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/5" />
                   </div>
-                )}
-                <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/5" />
-              </div>
 
-              <div className="absolute bottom-3 right-3 rounded-full bg-white/90 backdrop-blur-sm p-2 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <ZoomIn className="h-4 w-4 text-gray-600" />
+                  <div className="absolute bottom-3 right-3 rounded-full bg-white/90 backdrop-blur-sm p-2 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <ZoomIn className="h-4 w-4 text-gray-600" />
+                  </div>
+                </motion.div>
               </div>
-            </motion.div>
+            </div>
           </div>
           
           <div className="mt-6 flex flex-col items-center gap-4">
@@ -208,26 +236,43 @@ export function IDCardPreview({
               <X className="h-8 w-8" />
             </Button>
 
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-4xl aspect-[1.586] overflow-hidden rounded-2xl shadow-2xl"
+              className="relative flex items-center justify-center"
+              style={{
+                width: 'min(90vw, 400px)',
+                aspectRatio: '540 / 856'  // Portrait aspect ratio
+              }}
               onClick={(e) => e.stopPropagation()}
             >
-              {currentImage ? (
-                <Image
-                  src={currentImage}
-                  alt={imageAlt}
-                  fill
-                  className="object-contain"
-                  quality={100}
-                />
-              ) : (
-                 <div className="flex h-full w-full items-center justify-center bg-gray-900 text-white font-bold">
-                   Image not ready
-                 </div>
-              )}
+              {/* Rotation wrapper for zoom modal */}
+              <div
+                className="absolute left-1/2 top-1/2"
+                style={{
+                  width: 'calc(856 / 540 * 100%)',
+                  aspectRatio: '856 / 540',
+                  transform: 'translate(-50%, -50%) rotate(90deg)',
+                  transformOrigin: 'center'
+                }}
+              >
+                <div className="relative w-full h-full overflow-hidden rounded-3xl shadow-2xl bg-white">
+                  {currentImage ? (
+                    <Image
+                      src={currentImage}
+                      alt={imageAlt}
+                      fill
+                      className="object-contain"
+                      quality={100}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gray-900 text-white font-bold">
+                      Image not ready
+                    </div>
+                  )}
+                </div>
+              </div>
             </motion.div>
             
             <div className="mt-8 text-center text-white">
@@ -245,17 +290,12 @@ export function IDCardPreview({
       </AnimatePresence>
 
       <style jsx global>{`
-        .perspective-1000 {
-          perspective: 1000px;
+        .perspective-2000 {
+          perspective: 2000px;
         }
         .preserve-3d {
           transform-style: preserve-3d;
-        }
-        .backface-hidden {
-          backface-visibility: hidden;
-        }
-        .rotate-y-180 {
-          transform: rotateY(180deg);
+          -webkit-transform-style: preserve-3d;
         }
         .animate-spin-slow {
           animation: spin 3s linear infinite;
