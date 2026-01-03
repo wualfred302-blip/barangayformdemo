@@ -59,8 +59,21 @@ function PaymentPageContent() {
   const [showReceipt, setShowReceipt] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [paymentCompleted, setPaymentCompleted] = useState(false)
+  const [loadTimeout, setLoadTimeout] = useState(false)
 
   const paymentType = searchParams.get("type")
+
+  // Failsafe timeout - if context doesn't load within 8 seconds, show error
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!qrtContextLoaded) {
+        console.error("[Payment] Context load timeout - showing error state")
+        setLoadTimeout(true)
+      }
+    }, 8000)
+
+    return () => clearTimeout(timeoutId)
+  }, [qrtContextLoaded])
 
   useEffect(() => {
     console.log("[v0] Payment Page State:", {
@@ -91,6 +104,38 @@ function PaymentPageContent() {
 
   if (!qrtContextLoaded) {
     console.log("[v0] QRT context still loading...")
+
+    // Show error state if timeout reached
+    if (loadTimeout) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-[#F9FAFB] px-4">
+          <div className="text-center max-w-sm">
+            <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <FileText className="h-6 w-6 text-red-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Connection Issue</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Unable to load payment details. Please check your connection and try again.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Link
+                href={paymentType === "qrt" ? "/qrt-id/request" : "/request"}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Go Back
+              </Link>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F9FAFB]">
         <div className="text-center">
