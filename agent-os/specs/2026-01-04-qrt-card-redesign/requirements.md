@@ -53,7 +53,7 @@ The QRT ID card is generated using HTML5 Canvas (856px × 540px landscape format
 Located in `/home/user/barangayformdemo/lib/qrt-types.ts` and `/home/user/barangayformdemo/lib/qrt-context.tsx`
 
 **Current Fields** (relevant to card):
-```typescript
+\`\`\`typescript
 - qrtCode: string
 - verificationCode: string
 - fullName: string
@@ -69,7 +69,7 @@ Located in `/home/user/barangayformdemo/lib/qrt-types.ts` and `/home/user/barang
 - status: "pending" | "processing" | "ready" | "issued"
 - issuedDate?: string
 - expiryDate?: string
-```
+\`\`\`
 
 **Missing Field**: No `precinctNumber` or precinct-related field currently exists in the data model.
 
@@ -161,9 +161,9 @@ Located in `/home/user/barangayformdemo/public/images/`:
 
 ### 2. Logo Sizing & Placement
 Current Bagong Pilipinas logo placement (line 84-85):
-```javascript
+\`\`\`javascript
 frontCtx.drawImage(logo, 20, 10, 45, 40)  // x=20, y=10, w=45, h=40
-```
+\`\`\`
 
 **Required adjustments**:
 - Mawaque logo: Top LEFT (new placement)

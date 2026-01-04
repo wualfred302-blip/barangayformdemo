@@ -110,7 +110,7 @@ Comprehensive research and requirements analysis completed for the QRT ID Form R
 
 ## Component Impact Map
 
-```
+\`\`\`
 request/page.tsx (966 lines)
 ├── Form State
 │   ├── Personal Info
@@ -141,7 +141,7 @@ request/page.tsx (966 lines)
     ├── Reduce space-y-4 to space-y-3
     ├── Reduce space-y-6 to space-y-5
     └── Reduce pb-40 to pb-32
-```
+\`\`\`
 
 ---
 
