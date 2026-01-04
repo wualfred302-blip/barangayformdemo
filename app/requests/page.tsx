@@ -1,26 +1,33 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, FileText, ChevronRight, HandHeart } from "lucide-react"
+import { ArrowLeft, FileText, ChevronRight, HandHeart, CreditCard } from "lucide-react"
 import { useCertificates } from "@/lib/certificate-context"
 import { useBayanihan } from "@/lib/bayanihan-context"
+import { useQRT } from "@/lib/qrt-context"
 import { useAuth } from "@/lib/auth-context"
 import { BottomNav } from "@/components/bottom-nav"
+import { QRTStatusBadge } from "@/components/qrt-status-badge"
 import { cn } from "@/lib/utils"
 
 type FilterType = "all" | "processing" | "ready"
+type TabType = "all" | "certificates" | "qrt" | "bayanihan"
 
 export default function RequestsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { certificates } = useCertificates()
   const { isAuthenticated, isLoading, user } = useAuth()
   const { requests: bayanihanRequests } = useBayanihan()
+  const { qrtIds, getUserQRTIds, refreshQRTIds } = useQRT()
   const [filter, setFilter] = useState<FilterType>("all")
+  const [activeTab, setActiveTab] = useState<TabType>("all")
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -28,10 +35,26 @@ export default function RequestsPage() {
     }
   }, [isLoading, isAuthenticated, router])
 
-  if (isLoading) {
+  useEffect(() => {
+    const tab = searchParams.get("tab") as TabType
+    if (tab && ["all", "certificates", "qrt", "bayanihan"].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    const loadQRTIds = async () => {
+      setIsRefreshing(true)
+      await refreshQRTIds()
+      setIsRefreshing(false)
+    }
+    loadQRTIds()
+  }, [refreshQRTIds])
+
+  if (isLoading || isRefreshing) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F8F9FA]">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#00C73C] border-t-transparent" />
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#10B981] border-t-transparent" />
       </div>
     )
   }
@@ -40,26 +63,50 @@ export default function RequestsPage() {
     (req) => req.residentName === (user?.fullName || "Anonymous")
   )
 
+  const myQrtIds = user?.id ? getUserQRTIds(user.id) : qrtIds
+
   const combinedRequests = [
     ...certificates.map(c => ({ type: 'certificate' as const, data: c, date: c.createdAt })),
-    ...myBayanihan.map(b => ({ type: 'bayanihan' as const, data: b, date: b.createdAt }))
+    ...myBayanihan.map(b => ({ type: 'bayanihan' as const, data: b, date: b.createdAt })),
+    ...myQrtIds.map(q => ({ type: 'qrt' as const, data: q, date: q.createdAt }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const filteredRequests = combinedRequests.filter((item) => {
+    // Filter by tab
+    if (activeTab !== "all") {
+      if (activeTab === "certificates" && item.type !== "certificate") return false
+      if (activeTab === "qrt" && item.type !== "qrt") return false
+      if (activeTab === "bayanihan" && item.type !== "bayanihan") return false
+    }
+
+    // Filter by status
     if (filter === "all") return true
-    
+
     if (filter === "processing") {
       if (item.type === 'certificate') return item.data.status === 'processing'
       if (item.type === 'bayanihan') return ['pending', 'in_progress'].includes(item.data.status)
+      if (item.type === 'qrt') return ['pending', 'processing'].includes(item.data.status)
     }
-    
+
     if (filter === "ready") {
       if (item.type === 'certificate') return item.data.status === 'ready'
       if (item.type === 'bayanihan') return ['resolved', 'rejected'].includes(item.data.status)
+      if (item.type === 'qrt') return ['ready', 'issued'].includes(item.data.status)
     }
 
     return false
   })
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab)
+    const params = new URLSearchParams(searchParams.toString())
+    if (tab === "all") {
+      params.delete("tab")
+    } else {
+      params.set("tab", tab)
+    }
+    router.push(`/requests?${params.toString()}`, { scroll: false })
+  }
 
   const filters: { value: FilterType; label: string }[] = [
     { value: "all", label: "All" },
@@ -84,8 +131,31 @@ export default function RequestsPage() {
         </div>
       </header>
 
+      {/* Tab Navigation */}
+      <div className="bg-white px-5 py-3 border-b border-gray-100">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {[
+            { value: "all" as const, label: "All" },
+            { value: "certificates" as const, label: "Certificates" },
+            { value: "qrt" as const, label: "QRT IDs" },
+            { value: "bayanihan" as const, label: "Bayanihan" },
+          ].map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => handleTabChange(tab.value)}
+              className={cn(
+                "rounded-full px-4 py-2 text-sm font-medium transition-all whitespace-nowrap",
+                activeTab === tab.value ? "bg-[#10B981] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200",
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Filter Tabs */}
-      <div className="bg-white px-5 pb-4">
+      <div className="bg-white px-5 pb-4 pt-2">
         <div className="flex gap-2">
           {filters.map((f) => (
             <button
@@ -93,7 +163,7 @@ export default function RequestsPage() {
               onClick={() => setFilter(f.value)}
               className={cn(
                 "rounded-full px-4 py-2 text-sm font-medium transition-all",
-                filter === f.value ? "bg-[#00C73C] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200",
+                filter === f.value ? "bg-[#10B981] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200",
               )}
             >
               {f.label}
@@ -115,8 +185,11 @@ export default function RequestsPage() {
                 {filter === "all" ? "You haven't made any requests yet." : `No ${filter} requests.`}
               </p>
               <div className="flex flex-col gap-3 w-full">
-                <Button asChild className="rounded-xl bg-[#00C73C] hover:bg-[#00A832] w-full">
+                <Button asChild className="rounded-xl bg-[#10B981] hover:bg-[#059669] w-full">
                   <Link href="/request">Request a Certificate</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-xl w-full border-gray-200">
+                  <Link href="/qrt-id/request">Request QRT ID</Link>
                 </Button>
                 <Button asChild variant="outline" className="rounded-xl w-full border-gray-200">
                   <Link href="/bayanihan">Request Assistance</Link>
@@ -137,11 +210,11 @@ export default function RequestsPage() {
                           <div
                             className={cn(
                               "flex h-12 w-12 items-center justify-center rounded-xl",
-                              cert.status === "ready" ? "bg-[#00C73C]/10" : "bg-orange-100",
+                              cert.status === "ready" ? "bg-[#10B981]/10" : "bg-orange-100",
                             )}
                           >
                             <FileText
-                              className={cn("h-6 w-6", cert.status === "ready" ? "text-[#00C73C]" : "text-orange-500")}
+                              className={cn("h-6 w-6", cert.status === "ready" ? "text-[#10B981]" : "text-orange-500")}
                             />
                           </div>
                           <div>
@@ -162,7 +235,7 @@ export default function RequestsPage() {
                           <span
                             className={cn(
                               "rounded-full px-3 py-1 text-xs font-medium",
-                              cert.status === "ready" ? "bg-[#00C73C]/10 text-[#00C73C]" : "bg-orange-100 text-orange-600",
+                              cert.status === "ready" ? "bg-[#10B981]/10 text-[#10B981]" : "bg-orange-100 text-orange-600",
                             )}
                           >
                             {cert.status === "ready" ? "Ready" : "Processing"}
@@ -173,7 +246,7 @@ export default function RequestsPage() {
                     </Card>
                   </Link>
                 )
-              } else {
+              } else if (item.type === 'bayanihan') {
                 const bayanihan = item.data;
                 const isCompleted = ['resolved', 'rejected'].includes(bayanihan.status);
                 const statusLabel = 
@@ -189,11 +262,11 @@ export default function RequestsPage() {
                           <div
                             className={cn(
                               "flex h-12 w-12 items-center justify-center rounded-xl",
-                              isCompleted ? "bg-[#00C73C]/10" : "bg-blue-100",
+                              isCompleted ? "bg-[#10B981]/10" : "bg-blue-100",
                             )}
                           >
                             <HandHeart
-                              className={cn("h-6 w-6", isCompleted ? "text-[#00C73C]" : "text-blue-500")}
+                              className={cn("h-6 w-6", isCompleted ? "text-[#10B981]" : "text-blue-500")}
                             />
                           </div>
                           <div>
@@ -223,12 +296,53 @@ export default function RequestsPage() {
                           <span
                             className={cn(
                               "rounded-full px-3 py-1 text-xs font-medium",
-                              isCompleted ? "bg-[#00C73C]/10 text-[#00C73C]" : "bg-blue-100 text-blue-600",
+                              isCompleted ? "bg-[#10B981]/10 text-[#10B981]" : "bg-blue-100 text-blue-600",
                               bayanihan.status === 'rejected' && "bg-red-100 text-red-600"
                             )}
                           >
                             {statusLabel}
                           </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              } else {
+                const qrt = item.data;
+                const isReady = ['ready', 'issued'].includes(qrt.status);
+
+                return (
+                  <Link key={qrt.id} href={`/requests/qrt/${qrt.id}`}>
+                    <Card className="overflow-hidden rounded-2xl border-0 bg-white shadow-md transition-transform active:scale-[0.98]">
+                      <CardContent className="flex items-center justify-between p-4">
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={cn(
+                              "flex h-12 w-12 items-center justify-center rounded-xl",
+                              isReady ? "bg-[#10B981]/10" : "bg-orange-100",
+                            )}
+                          >
+                            <CreditCard
+                              className={cn("h-6 w-6", isReady ? "text-[#10B981]" : "text-orange-500")}
+                            />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">QRT ID</span>
+                            </div>
+                            <p className="font-semibold text-[#1A1A1A]">{qrt.qrtCode || "Processing..."}</p>
+                            <p className="text-sm text-gray-500">
+                              {new Date(qrt.createdAt).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <QRTStatusBadge status={qrt.status} size="sm" showIcon={false} />
+                          <ChevronRight className="h-5 w-5 text-gray-300" />
                         </div>
                       </CardContent>
                     </Card>

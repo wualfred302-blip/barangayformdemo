@@ -256,6 +256,7 @@ function PaymentPageContent() {
             emergencyContactRelationship: qrtRequest.emergencyContactRelationship || "",
             emergencyContactAddress: qrtRequest.emergencyContactAddress || "",
             qrCodeData: qrCodeDataUrl,
+            precinctNumber: qrtRequest.precinctNumber || "P001",
           })
 
           if (idImages.success) {

@@ -16,7 +16,6 @@ import {
   Calendar,
   FileSignature,
   CircleDollarSign,
-  Bell,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
@@ -69,22 +68,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white font-sans">
-      <header className="sticky top-0 z-10 flex h-[60px] items-center justify-between bg-white px-4">
-        <div className="flex items-center gap-2">
-          <div className="relative h-8 w-8">
-            <Image src="/images/logo.png" alt="Logo" fill className="object-contain" />
-          </div>
-          <div>
-            <p className="text-[15px] font-bold text-[#1F2937]">Barangay Mawaque</p>
-            <p className="text-[11px] text-[#6B7280]">Digital Services</p>
-          </div>
-        </div>
-        <button className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F3F4F6]">
-          <Bell className="h-[18px] w-[18px] text-[#4B5563]" />
-        </button>
-      </header>
-
-      <main className="flex-1 px-4 pb-24 pt-2">
+      <main className="flex-1 px-4 pb-24 pt-6">
         {/* Tabs Pilled */}
         <div className="mb-6">
           <Tabs value={activeTab} onValueChange={handleTabChange}>

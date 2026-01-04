@@ -18,6 +18,7 @@ export interface QRTIDData {
   emergencyContactRelationship: string
   emergencyContactAddress: string
   qrCodeData: string
+  precinctNumber?: string
 }
 
 export interface GenerateQRTIDResult {
@@ -79,26 +80,40 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
     frontCtx.fillStyle = headerGradient
     frontCtx.fillRect(0, 0, 856, 60)
 
-    // Try to load and draw Bagong Pilipinas logo in header
+    // Try to load and draw Mawaque logo in header (TOP LEFT)
     try {
-      const logo = await loadImage("/images/bagongpilipinas-logo-main.png")
-      frontCtx.drawImage(logo, 20, 10, 45, 40)
+      const mawaqueLogo = await loadImage("/images/mawaque-logo.png")
+      frontCtx.drawImage(mawaqueLogo, 20, 10, 45, 40)
+    } catch (e) {
+      console.log("[v0] Could not load Mawaque logo, trying alternate path")
+      try {
+        const mawaqueLogo = await loadImage("/images/logo.png")
+        frontCtx.drawImage(mawaqueLogo, 20, 10, 45, 40)
+      } catch (e2) {
+        console.log("[v0] Could not load any Mawaque logo")
+      }
+    }
+
+    // Try to load and draw Bagong Pilipinas logo in header (TOP MIDDLE)
+    try {
+      const bpLogo = await loadImage("/images/bagongpilipinas-logo-main.png")
+      frontCtx.drawImage(bpLogo, 405, 10, 45, 40) // Centered at 428 - 23 = 405
     } catch (e) {
       console.log("[v0] Could not load Bagong Pilipinas logo")
     }
 
-    // Header text - left
+    // Header text - left (after Mawaque logo)
     frontCtx.fillStyle = "#ffffff"
+    frontCtx.font = "bold 16px Arial"
+    frontCtx.fillText("REPUBLIKA NG PILIPINAS", 75, 22)
     frontCtx.font = "bold 18px Arial"
-    frontCtx.fillText("REPUBLIKA NG PILIPINAS", 80, 24)
-    frontCtx.font = "bold 22px Arial"
-    frontCtx.fillText("BARANGAY MAWAQUE", 80, 48)
+    frontCtx.fillText("BARANGAY MAWAQUE", 75, 44)
 
     // Header text - right
-    frontCtx.font = "bold 20px Arial"
-    frontCtx.fillText("QUICK RESPONSE TEAM", 620, 24)
-    frontCtx.font = "bold 28px Arial"
-    frontCtx.fillText("QRT ID", 620, 52)
+    frontCtx.font = "bold 18px Arial"
+    frontCtx.fillText("QUICK RESPONSE TEAM", 640, 22)
+    frontCtx.font = "bold 24px Arial"
+    frontCtx.fillText("QRT ID", 640, 48)
 
     // Photo placeholder/frame
     frontCtx.strokeStyle = "#10b981"
@@ -223,17 +238,25 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
     frontCtx.fillStyle = "#374151"
     frontCtx.fillRect(0, 480, 856, 60)
 
+    // Precinct number (BOTTOM LEFT)
+    if (data.precinctNumber) {
+      frontCtx.fillStyle = "#fbbf24"
+      frontCtx.font = "bold 14px Arial"
+      frontCtx.fillText(`PRECINCT: ${data.precinctNumber}`, 32, 500)
+    }
+
     frontCtx.fillStyle = "#ffffff"
-    frontCtx.font = "bold 16px Arial"
-    frontCtx.fillText(`Issued: ${data.issuedDate}`, 32, 505)
-    frontCtx.font = "14px Arial"
+    frontCtx.font = "bold 14px Arial"
+    frontCtx.fillText(`Issued: ${data.issuedDate}`, 32, data.precinctNumber ? 520 : 505)
+    frontCtx.font = "12px Arial"
     frontCtx.fillStyle = "#d1d5db"
-    frontCtx.fillText("BARANGAY MAWAQUE LINKOD", 32, 527)
+    frontCtx.fillText("BARANGAY MAWAQUE LINKOD", 32, data.precinctNumber ? 535 : 527)
 
     frontCtx.textAlign = "right"
-    frontCtx.font = "bold 14px Arial"
+    frontCtx.font = "bold 12px Arial"
+    frontCtx.fillStyle = "#ffffff"
     frontCtx.fillText("This card is property of Barangay Mawaque", 824, 505)
-    frontCtx.fillText("Return if found. Valid for one year from issue date.", 824, 527)
+    frontCtx.fillText("Return if found. Valid for one year from issue date.", 824, 522)
     frontCtx.textAlign = "left"
 
     // Generate back image
@@ -335,18 +358,26 @@ export async function generateQRTIDImages(data: QRTIDData): Promise<GenerateQRTI
     backCtx.fillStyle = "#374151"
     backCtx.fillRect(0, 400, 856, 140)
 
+    // Precinct number on back side (BOTTOM LEFT)
+    if (data.precinctNumber) {
+      backCtx.fillStyle = "#fbbf24"
+      backCtx.font = "bold 14px Arial"
+      backCtx.fillText(`PRECINCT: ${data.precinctNumber}`, 50, 420)
+    }
+
     backCtx.fillStyle = "#fbbf24"
-    backCtx.font = "bold 18px Arial"
-    backCtx.fillText("IMPORTANT NOTICES:", 50, 428)
+    backCtx.font = "bold 16px Arial"
+    backCtx.fillText("IMPORTANT NOTICES:", 50, data.precinctNumber ? 445 : 428)
 
     backCtx.fillStyle = "#d1d5db"
-    backCtx.font = "bold 16px Arial"
-    backCtx.fillText("• This ID is valid for one (1) year from the date of issue.", 50, 458)
-    backCtx.fillText("• Report lost or stolen IDs immediately to Barangay Hall.", 50, 485)
-    backCtx.fillText("• Tampering or unauthorized reproduction is punishable by law.", 50, 512)
+    backCtx.font = "bold 14px Arial"
+    const noticeY = data.precinctNumber ? 468 : 458
+    backCtx.fillText("• This ID is valid for one (1) year from the date of issue.", 50, noticeY)
+    backCtx.fillText("• Report lost or stolen IDs immediately to Barangay Hall.", 50, noticeY + 22)
+    backCtx.fillText("• Tampering or unauthorized reproduction is punishable by law.", 50, noticeY + 44)
 
     backCtx.fillStyle = "#9ca3af"
-    backCtx.font = "bold 16px Arial"
+    backCtx.font = "bold 14px Arial"
     backCtx.textAlign = "center"
     backCtx.fillText(`QRT Code: ${data.qrtCode} | Expires: ${data.expiryDate}`, 428, 530)
     backCtx.textAlign = "left"

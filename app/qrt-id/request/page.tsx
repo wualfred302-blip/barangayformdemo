@@ -62,6 +62,48 @@ const getDaysInMonth = (month: number, year: number): number => {
   return lastDay.getDate()
 }
 
+// Province and City data for Pampanga region
+const PROVINCES = [
+  "Pampanga",
+  "Bataan",
+  "Bulacan",
+  "Nueva Ecija",
+  "Tarlac",
+  "Zambales",
+]
+
+const CITIES_BY_PROVINCE: Record<string, string[]> = {
+  "Pampanga": [
+    "Mabalacat City",
+    "Angeles City",
+    "San Fernando City",
+    "Apalit",
+    "Arayat",
+    "Bacolor",
+    "Candaba",
+    "Floridablanca",
+    "Guagua",
+    "Lubao",
+    "Macabebe",
+    "Magalang",
+    "Masantol",
+    "Mexico",
+    "Minalin",
+    "Porac",
+    "San Luis",
+    "San Simon",
+    "Santa Ana",
+    "Santa Rita",
+    "Santo Tomas",
+    "Sasmuan",
+  ],
+  "Bataan": ["Balanga City", "Dinalupihan", "Hermosa", "Orani", "Samal"],
+  "Bulacan": ["Malolos City", "Meycauayan City", "San Jose del Monte City"],
+  "Nueva Ecija": ["Cabanatuan City", "Gapan City", "San Jose City"],
+  "Tarlac": ["Tarlac City", "Concepcion", "Paniqui"],
+  "Zambales": ["Olongapo City", "Iba", "Subic"],
+}
+
 interface DateDropdownProps {
   value: string
   onChange: (isoDate: string) => void
@@ -186,7 +228,13 @@ export default function QrtIdRequestPage() {
     gender: "",
     civilStatus: "",
     birthPlace: "Mawaque, Mabalacat",
-    address: user?.address || "",
+    // Structured address fields
+    addressLine: "",
+    streetBarangay: "Barangay Mawaque",
+    city: "Mabalacat City",
+    province: "Pampanga",
+    postalCode: "",
+    address: user?.address || "", // Combined for backward compatibility
     height: "",
     weight: "",
     yearsResident: 0,
@@ -194,7 +242,12 @@ export default function QrtIdRequestPage() {
     photoBase64: "",
     // Step 2: Emergency Contact
     emergencyContactName: "",
-    emergencyContactAddress: "",
+    emergencyContactAddressLine: "",
+    emergencyContactStreetBarangay: "",
+    emergencyContactCity: "Mabalacat City",
+    emergencyContactProvince: "Pampanga",
+    emergencyContactPostalCode: "",
+    emergencyContactAddress: "", // Combined for backward compatibility
     emergencyContactPhone: "",
     emergencyContactRelationship: "",
     // Step 3: Payment
@@ -216,6 +269,37 @@ export default function QrtIdRequestPage() {
       const newData = { ...prev, [field]: value }
       if (field === "birthDate") {
         newData.age = calculateAge(value)
+      }
+      // Auto-combine address fields
+      if (["addressLine", "streetBarangay", "city", "province", "postalCode"].includes(field)) {
+        const parts = [
+          field === "addressLine" ? value : newData.addressLine,
+          field === "streetBarangay" ? value : newData.streetBarangay,
+          field === "city" ? value : newData.city,
+          field === "province" ? value : newData.province,
+          field === "postalCode" ? value : newData.postalCode,
+        ].filter(Boolean)
+        newData.address = parts.join(", ")
+      }
+      // Auto-combine emergency contact address fields
+      if (["emergencyContactAddressLine", "emergencyContactStreetBarangay", "emergencyContactCity", "emergencyContactProvince", "emergencyContactPostalCode"].includes(field)) {
+        const parts = [
+          field === "emergencyContactAddressLine" ? value : newData.emergencyContactAddressLine,
+          field === "emergencyContactStreetBarangay" ? value : newData.emergencyContactStreetBarangay,
+          field === "emergencyContactCity" ? value : newData.emergencyContactCity,
+          field === "emergencyContactProvince" ? value : newData.emergencyContactProvince,
+          field === "emergencyContactPostalCode" ? value : newData.emergencyContactPostalCode,
+        ].filter(Boolean)
+        newData.emergencyContactAddress = parts.join(", ")
+      }
+      // Reset city when province changes
+      if (field === "province") {
+        const cities = CITIES_BY_PROVINCE[value] || []
+        newData.city = cities[0] || ""
+      }
+      if (field === "emergencyContactProvince") {
+        const cities = CITIES_BY_PROVINCE[value] || []
+        newData.emergencyContactCity = cities[0] || ""
       }
       return newData
     })
@@ -296,35 +380,14 @@ export default function QrtIdRequestPage() {
         <h1 className="text-[17px] font-bold text-[#111827]">Request QRT ID</h1>
       </header>
 
-      {/* Progress Indicator Enhancement */}
-      <div className="mx-auto max-w-md px-6 py-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#10B981]">Step {currentStep} of 3</span>
-            <h2 className="text-xl font-black text-gray-900">
-              {currentStep === 1 ? "Personal Details" : currentStep === 2 ? "Emergency Contact" : "Review Request"}
-            </h2>
-          </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 font-bold border border-emerald-100">
-            {Math.round(((currentStep - 1) / 2) * 100)}%
-          </div>
-        </div>
-
-        <div className="relative h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-          <motion.div
-            initial={{ width: "33.33%" }}
-            animate={{ width: `${(currentStep / 3) * 100}%` }}
-            transition={{ duration: 0.5, ease: "circOut" }}
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-          />
-        </div>
-
-        <div className="mt-4 flex justify-between px-1">
+      {/* Progress Indicator - Simplified */}
+      <div className="mx-auto max-w-md px-6 py-4">
+        <div className="flex justify-between px-1 gap-2">
           {[1, 2, 3].map((step) => (
             <div
               key={step}
               className={cn(
-                "h-1.5 flex-1 mx-0.5 rounded-full transition-all duration-500",
+                "h-1.5 flex-1 rounded-full transition-all duration-500",
                 currentStep >= step ? "bg-emerald-500" : "bg-gray-200"
               )}
             />
@@ -430,19 +493,66 @@ export default function QrtIdRequestPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  {/* Structured Address Fields */}
+                  <div className="space-y-3">
                     <Label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-emerald-500" />
                       Current Address
                     </Label>
-                    <Textarea
-                      placeholder="Street, Barangay, City, Province"
-                      value={formData.address}
-                      onChange={(e) => handleInputChange("address", e.target.value)}
-                      className={cn(
-                        "min-h-[100px] rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all py-4 px-4 resize-none",
-                        showErrors && !formData.address && "border-red-200 bg-red-50"
-                      )}
+
+                    {/* Address Line */}
+                    <Input
+                      placeholder="House/Lot/Block No., Street Name"
+                      value={formData.addressLine}
+                      onChange={(e) => handleInputChange("addressLine", e.target.value)}
+                      className="h-12 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all"
+                    />
+
+                    {/* Street/Barangay */}
+                    <Input
+                      placeholder="Barangay"
+                      value={formData.streetBarangay}
+                      onChange={(e) => handleInputChange("streetBarangay", e.target.value)}
+                      className="h-12 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all"
+                    />
+
+                    {/* City and Province Row */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Select
+                        value={formData.city}
+                        onValueChange={(value) => handleInputChange("city", value)}
+                      >
+                        <SelectTrigger className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:ring-emerald-500/10 transition-all">
+                          <SelectValue placeholder="City/Municipality" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-gray-100 max-h-[300px]">
+                          {(CITIES_BY_PROVINCE[formData.province] || []).map((city) => (
+                            <SelectItem key={city} value={city}>{city}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={formData.province}
+                        onValueChange={(value) => handleInputChange("province", value)}
+                      >
+                        <SelectTrigger className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:ring-emerald-500/10 transition-all">
+                          <SelectValue placeholder="Province" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-gray-100">
+                          {PROVINCES.map((prov) => (
+                            <SelectItem key={prov} value={prov}>{prov}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Postal Code */}
+                    <Input
+                      placeholder="Postal Code"
+                      value={formData.postalCode}
+                      onChange={(e) => handleInputChange("postalCode", e.target.value)}
+                      className="h-12 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all w-1/2"
                     />
                   </div>
                 </CardContent>
@@ -641,19 +751,66 @@ export default function QrtIdRequestPage() {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
+                  {/* Structured Emergency Contact Address Fields */}
+                  <div className="space-y-3">
                     <Label className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-emerald-500" />
                       Contact Address
                     </Label>
-                    <Textarea
-                      placeholder="Complete residential address"
-                      value={formData.emergencyContactAddress}
-                      onChange={(e) => handleInputChange("emergencyContactAddress", e.target.value)}
-                      className={cn(
-                        "min-h-[100px] rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all py-4 px-4 resize-none",
-                        showErrors && !formData.emergencyContactAddress && "border-red-200 bg-red-50"
-                      )}
+
+                    {/* Address Line */}
+                    <Input
+                      placeholder="House/Lot/Block No., Street Name"
+                      value={formData.emergencyContactAddressLine}
+                      onChange={(e) => handleInputChange("emergencyContactAddressLine", e.target.value)}
+                      className="h-12 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all"
+                    />
+
+                    {/* Street/Barangay */}
+                    <Input
+                      placeholder="Barangay"
+                      value={formData.emergencyContactStreetBarangay}
+                      onChange={(e) => handleInputChange("emergencyContactStreetBarangay", e.target.value)}
+                      className="h-12 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all"
+                    />
+
+                    {/* City and Province Row */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Select
+                        value={formData.emergencyContactCity}
+                        onValueChange={(value) => handleInputChange("emergencyContactCity", value)}
+                      >
+                        <SelectTrigger className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:ring-emerald-500/10 transition-all">
+                          <SelectValue placeholder="City/Municipality" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-gray-100 max-h-[300px]">
+                          {(CITIES_BY_PROVINCE[formData.emergencyContactProvince] || []).map((city) => (
+                            <SelectItem key={city} value={city}>{city}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={formData.emergencyContactProvince}
+                        onValueChange={(value) => handleInputChange("emergencyContactProvince", value)}
+                      >
+                        <SelectTrigger className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:ring-emerald-500/10 transition-all">
+                          <SelectValue placeholder="Province" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-gray-100">
+                          {PROVINCES.map((prov) => (
+                            <SelectItem key={prov} value={prov}>{prov}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Postal Code */}
+                    <Input
+                      placeholder="Postal Code"
+                      value={formData.emergencyContactPostalCode}
+                      onChange={(e) => handleInputChange("emergencyContactPostalCode", e.target.value)}
+                      className="h-12 px-4 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white transition-all w-1/2"
                     />
                   </div>
                 </CardContent>
@@ -942,6 +1099,7 @@ export default function QrtIdRequestPage() {
                   emergencyContactAddress: formData.emergencyContactAddress || "Same Address",
                   emergencyContactPhone: formData.emergencyContactPhone || "09123456789",
                   emergencyContactRelationship: formData.emergencyContactRelationship || "Parent",
+                  precinctNumber: "P001", // Demo precinct for Mawaque
                   qrCodeData: qrCodeData,
                   paymentReference: paymentReference,
                   paymentTransactionId: "",
