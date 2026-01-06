@@ -82,7 +82,12 @@ export async function POST(req: Request) {
     // Reset failed attempts on successful login
     await supabase
       .from("residents")
-      .update({ failed_login_attempts: 0, lockout_until: null, updated_at: new Date().toISOString() })
+      .update({
+        failed_login_attempts: 0,
+        lockout_until: null,
+        last_login: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", user.id)
 
     return Response.json({
