@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Minus, Plus, Clock, Zap } from "lucide-react"
+import { ArrowLeft, Clock, Zap } from "lucide-react"
 import { useCertificates } from "@/lib/certificate-context"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
@@ -29,23 +29,68 @@ const purposes = [
   { value: "others", label: "Others" },
 ]
 
+const civilStatusOptions = [
+  { value: "single", label: "Single" },
+  { value: "married", label: "Married" },
+  { value: "widowed", label: "Widowed" },
+  { value: "separated", label: "Separated" },
+]
+
+const sexOrientationOptions = [
+  { value: "heterosexual", label: "Heterosexual" },
+  { value: "homosexual", label: "Homosexual" },
+  { value: "bisexual", label: "Bisexual" },
+  { value: "asexual", label: "Asexual" },
+  { value: "other", label: "Other" },
+]
+
+const occupationOptions = [
+  { value: "teacher", label: "Teacher" },
+  { value: "engineer", label: "Engineer" },
+  { value: "driver", label: "Driver" },
+  { value: "housewife", label: "Housewife" },
+  { value: "student", label: "Student" },
+  { value: "self-employed", label: "Self-employed" },
+  { value: "unemployed", label: "Unemployed" },
+  { value: "business-owner", label: "Business Owner" },
+  { value: "government-employee", label: "Government Employee" },
+  { value: "farmer-fisherman", label: "Farmer/Fisherman" },
+]
+
+const validIdTypes = [
+  { value: "drivers-license", label: "Driver's License" },
+  { value: "passport", label: "Passport" },
+  { value: "umid", label: "UMID" },
+  { value: "sss", label: "SSS ID" },
+  { value: "philhealth", label: "PhilHealth ID" },
+  { value: "postal", label: "Postal ID" },
+  { value: "voters", label: "Voter's ID" },
+  { value: "prc", label: "PRC ID" },
+]
+
 export default function RequestPage() {
   const router = useRouter()
   const { user } = useAuth()
   const { setCurrentRequest } = useCertificates()
-  const [certificateType, setCertificateType] = useState("")
   const [purpose, setPurpose] = useState("")
   const [customPurpose, setCustomPurpose] = useState("")
   const [requestType, setRequestType] = useState<"regular" | "rush">("regular")
-  const [age, setAge] = useState(25)
+  const [sex, setSex] = useState<"Male" | "Female">("Male")
+  const [sexOrientation, setSexOrientation] = useState("")
+  const [civilStatus, setCivilStatus] = useState("")
+  const [birthplace, setBirthplace] = useState("")
   const [purok, setPurok] = useState("")
-  const [yearsOfResidency, setYearsOfResidency] = useState(5)
+  const [residencySince, setResidencySince] = useState("")
+  const [occupation, setOccupation] = useState("")
+  const [monthlyIncome, setMonthlyIncome] = useState<number>(0)
+  const [validIdType, setValidIdType] = useState("")
+  const [validIdNumber, setValidIdNumber] = useState("")
 
   const amount = requestType === "rush" ? 100 : 50
 
   const handleProceed = () => {
     setCurrentRequest({
-      certificateType: certificateTypes.find((c) => c.value === certificateType)?.label || "Barangay Clearance",
+      certificateType: "Certificate of Residency",
       purpose:
         purpose === "others"
           ? customPurpose || "Personal"
@@ -53,10 +98,17 @@ export default function RequestPage() {
       customPurpose: purpose === "others" ? customPurpose : undefined,
       requestType,
       amount,
-      age,
       purok: purok || "Purok 1",
-      yearsOfResidency,
+      residencySince,
       residentName: user?.fullName || "Guest User",
+      sex,
+      sexOrientation: sexOrientationOptions.find((s) => s.value === sexOrientation)?.label || "",
+      civilStatus: civilStatusOptions.find((c) => c.value === civilStatus)?.label || "",
+      birthplace,
+      occupation: occupationOptions.find((o) => o.value === occupation)?.label || "",
+      monthlyIncome,
+      validIdType: validIdTypes.find((v) => v.value === validIdType)?.label || "",
+      validIdNumber,
     })
     router.push("/payment?type=certificate")
   }
@@ -79,32 +131,88 @@ export default function RequestPage() {
       {/* Main Content */}
       <main className="flex-1 px-5 pb-32 pt-5">
         {/* Personal Information */}
-        <Card className="mb-4 rounded-2xl border-0 shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
+        <Card className="mb-3 rounded-2xl border-0 shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
           <CardContent className="p-6">
-            <h3 className="mb-5 text-lg font-semibold text-[#111827]">Personal Information</h3>
+            <h3 className="mb-4 text-lg font-semibold text-[#111827]">Personal Information</h3>
 
-            {/* Age */}
-            <div className="mb-5">
-              <Label className="text-sm font-medium text-[#374151]">Age</Label>
-              <div className="mt-2 flex items-center gap-3">
+            {/* Sex */}
+            <div className="mb-3">
+              <Label className="text-sm font-medium text-[#374151]">Sex</Label>
+              <div className="mt-1.5 grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => setAge(Math.max(1, age - 1))}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white transition-colors hover:bg-[#F9FAFB]"
+                  onClick={() => setSex("Male")}
+                  className={cn(
+                    "flex h-12 items-center justify-center rounded-lg border-2 transition-all",
+                    sex === "Male" ? "border-[#10B981] bg-[#F0FDF4] text-[#10B981]" : "border-[#E5E7EB] bg-white text-[#374151]",
+                  )}
                 >
-                  <Minus className="h-4 w-4 text-[#374151]" />
+                  <span className="font-semibold">Male</span>
                 </button>
-                <span className="w-12 text-center text-xl font-bold text-[#111827]">{age}</span>
                 <button
-                  onClick={() => setAge(Math.min(120, age + 1))}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white transition-colors hover:bg-[#F9FAFB]"
+                  onClick={() => setSex("Female")}
+                  className={cn(
+                    "flex h-12 items-center justify-center rounded-lg border-2 transition-all",
+                    sex === "Female" ? "border-[#10B981] bg-[#F0FDF4] text-[#10B981]" : "border-[#E5E7EB] bg-white text-[#374151]",
+                  )}
                 >
-                  <Plus className="h-4 w-4 text-[#374151]" />
+                  <span className="font-semibold">Female</span>
                 </button>
               </div>
             </div>
 
+            {/* Sex Orientation */}
+            <div className="mb-3">
+              <Label className="text-sm font-medium text-[#374151]">Sex Orientation</Label>
+              <Select value={sexOrientation} onValueChange={setSexOrientation}>
+                <SelectTrigger className="mt-1.5 h-12 rounded-lg border-[#E5E7EB] bg-white focus:border-[#10B981] focus:ring-[#10B981]">
+                  <SelectValue placeholder="Select sex orientation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sexOrientationOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Civil Status */}
+            <div className="mb-3">
+              <Label className="text-sm font-medium text-[#374151]">Civil Status</Label>
+              <Select value={civilStatus} onValueChange={setCivilStatus}>
+                <SelectTrigger className="mt-1.5 h-12 rounded-lg border-[#E5E7EB] bg-white focus:border-[#10B981] focus:ring-[#10B981]">
+                  <SelectValue placeholder="Select civil status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {civilStatusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+
+            {/* Birthplace */}
+            <div className="mb-3">
+              <Label htmlFor="birthplace" className="text-sm font-medium text-[#374151]">
+                Birthplace
+              </Label>
+              <Input
+                id="birthplace"
+                value={birthplace}
+                onChange={(e) => setBirthplace(e.target.value)}
+                placeholder="e.g., Manila, Philippines"
+                className="mt-1.5 h-12 rounded-lg border-[#E5E7EB] bg-white placeholder:text-[#9CA3AF] focus:border-[#10B981] focus:ring-[#10B981]"
+              />
+            </div>
+
+            <div className="my-4 border-b border-[#F3F4F6]"></div>
+
             {/* Purok */}
-            <div className="mb-5">
+            <div className="mb-3">
               <Label htmlFor="purok" className="text-sm font-medium text-[#374151]">
                 Purok / Street Address
               </Label>
@@ -113,46 +221,83 @@ export default function RequestPage() {
                 value={purok}
                 onChange={(e) => setPurok(e.target.value)}
                 placeholder="e.g., Purok 1, Street Name"
-                className="mt-2 h-12 rounded-lg border-[#E5E7EB] bg-white placeholder:text-[#9CA3AF] focus:border-[#10B981] focus:ring-[#10B981]"
+                className="mt-1.5 h-12 rounded-lg border-[#E5E7EB] bg-white placeholder:text-[#9CA3AF] focus:border-[#10B981] focus:ring-[#10B981]"
               />
             </div>
 
-            {/* Years of Residency */}
+            {/* Residency Since */}
             <div>
-              <Label className="text-sm font-medium text-[#374151]">Years of Residency</Label>
-              <div className="mt-2 flex items-center gap-3">
-                <button
-                  onClick={() => setYearsOfResidency(Math.max(0, yearsOfResidency - 1))}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white transition-colors hover:bg-[#F9FAFB]"
-                >
-                  <Minus className="h-4 w-4 text-[#374151]" />
-                </button>
-                <span className="w-12 text-center text-xl font-bold text-[#111827]">{yearsOfResidency}</span>
-                <button
-                  onClick={() => setYearsOfResidency(Math.min(100, yearsOfResidency + 1))}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white transition-colors hover:bg-[#F9FAFB]"
-                >
-                  <Plus className="h-4 w-4 text-[#374151]" />
-                </button>
-              </div>
+              <Label htmlFor="residencySince" className="text-sm font-medium text-[#374151]">
+                Resident Since
+              </Label>
+              <Input
+                id="residencySince"
+                type="date"
+                max={new Date().toISOString().split("T")[0]}
+                value={residencySince}
+                onChange={(e) => setResidencySince(e.target.value)}
+                placeholder="Select date you became a resident"
+                className="mt-1.5 h-12 rounded-lg border-[#E5E7EB] bg-white focus:border-[#10B981] focus:ring-[#10B981]"
+              />
             </div>
           </CardContent>
         </Card>
 
-        {/* Certificate Details */}
-        <Card className="mb-4 rounded-2xl border-0 shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
+        {/* Employment & Income */}
+        <Card className="mb-3 rounded-2xl border-0 shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
           <CardContent className="p-6">
-            <h3 className="mb-5 text-lg font-semibold text-[#111827]">Certificate Details</h3>
+            <h3 className="mb-4 text-lg font-semibold text-[#111827]">Employment & Income</h3>
 
-            {/* Certificate Type */}
-            <div className="mb-5">
-              <Label className="text-sm font-medium text-[#374151]">Certificate Type</Label>
-              <Select value={certificateType} onValueChange={setCertificateType}>
-                <SelectTrigger className="mt-2 h-12 rounded-lg border-[#E5E7EB] bg-white focus:border-[#10B981] focus:ring-[#10B981]">
-                  <SelectValue placeholder="Select certificate type" />
+            {/* Occupation */}
+            <div className="mb-3">
+              <Label className="text-sm font-medium text-[#374151]">Occupation</Label>
+              <Select value={occupation} onValueChange={setOccupation}>
+                <SelectTrigger className="mt-1.5 h-12 rounded-lg border-[#E5E7EB] bg-white focus:border-[#10B981] focus:ring-[#10B981]">
+                  <SelectValue placeholder="Select occupation" />
                 </SelectTrigger>
                 <SelectContent>
-                  {certificateTypes.map((type) => (
+                  {occupationOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Monthly Income */}
+            <div>
+              <Label htmlFor="monthlyIncome" className="text-sm font-medium text-[#374151]">
+                Monthly Income (₱)
+              </Label>
+              <Input
+                id="monthlyIncome"
+                type="number"
+                min="0"
+                step="1000"
+                value={monthlyIncome}
+                onChange={(e) => setMonthlyIncome(Number(e.target.value))}
+                placeholder="0"
+                className="mt-1.5 h-12 rounded-lg border-[#E5E7EB] bg-white focus:border-[#10B981] focus:ring-[#10B981]"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Identification Details */}
+        <Card className="mb-3 rounded-2xl border-0 shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
+          <CardContent className="p-6">
+            <h3 className="mb-4 text-lg font-semibold text-[#111827]">Identification Details</h3>
+
+            {/* Valid ID Type */}
+            <div className="mb-3">
+              <Label className="text-sm font-medium text-[#374151]">Valid ID Type</Label>
+              <Select value={validIdType} onValueChange={setValidIdType}>
+                <SelectTrigger className="mt-1.5 h-12 rounded-lg border-[#E5E7EB] bg-white focus:border-[#10B981] focus:ring-[#10B981]">
+                  <SelectValue placeholder="Select ID type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {validIdTypes.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
                     </SelectItem>
@@ -161,11 +306,32 @@ export default function RequestPage() {
               </Select>
             </div>
 
+            {/* Valid ID Number */}
+            <div>
+              <Label htmlFor="validIdNumber" className="text-sm font-medium text-[#374151]">
+                Valid ID Number
+              </Label>
+              <Input
+                id="validIdNumber"
+                value={validIdNumber}
+                onChange={(e) => setValidIdNumber(e.target.value.toUpperCase())}
+                placeholder="Enter ID number"
+                className="mt-1.5 h-12 rounded-lg border-[#E5E7EB] bg-white placeholder:text-[#9CA3AF] focus:border-[#10B981] focus:ring-[#10B981]"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Certificate Details */}
+        <Card className="mb-3 rounded-2xl border-0 shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
+          <CardContent className="p-6">
+            <h3 className="mb-4 text-lg font-semibold text-[#111827]">Certificate Details</h3>
+
             {/* Purpose */}
-            <div className="mb-5">
+            <div className="mb-3">
               <Label className="text-sm font-medium text-[#374151]">Purpose</Label>
               <Select value={purpose} onValueChange={setPurpose}>
-                <SelectTrigger className="mt-2 h-12 rounded-lg border-[#E5E7EB] bg-white focus:border-[#10B981] focus:ring-[#10B981]">
+                <SelectTrigger className="mt-1.5 h-12 rounded-lg border-[#E5E7EB] bg-white focus:border-[#10B981] focus:ring-[#10B981]">
                   <SelectValue placeholder="Select purpose" />
                 </SelectTrigger>
                 <SelectContent>
@@ -186,7 +352,7 @@ export default function RequestPage() {
                   value={customPurpose}
                   onChange={(e) => setCustomPurpose(e.target.value)}
                   placeholder="Enter your purpose"
-                  className="mt-2 min-h-[96px] rounded-lg border-[#E5E7EB] bg-white placeholder:text-[#9CA3AF] focus:border-[#10B981] focus:ring-[#10B981]"
+                  className="mt-1.5 min-h-[96px] rounded-lg border-[#E5E7EB] bg-white placeholder:text-[#9CA3AF] focus:border-[#10B981] focus:ring-[#10B981]"
                 />
               </div>
             )}
@@ -196,7 +362,7 @@ export default function RequestPage() {
         {/* Request Type */}
         <Card className="rounded-2xl border-0 shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
           <CardContent className="p-6">
-            <h3 className="mb-5 text-lg font-semibold text-[#111827]">Request Type</h3>
+            <h3 className="mb-4 text-lg font-semibold text-[#111827]">Request Type</h3>
 
             <div className="space-y-3">
               {/* Regular */}

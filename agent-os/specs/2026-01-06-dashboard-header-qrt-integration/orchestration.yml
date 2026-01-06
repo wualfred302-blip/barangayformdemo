@@ -1,0 +1,13 @@
+task_groups:
+  - name: Phase 1 - Dashboard Header with User Profile & Notification
+    claude_code_subagent: haiku
+  - name: Phase 2 - QRT ID Card Display Component
+    claude_code_subagent: haiku
+  - name: Phase 3 - Services Grid Realignment
+    claude_code_subagent: haiku
+  - name: Phase 4 - Coming Soon Pages & Route Management
+    claude_code_subagent: haiku
+  - name: Phase 5 - Dynamic Data Integration
+    claude_code_subagent: haiku
+  - name: Phase 6 - Polish & Responsive Design
+    claude_code_subagent: sonnet

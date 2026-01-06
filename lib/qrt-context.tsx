@@ -210,7 +210,11 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
 
           let mappedQrtData: QRTIDRequest[] = []
           if (qrtError) {
-            console.error("Failed to load QRT IDs from Supabase:", qrtError)
+            console.error("Failed to load QRT IDs from Supabase:", {
+              message: qrtError.message,
+              code: qrtError.code,
+              details: qrtError.details,
+            })
           } else if (qrtData) {
             mappedQrtData = qrtData.map(dbRowToQRTIDRequest)
             setQrtIds(mappedQrtData)
@@ -230,7 +234,13 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
           clearTimeout(logsTimeout)
 
           if (logsError) {
-            console.error("Failed to load verification logs from Supabase:", logsError)
+            if (logsError.name !== 'AbortError') {
+              console.error("Failed to load verification logs from Supabase:", {
+                message: logsError.message,
+                code: logsError.code,
+                details: logsError.details,
+              })
+            }
           } else if (logsData) {
             // Map logs and look up QRT data from loaded QRT IDs
             const mappedLogs: QRTVerificationLog[] = logsData.map((log) => {
@@ -240,7 +250,7 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
                 qrtCode: qrtMatch?.qrtCode || "",
                 verificationCode: qrtMatch?.verificationCode || "",
                 verifiedBy: "Barangay Staff",
-                timestamp: log.scanned_at,
+                timestamp: log.scanned_at as string,
                 action: "qrt_verification" as const,
               }
             })
@@ -265,18 +275,35 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
   }, [])
 
   const refreshQRTIds = useCallback(async () => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+
     try {
       const supabase = createClient()
-      const { data, error } = await supabase.from("qrt_ids").select("*").order("created_at", { ascending: false })
+      const { data, error } = await supabase
+        .from("qrt_ids")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .abortSignal(controller.signal)
 
       if (error) {
-        console.error("Failed to refresh QRT IDs:", error)
+        console.error("Failed to refresh QRT IDs:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+        })
       } else if (data) {
         const mappedData = data.map(dbRowToQRTIDRequest)
         setQrtIds(mappedData)
       }
-    } catch (error) {
-      console.error("Failed to refresh QRT IDs:", error)
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.warn("[QRT Context] Refresh QRT IDs timed out after 5 seconds")
+      } else {
+        console.error("Failed to refresh QRT IDs:", error)
+      }
+    } finally {
+      clearTimeout(timeoutId)
     }
   }, [])
 
@@ -511,6 +538,10 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
     [verificationLogs],
   )
 
+  const setCurrentRequestCallback = useCallback((request: Partial<QRTIDRequest> | null) => {
+    setCurrentRequest(request)
+  }, [])
+
   const setCurrentRequestImmediate = useCallback((request: Partial<QRTIDRequest> | null) => {
     setCurrentRequest(request)
     try {
@@ -530,7 +561,7 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
       currentRequest,
       isLoaded,
       verificationLogs,
-      setCurrentRequest,
+      setCurrentRequest: setCurrentRequestCallback,
       setCurrentRequestImmediate,
       addQRTRequest,
       updateQRTStatus,
@@ -548,6 +579,7 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
       currentRequest,
       isLoaded,
       verificationLogs,
+      setCurrentRequestCallback,
       addQRTRequest,
       updateQRTStatus,
       getQRTByCode,

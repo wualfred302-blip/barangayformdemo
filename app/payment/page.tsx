@@ -10,6 +10,7 @@ import { ArrowLeft, FileText, ShieldCheck, Loader2 } from "lucide-react"
 import { useCertificates, type CertificateRequest } from "@/lib/certificate-context"
 import { useQRT } from "@/lib/qrt-context"
 import { usePayment } from "@/lib/payment-context"
+import { useAuth } from "@/lib/auth-context"
 import { processPayment, validatePaymentMethod, type PaymentTransaction } from "@/lib/payment-utils"
 import { GCashForm, MayaForm, BankTransferForm } from "@/components/payment-methods"
 import { PaymentReceiptModal } from "@/components/payment-receipt-modal"
@@ -52,6 +53,7 @@ function PaymentPageContent() {
     isLoaded: qrtContextLoaded,
   } = useQRT()
   const { addPayment } = usePayment()
+  const { user } = useAuth()
 
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingMessage, setProcessingMessage] = useState("Connecting to payment provider...")
@@ -321,10 +323,11 @@ function PaymentPageContent() {
       } else {
         // CERTIFICATE GENERATION FLOW (existing)
         const serial = `BGRY-MWQ-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(6, "0")}`
-        const certId = `cert_${Date.now()}`
+        // Don't generate client-side ID - let Supabase auto-generate UUID
 
         const newCertificate: CertificateRequest = {
-          id: certId,
+          id: "", // Will be set by DB after insert (gen_random_uuid())
+          userId: user?.id, // Add user ID for Supabase association
           certificateType: currentRequest?.certificateType || "Barangay Clearance",
           purpose: currentRequest?.purpose || "Employment",
           customPurpose: currentRequest?.customPurpose,
@@ -335,13 +338,12 @@ function PaymentPageContent() {
           serialNumber: serial,
           status: "processing",
           createdAt: new Date().toISOString(),
-          age: currentRequest?.age || 0,
-          residentName: currentRequest?.residentName,
+          residentName: currentRequest?.residentName || user?.fullName,
           purok: currentRequest?.purok || "",
           yearsOfResidency: currentRequest?.yearsOfResidency || 0,
         }
 
-        addCertificate(newCertificate)
+        await addCertificate(newCertificate)
 
         // IMPORTANT: Set paymentCompleted BEFORE clearing context to prevent redirect
         setPaymentCompleted(true)

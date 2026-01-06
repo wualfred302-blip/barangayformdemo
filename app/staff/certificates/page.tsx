@@ -41,6 +41,11 @@ const exportToCSV = (certificates: CertificateRequest[]) => {
     "Payment Status",
     "Purok",
     "Request Type",
+    "Sex",
+    "Sex Orientation",
+    "Civil Status",
+    "Occupation",
+    "Residency Since",
   ]
 
   const rows = certificates.map((cert) => {
@@ -50,6 +55,11 @@ const exportToCSV = (certificates: CertificateRequest[]) => {
     const paymentStatus = cert.paymentReference ? "Paid" : "Unpaid"
     const residentName = cert.residentName || "N/A"
     const purok = cert.purok || "N/A"
+    const residencySince = cert.residencySince 
+      ? new Date(cert.residencySince).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })
+      : cert.yearsOfResidency 
+      ? `for about ${cert.yearsOfResidency} years`
+      : "N/A"
 
     return [
       cert.serialNumber,
@@ -62,6 +72,11 @@ const exportToCSV = (certificates: CertificateRequest[]) => {
       paymentStatus,
       purok,
       cert.requestType,
+      cert.sex || "N/A",
+      cert.sexOrientation || "N/A",
+      cert.civilStatus || "N/A",
+      cert.occupation || "N/A",
+      residencySince,
     ].map((field) => {
       const fieldStr = String(field)
       if (fieldStr.includes(",") || fieldStr.includes('"') || fieldStr.includes("\n")) {
@@ -108,14 +123,17 @@ export default function StaffCertificatesPage() {
 
   const filteredCerts = useMemo(() => {
     return certificates.filter((cert) => {
-      // Search: serial, type, purpose, OR resident name
+      // Search: serial, type, purpose, resident name, occupation, sex orientation, OR ID
       const searchLower = filters.search.toLowerCase()
       const matchesSearch =
         !filters.search ||
         cert.serialNumber.toLowerCase().includes(searchLower) ||
         cert.certificateType.toLowerCase().includes(searchLower) ||
         cert.purpose.toLowerCase().includes(searchLower) ||
-        (cert.residentName?.toLowerCase().includes(searchLower) ?? false)
+        (cert.residentName?.toLowerCase().includes(searchLower) ?? false) ||
+        (cert.occupation?.toLowerCase().includes(searchLower) ?? false) ||
+        (cert.sexOrientation?.toLowerCase().includes(searchLower) ?? false) ||
+        (cert.validIdNumber?.toLowerCase().includes(searchLower) ?? false)
 
       // Status
       const matchesStatus = filters.status === "all" || cert.status === filters.status
@@ -280,10 +298,43 @@ export default function StaffCertificatesPage() {
               )}
             </div>
             <p className={`text-slate-500 ${compact ? "text-xs" : "mt-1 text-sm"}`}>{cert.serialNumber}</p>
-            {cert.residentName && !compact && <p className="mt-1 text-sm text-slate-600">{cert.residentName}</p>}
-            {!compact && (
+            
+            {compact ? (
+              (cert.sex || cert.civilStatus) && (
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  {cert.sex}{cert.sex && cert.civilStatus && " • "}{cert.civilStatus}
+                </p>
+              )
+            ) : (
               <>
+                {cert.residentName && <p className="mt-1 text-sm font-medium text-slate-700">{cert.residentName}</p>}
                 <p className="mt-1 text-sm text-slate-600">{cert.purpose}</p>
+                
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {cert.occupation && (
+                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                      {cert.occupation}
+                    </span>
+                  )}
+                  {cert.civilStatus && (
+                    <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
+                      {cert.civilStatus}
+                    </span>
+                  )}
+                  {cert.residencySince && (
+                    <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                      <Calendar className="h-2.5 w-2.5" />
+                      Resident since {new Date(cert.residencySince).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                    </span>
+                  )}
+                  {cert.yearsOfResidency && !cert.residencySince && (
+                    <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                      <Calendar className="h-2.5 w-2.5" />
+                      Resident for {cert.yearsOfResidency} years
+                    </span>
+                  )}
+                </div>
+
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-400">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
@@ -357,7 +408,7 @@ export default function StaffCertificatesPage() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -496,7 +547,7 @@ export default function StaffCertificatesPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
-            placeholder="Search by serial, type, name, purpose..."
+            placeholder="Search by serial, type, name, purpose, occupation, ID..."
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             className="pl-9"
@@ -692,8 +743,16 @@ export default function StaffCertificatesPage() {
                 {readyCerts.map((cert) => (
                   <Card key={cert.id} className="mb-2 border-0 shadow-sm">
                     <CardContent className="p-3">
-                      <p className="text-sm font-semibold text-slate-900">{cert.certificateType}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-slate-900">{cert.certificateType}</p>
+                        {cert.occupation && (
+                          <span className="rounded bg-slate-100 px-1 py-0.5 text-[9px] font-medium text-slate-500">
+                            {cert.occupation}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500">{cert.serialNumber}</p>
+                      {cert.residentName && <p className="mt-1 text-xs font-medium text-slate-600">{cert.residentName}</p>}
                     </CardContent>
                   </Card>
                 ))}
