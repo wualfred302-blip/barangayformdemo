@@ -145,7 +145,7 @@ This specification outlines the enhancement of the Barangay Mawaque dashboard wi
 
 **Implementation Details:**
 
-```tsx
+\`\`\`tsx
 "use client"
 
 import { useEffect, useState } from "react"
@@ -210,7 +210,7 @@ export function DashboardHeader() {
     </div>
   )
 }
-```
+\`\`\`
 
 **Key Features:**
 - Lines 15-35: Philippine timezone greeting logic using `date-fns-tz`
@@ -229,7 +229,7 @@ export function DashboardHeader() {
 1. Import DashboardHeader component (after line 22)
 2. Add header before tabs section (after line 71, before line 72)
 
-```tsx
+\`\`\`tsx
 // Add import
 import { DashboardHeader } from "@/components/dashboard-header"
 
@@ -246,7 +246,7 @@ import { DashboardHeader } from "@/components/dashboard-header"
   </div>
   ...
 </main>
-```
+\`\`\`
 
 **Testing Considerations:**
 - Test greeting changes at different times of day
@@ -266,7 +266,7 @@ import { DashboardHeader } from "@/components/dashboard-header"
 
 **Implementation Details:**
 
-```tsx
+\`\`\`tsx
 "use client"
 
 import { useState } from "react"
@@ -408,7 +408,7 @@ export function QRTCardMini({ qrtId, onRequestClick }: QRTCardMiniProps) {
     </div>
   )
 }
-```
+\`\`\`
 
 **Key Features:**
 - Lines 36-56: Empty state with CTA to request QRT ID
@@ -432,13 +432,13 @@ export function QRTCardMini({ qrtId, onRequestClick }: QRTCardMiniProps) {
 **Changes:**
 
 1. Add imports (after line 22):
-```tsx
+\`\`\`tsx
 import { useQRT } from "@/lib/qrt-context"
 import { QRTCardMini } from "@/components/qrt-card-mini"
-```
+\`\`\`
 
 2. Add state and data fetching (after line 27):
-```tsx
+\`\`\`tsx
 const { getUserQRTIds, isLoaded: qrtLoaded } = useQRT()
 const [userQrtId, setUserQrtId] = useState<any | null>(null)
 
@@ -452,10 +452,10 @@ useEffect(() => {
     setUserQrtId(activeQrt || qrtIds[0] || null)
   }
 }, [user, qrtLoaded, getUserQRTIds])
-```
+\`\`\`
 
 3. Add card display (after DashboardHeader, before Tabs):
-```tsx
+\`\`\`tsx
 {/* QRT ID Card */}
 <div className="mb-4">
   <QRTCardMini
@@ -463,7 +463,7 @@ useEffect(() => {
     onRequestClick={() => router.push("/qrt-id/request")}
   />
 </div>
-```
+\`\`\`
 
 **Edge Cases Handled:**
 - No QRT ID: Shows CTA to request
@@ -483,7 +483,7 @@ useEffect(() => {
 
 **Changes:** Replace services array (lines 58-67):
 
-```tsx
+\`\`\`tsx
 const services = [
   // Row 1: Primary Services (4 items - aligned)
   { icon: FileText, label: "Request Certificate", href: "/request" },
@@ -497,7 +497,7 @@ const services = [
   { icon: FileSignature, label: "Permits", href: "/permits" },
   { icon: CircleDollarSign, label: "Taxes", href: "/taxes" },
 ]
-```
+\`\`\`
 
 **Changes Summary:**
 - Row 1 now includes: Request Certificate, Bayanihan, File Blotter, Request ID
@@ -522,7 +522,7 @@ const services = [
 
 **Implementation Details:**
 
-```tsx
+\`\`\`tsx
 "use client"
 
 import { useRouter } from "next/navigation"
@@ -607,7 +607,7 @@ export function ComingSoonPage({
     </div>
   )
 }
-```
+\`\`\`
 
 **Key Features:**
 - Lines 23-70: Centered layout with animated entrance
@@ -621,7 +621,7 @@ export function ComingSoonPage({
 
 **File 1:** `/home/user/barangayformdemo/app/health-center/page.tsx`
 
-```tsx
+\`\`\`tsx
 import { ComingSoonPage } from "@/components/coming-soon-page"
 import { Plus } from "lucide-react"
 
@@ -634,11 +634,11 @@ export default function HealthCenterPage() {
     />
   )
 }
-```
+\`\`\`
 
 **File 2:** `/home/user/barangayformdemo/app/permits/page.tsx`
 
-```tsx
+\`\`\`tsx
 import { ComingSoonPage } from "@/components/coming-soon-page"
 import { FileSignature } from "lucide-react"
 
@@ -651,11 +651,11 @@ export default function PermitsPage() {
     />
   )
 }
-```
+\`\`\`
 
 **File 3:** `/home/user/barangayformdemo/app/taxes/page.tsx`
 
-```tsx
+\`\`\`tsx
 import { ComingSoonPage } from "@/components/coming-soon-page"
 import { CircleDollarSign } from "lucide-react"
 
@@ -668,7 +668,7 @@ export default function TaxesPage() {
     />
   )
 }
-```
+\`\`\`
 
 #### 4.3 Feature Flags for Existing Routes (Optional)
 
@@ -678,7 +678,7 @@ export default function TaxesPage() {
 
 **Add comments to services array:**
 
-```tsx
+\`\`\`tsx
 const services = [
   { icon: FileText, label: "Request Certificate", href: "/request" },
   // TODO: Review and refine Bayanihan feature before final release
@@ -692,7 +692,7 @@ const services = [
   { icon: FileSignature, label: "Permits", href: "/permits" }, // Coming soon
   { icon: CircleDollarSign, label: "Taxes", href: "/taxes" }, // Coming soon
 ]
-```
+\`\`\`
 
 **Alternative - Feature Flag Pattern:**
 
@@ -700,7 +700,7 @@ If disconnection is required, create a feature flags file:
 
 **File:** `/home/user/barangayformdemo/lib/feature-flags.ts`
 
-```tsx
+\`\`\`tsx
 export const FEATURE_FLAGS = {
   BAYANIHAN_ENABLED: false, // Set to true to reconnect
   BLOTTER_ENABLED: false,   // Set to true to reconnect
@@ -709,11 +709,11 @@ export const FEATURE_FLAGS = {
   PERMITS_ENABLED: false,
   TAXES_ENABLED: false,
 } as const
-```
+\`\`\`
 
 Then modify services to use flags:
 
-```tsx
+\`\`\`tsx
 import { FEATURE_FLAGS } from "@/lib/feature-flags"
 
 const services = [
@@ -725,7 +725,7 @@ const services = [
   },
   // ... etc
 ]
-```
+\`\`\`
 
 ---
 
@@ -756,7 +756,7 @@ const services = [
 
 **Enhanced loading logic:**
 
-```tsx
+\`\`\`tsx
 export default function DashboardPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
   const { getUserQRTIds, isLoaded: qrtLoaded } = useQRT()
@@ -796,13 +796,13 @@ export default function DashboardPage() {
 
   // ... rest of component
 }
-```
+\`\`\`
 
 #### 5.3 Error Boundary Implementation
 
 **File:** `/home/user/barangayformdemo/app/dashboard/error.tsx` (if not exists)
 
-```tsx
+\`\`\`tsx
 "use client"
 
 import { useEffect } from "react"
@@ -838,13 +838,13 @@ export default function DashboardError({
     </div>
   )
 }
-```
+\`\`\`
 
 #### 5.4 Philippine Timezone Implementation
 
 **File:** `/home/user/barangayformdemo/lib/utils/timezone.ts`
 
-```tsx
+\`\`\`tsx
 import { toZonedTime, format } from "date-fns-tz"
 
 export const PHILIPPINE_TIMEZONE = "Asia/Manila"
@@ -872,11 +872,11 @@ export function formatPhilippineDate(date: Date | string, formatString: string =
     timeZone: PHILIPPINE_TIMEZONE
   })
 }
-```
+\`\`\`
 
 **Usage in DashboardHeader:**
 
-```tsx
+\`\`\`tsx
 import { getGreeting } from "@/lib/utils/timezone"
 
 export function DashboardHeader() {
@@ -891,7 +891,7 @@ export function DashboardHeader() {
 
   // ... rest of component
 }
-```
+\`\`\`
 
 ---
 
@@ -921,7 +921,7 @@ All components should follow mobile-first design:
 #### 6.2 Component-Specific Responsive Rules
 
 **DashboardHeader:**
-```tsx
+\`\`\`tsx
 <div className="flex items-center justify-between py-4 px-4 bg-white">
   <button className="flex items-center gap-3 hover:opacity-80 transition-opacity">
     <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full ...">
@@ -935,25 +935,25 @@ All components should follow mobile-first design:
     </div>
   </button>
 </div>
-```
+\`\`\`
 
 **QRTCardMini:**
-```tsx
+\`\`\`tsx
 <div
   className="relative overflow-visible cursor-pointer max-w-md mx-auto h-[160px] sm:h-[200px] lg:h-[240px]"
   style={{ perspective: '1000px' }}
 >
   {/* Card content with responsive height for full card visibility */}
 </div>
-```
+\`\`\`
 
 **Services Grid:**
-```tsx
+\`\`\`tsx
 {/* Current: 4 columns on all screens */}
 <div className="grid grid-cols-4 gap-x-2 gap-y-6 mb-8">
   {/* Keep existing implementation - works well on mobile */}
 </div>
-```
+\`\`\`
 
 #### 6.3 Animation Performance
 
@@ -965,7 +965,7 @@ All components should follow mobile-first design:
    - Avoid animating `width`, `height`, `margin`
 
 2. **Framer Motion configuration:**
-```tsx
+\`\`\`tsx
 // Efficient animation
 <motion.div
   animate={{ rotateY: showBackSide ? 180 : 0 }}
@@ -980,10 +980,10 @@ All components should follow mobile-first design:
     willChange: 'transform' // Hint to browser
   }}
 >
-```
+\`\`\`
 
 3. **Lazy loading for images:**
-```tsx
+\`\`\`tsx
 <Image
   src={qrtId.idFrontImageUrl}
   alt={`QRT ID for ${qrtId.fullName}`}
@@ -992,13 +992,13 @@ All components should follow mobile-first design:
   priority={false} // Only set priority={true} for above-fold images
   loading="lazy"
 />
-```
+\`\`\`
 
 #### 6.4 Accessibility Requirements
 
 **ARIA Labels:**
 
-```tsx
+\`\`\`tsx
 // DashboardHeader
 <button
   onClick={handleProfileClick}
@@ -1023,11 +1023,11 @@ All components should follow mobile-first design:
   <RefreshCw className="h-3 w-3 mr-1.5" />
   Flip
 </button>
-```
+\`\`\`
 
 **Keyboard Navigation:**
 
-```tsx
+\`\`\`tsx
 // Ensure all interactive elements are keyboard accessible
 <div
   onClick={handleCardClick}
@@ -1041,40 +1041,40 @@ All components should follow mobile-first design:
   tabIndex={0}
   className="relative overflow-hidden rounded-2xl..."
 >
-```
+\`\`\`
 
 **Focus Styles:**
 
-```tsx
+\`\`\`tsx
 // Add to global styles or component
 className="focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:ring-offset-2 rounded-2xl"
-```
+\`\`\`
 
 #### 6.5 Touch Optimization
 
 **Minimum Touch Targets:**
 
-```tsx
+\`\`\`tsx
 // All buttons should have minimum 44px touch target
 <button className="h-10 w-10 min-h-[44px] min-w-[44px]">
   <Bell className="h-5 w-5" />
 </button>
-```
+\`\`\`
 
 **Active States:**
 
-```tsx
+\`\`\`tsx
 // Add active state for better touch feedback
 <button className="... active:scale-95 transition-transform">
   {/* Content */}
 </button>
-```
+\`\`\`
 
 #### 6.6 Loading Skeleton (Optional Enhancement)
 
 **File:** `/home/user/barangayformdemo/components/dashboard-skeleton.tsx`
 
-```tsx
+\`\`\`tsx
 export function DashboardSkeleton() {
   return (
     <div className="flex-1 px-4 pb-24 pt-6 animate-pulse">
@@ -1108,7 +1108,7 @@ export function DashboardSkeleton() {
     </div>
   )
 }
-```
+\`\`\`
 
 ---
 
@@ -1164,22 +1164,22 @@ export function DashboardSkeleton() {
 
 **Code Splitting:**
 - QRTCardMini uses dynamic import if needed:
-```tsx
+\`\`\`tsx
 import dynamic from 'next/dynamic'
 const QRTCardMini = dynamic(() => import('@/components/qrt-card-mini'), {
   loading: () => <div className="h-[160px] sm:h-[200px] lg:h-[240px] rounded-2xl bg-gray-100 animate-pulse" />
 })
-```
+\`\`\`
 
 **Memoization:**
-```tsx
+\`\`\`tsx
 // In dashboard page
 const userQrtId = useMemo(() => {
   if (!user?.id || !qrtLoaded) return null
   const qrtIds = getUserQRTIds(user.id)
   return qrtIds.find(qrt => qrt.status === "issued" || qrt.status === "ready") || qrtIds[0] || null
 }, [user?.id, qrtLoaded, getUserQRTIds])
-```
+\`\`\`
 
 ### 2. State Management
 
@@ -1189,7 +1189,7 @@ const userQrtId = useMemo(() => {
 - **No Redux needed:** Current context system is sufficient
 
 **State Update Patterns:**
-```tsx
+\`\`\`tsx
 // Avoid unnecessary re-renders
 const [showBackSide, setShowBackSide] = useState(false)
 
@@ -1201,39 +1201,39 @@ useEffect(() => {
   const interval = setInterval(() => setGreeting(getGreeting()), 60000)
   return () => clearInterval(interval)
 }, [])
-```
+\`\`\`
 
 ### 3. Routing Strategy
 
 **Client-Side Navigation:**
-```tsx
+\`\`\`tsx
 // Use Next.js router for instant navigation
 import { useRouter } from "next/navigation"
 const router = useRouter()
 
 // Prefetch links on hover
 <Link href="/requests/qrt/123" prefetch={true}>
-```
+\`\`\`
 
 **Route Guards:**
-```tsx
+\`\`\`tsx
 // Already implemented in dashboard
 useEffect(() => {
   if (!isLoading && !isAuthenticated) {
     router.push("/login")
   }
 }, [isLoading, isAuthenticated, router])
-```
+\`\`\`
 
 ### 4. Date/Time Handling
 
 **Philippine Timezone:**
-```tsx
+\`\`\`tsx
 import { toZonedTime } from "date-fns-tz"
 
 const TIMEZONE = "Asia/Manila"
 const phTime = toZonedTime(new Date(), TIMEZONE)
-```
+\`\`\`
 
 **Greeting Logic:**
 - 5:00 AM - 11:59 AM → "Good Morning"
@@ -1243,13 +1243,13 @@ const phTime = toZonedTime(new Date(), TIMEZONE)
 ### 5. Error Handling
 
 **Context Loading Errors:**
-```tsx
+\`\`\`tsx
 // QRT Context already has timeout handling (lines 178-181)
 const timeoutId = setTimeout(() => {
   console.warn("[QRT Context] Load timeout reached")
   setIsLoaded(true)
 }, 5000)
-```
+\`\`\`
 
 **Component Error Boundaries:**
 - Implement error.tsx for dashboard route
@@ -1257,7 +1257,7 @@ const timeoutId = setTimeout(() => {
 - Provide retry functionality
 
 **Network Failure Handling:**
-```tsx
+\`\`\`tsx
 // Graceful degradation
 if (!qrtLoaded) {
   return <QRTCardSkeleton />
@@ -1266,7 +1266,7 @@ if (!qrtLoaded) {
 if (qrtError) {
   return <QRTCardError onRetry={refreshQRTIds} />
 }
-```
+\`\`\`
 
 ### 6. Browser Compatibility
 
@@ -1274,14 +1274,14 @@ if (qrtError) {
 - `backdrop-filter`: Widely supported (95%+)
 - `transform-style: preserve-3d`: Supported in all modern browsers
 - Fallback for older browsers:
-```tsx
+\`\`\`tsx
 @supports not (transform-style: preserve-3d) {
   .card-flip {
     /* Simple opacity transition instead */
     transition: opacity 0.3s;
   }
 }
-```
+\`\`\`
 
 **JavaScript Features:**
 - All ES6+ features supported by Next.js transpilation
@@ -1313,7 +1313,7 @@ if (qrtError) {
 **Components to Test:**
 
 **DashboardHeader (`dashboard-header.test.tsx`):**
-```typescript
+\`\`\`typescript
 describe("DashboardHeader", () => {
   it("displays correct greeting based on Philippine time", () => {
     // Mock Philippine timezone
@@ -1336,10 +1336,10 @@ describe("DashboardHeader", () => {
     // Assert "Guest" displayed
   })
 })
-```
+\`\`\`
 
 **QRTCardMini (`qrt-card-mini.test.tsx`):**
-```typescript
+\`\`\`typescript
 describe("QRTCardMini", () => {
   it("shows full card with responsive height", () => {
     // Verify responsive heights: 160px (mobile), 200px (tablet), 240px (desktop)
@@ -1371,10 +1371,10 @@ describe("QRTCardMini", () => {
     // Assert processing message shown
   })
 })
-```
+\`\`\`
 
 **ComingSoonPage (`coming-soon-page.test.tsx`):**
-```typescript
+\`\`\`typescript
 describe("ComingSoonPage", () => {
   it("displays custom title and description", () => {
     // Render with props
@@ -1391,12 +1391,12 @@ describe("ComingSoonPage", () => {
     // Assert icon rendered
   })
 })
-```
+\`\`\`
 
 ### 2. Integration Tests
 
 **Dashboard Flow:**
-```typescript
+\`\`\`typescript
 describe("Dashboard Integration", () => {
   it("loads user data and displays header", async () => {
     // Mock auth context
@@ -1423,13 +1423,13 @@ describe("Dashboard Integration", () => {
     // Assert CTA displayed
   })
 })
-```
+\`\`\`
 
 ### 3. E2E Tests (Playwright)
 
 **File:** `/tests/dashboard.spec.ts`
 
-```typescript
+\`\`\`typescript
 import { test, expect } from '@playwright/test'
 
 test.describe('Dashboard', () => {
@@ -1474,7 +1474,7 @@ test.describe('Dashboard', () => {
     await expect(page).toHaveURL('/dashboard')
   })
 })
-```
+\`\`\`
 
 ### 4. Visual Regression Tests
 
@@ -1492,7 +1492,7 @@ test.describe('Dashboard', () => {
 ### 5. Accessibility Tests
 
 **Automated Testing:**
-```typescript
+\`\`\`typescript
 import { injectAxe, checkA11y } from 'axe-playwright'
 
 test('dashboard is accessible', async ({ page }) => {
@@ -1500,7 +1500,7 @@ test('dashboard is accessible', async ({ page }) => {
   await injectAxe(page)
   await checkA11y(page)
 })
-```
+\`\`\`
 
 **Manual Testing Checklist:**
 - [ ] Keyboard navigation works for all interactive elements
@@ -1853,7 +1853,7 @@ test('dashboard is accessible', async ({ page }) => {
    - Assess severity
 
 2. **Rollback procedure:**
-   ```bash
+   \`\`\`bash
    # Revert to previous commit
    git revert <commit-hash>
    git push origin main
@@ -1861,7 +1861,7 @@ test('dashboard is accessible', async ({ page }) => {
    # Or reset to previous stable version
    git reset --hard <previous-stable-commit>
    git push --force origin main
-   ```
+   \`\`\`
 
 3. **Communication:**
    - Notify team
@@ -1912,7 +1912,7 @@ test('dashboard is accessible', async ({ page }) => {
 
 ### A. Color Reference
 
-```css
+\`\`\`css
 /* Primary Colors */
 --primary-blue: #3B82F6;
 --primary-blue-dark: #2563EB;
@@ -1936,11 +1936,11 @@ test('dashboard is accessible', async ({ page }) => {
 /* Backgrounds */
 --bg-white: #FFFFFF;
 --bg-gray: #F8F9FA;
-```
+\`\`\`
 
 ### B. Typography Scale
 
-```css
+\`\`\`css
 /* Font Sizes */
 --text-3xl: 1.875rem;  /* 30px */
 --text-2xl: 1.5rem;    /* 24px */
@@ -1957,11 +1957,11 @@ test('dashboard is accessible', async ({ page }) => {
 --font-semibold: 600;
 --font-bold: 700;
 --font-black: 900;
-```
+\`\`\`
 
 ### C. Spacing Scale
 
-```css
+\`\`\`css
 /* Spacing (Tailwind default) */
 --space-1: 0.25rem;   /* 4px */
 --space-2: 0.5rem;    /* 8px */
@@ -1972,11 +1972,11 @@ test('dashboard is accessible', async ({ page }) => {
 --space-8: 2rem;      /* 32px */
 --space-10: 2.5rem;   /* 40px */
 --space-12: 3rem;     /* 48px */
-```
+\`\`\`
 
 ### D. Border Radius
 
-```css
+\`\`\`css
 /* Border Radius */
 --rounded-sm: 0.125rem;    /* 2px */
 --rounded: 0.25rem;        /* 4px */
@@ -1986,11 +1986,11 @@ test('dashboard is accessible', async ({ page }) => {
 --rounded-2xl: 1rem;       /* 16px */
 --rounded-3xl: 1.5rem;     /* 24px */
 --rounded-full: 9999px;    /* Circle */
-```
+\`\`\`
 
 ### E. Animation Presets
 
-```typescript
+\`\`\`typescript
 // Framer Motion Variants
 export const fadeIn = {
   hidden: { opacity: 0 },
@@ -2021,7 +2021,7 @@ export const staggerContainer = {
     }
   }
 }
-```
+\`\`\`
 
 ---
 

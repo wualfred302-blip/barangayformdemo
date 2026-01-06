@@ -83,13 +83,13 @@ Implement a comprehensive registration flow with mandatory government ID scannin
 - Query Supabase `residents` table for existing `government_id_number`
 - **If duplicate found**:
   - Return specific error:
-    ```json
+    \`\`\`json
     {
       "success": false,
       "error": "duplicate",
       "message": "This ID is already registered"
     }
-    ```
+    \`\`\`
   - Frontend shows: "An account with this ID already exists. Try logging in or reset your password."
   - Provide links to `/login` and password reset
 - **If no duplicate**: Proceed to next check
@@ -199,7 +199,7 @@ Implement a comprehensive registration flow with mandatory government ID scannin
    - Get public URL
 
 3. **Create record in `residents` table**:
-   ```sql
+   \`\`\`sql
    INSERT INTO residents (
      full_name,
      email,
@@ -215,7 +215,7 @@ Implement a comprehensive registration flow with mandatory government ID scannin
      account_status,
      created_at
    ) VALUES (...)
-   ```
+   \`\`\`
 
 4. **Return user object** with generated `user_id`
 
@@ -245,11 +245,11 @@ Implement a comprehensive registration flow with mandatory government ID scannin
 1. User enters mobile number and password
 2. Frontend sends credentials to `/api/auth/login`
 3. Backend queries:
-   ```sql
+   \`\`\`sql
    SELECT * FROM residents
    WHERE mobile_number = ?
    AND password_hash = bcrypt(?)
-   ```
+   \`\`\`
 4. If match found:
    - Create session (JWT token or Supabase auth session)
    - Store user in auth context
@@ -277,11 +277,11 @@ Implement a comprehensive registration flow with mandatory government ID scannin
 1. User enters mobile number and PIN
 2. Frontend sends credentials to `/api/auth/login-pin`
 3. Backend queries:
-   ```sql
+   \`\`\`sql
    SELECT * FROM residents
    WHERE mobile_number = ?
    AND pin_hash = bcrypt(?)
-   ```
+   \`\`\`
 4. If match found:
    - Create session
    - Store user in auth context
@@ -297,7 +297,7 @@ Implement a comprehensive registration flow with mandatory government ID scannin
 
 ### New `residents` Table
 
-```sql
+\`\`\`sql
 CREATE TABLE residents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
@@ -341,7 +341,7 @@ CREATE TRIGGER update_residents_updated_at
   BEFORE UPDATE ON residents
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
-```
+\`\`\`
 
 ### Supabase Storage Bucket
 
@@ -355,7 +355,7 @@ CREATE TRIGGER update_residents_updated_at
 - Folder structure: `{user_id}/government_id.jpg`
 
 **RLS Policy**:
-```sql
+\`\`\`sql
 -- Users can only access their own ID documents
 CREATE POLICY "Users can view own ID documents"
 ON storage.objects FOR SELECT
@@ -365,7 +365,7 @@ USING (bucket_id = 'id-documents' AND auth.uid()::text = (storage.foldername(nam
 CREATE POLICY "Admin can view all ID documents"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'id-documents' AND auth.jwt()->>'role' = 'admin');
-```
+\`\`\`
 
 ---
 
@@ -424,7 +424,7 @@ USING (bucket_id = 'id-documents' AND auth.jwt()->>'role' = 'admin');
 
 ## User Experience Flow
 
-```
+\`\`\`
 [User] → /register
          ↓
       Scan/Upload ID
@@ -470,7 +470,7 @@ Pass → Auto-fill Form
    Redirect to /register/success
          ↓
    Auto-redirect to /dashboard
-```
+\`\`\`
 
 ---
 

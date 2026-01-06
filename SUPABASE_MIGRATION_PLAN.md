@@ -14,7 +14,7 @@ Full Supabase integration with user-based filtering (Option B from the plan).
 
 Execute this SQL in your Supabase database:
 
-```sql
+\`\`\`sql
 -- Migration to add missing fields to certificates table
 -- Created: 2026-01-05
 
@@ -47,7 +47,7 @@ CREATE INDEX IF NOT EXISTS idx_certificates_created_at ON public.certificates(cr
 
 -- Add index on status for filtering
 CREATE INDEX IF NOT EXISTS idx_certificates_status ON public.certificates(status);
-```
+\`\`\`
 
 ---
 
@@ -56,12 +56,12 @@ CREATE INDEX IF NOT EXISTS idx_certificates_status ON public.certificates(status
 After running the SQL migration, verify that:
 
 1. **Columns were added successfully:**
-   ```sql
+   \`\`\`sql
    SELECT column_name, data_type
    FROM information_schema.columns
    WHERE table_name = 'certificates'
    ORDER BY ordinal_position;
-   ```
+   \`\`\`
 
    Expected columns should include:
    - `id` (uuid)
@@ -95,11 +95,11 @@ After running the SQL migration, verify that:
    - `signed_at` (timestamp with time zone) ← NEW
 
 2. **Indexes were created:**
-   ```sql
+   \`\`\`sql
    SELECT indexname, indexdef
    FROM pg_indexes
    WHERE tablename = 'certificates';
-   ```
+   \`\`\`
 
    Should see:
    - `idx_certificates_user_id`
@@ -131,9 +131,9 @@ The following code changes have already been made in the codebase:
 ### File: `app/requests/page.tsx`
 - ✅ Added `getCertificatesByUserId` to context destructuring (line 24)
 - ✅ Added user filtering logic (lines 59-60):
-  ```javascript
+  \`\`\`javascript
   const myCertificates = user?.id ? getCertificatesByUserId(user.id) : certificates
-  ```
+  \`\`\`
 - ✅ Updated combinedRequests to use `myCertificates` instead of `certificates` (line 63)
 
 ---
@@ -178,7 +178,7 @@ After the migration is complete, test the following:
 
 After testing, check the Supabase database:
 
-```sql
+\`\`\`sql
 -- View all certificates with user info
 SELECT
   c.id,
@@ -192,7 +192,7 @@ SELECT
 FROM certificates c
 ORDER BY c.created_at DESC
 LIMIT 10;
-```
+\`\`\`
 
 **Expected:**
 - Each certificate should have a `user_id` populated
@@ -205,7 +205,7 @@ LIMIT 10;
 
 If something goes wrong, you can rollback the column additions:
 
-```sql
+\`\`\`sql
 -- WARNING: This will delete the columns and their data
 -- Only use if you need to rollback
 
@@ -232,7 +232,7 @@ ALTER TABLE public.certificates
 DROP INDEX IF EXISTS idx_certificates_user_id;
 DROP INDEX IF EXISTS idx_certificates_created_at;
 DROP INDEX IF EXISTS idx_certificates_status;
-```
+\`\`\`
 
 ---
 

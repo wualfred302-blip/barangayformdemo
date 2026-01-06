@@ -40,17 +40,17 @@ The easiest way to edit SQL is through the Supabase Studio web interface:
 
 Connect directly to your remote database:
 
-```bash
+\`\`\`bash
 # Basic connection
 psql "postgresql://postgres:[YOUR-PASSWORD]@db.rwjynnebxruknwhqowjp.supabase.co:5432/postgres"
 
 # Or set as environment variable for easier use
 export DB_URL="postgresql://postgres:[YOUR-PASSWORD]@db.rwjynnebxruknwhqowjp.supabase.co:5432/postgres"
 psql $DB_URL
-```
+\`\`\`
 
 **Useful psql commands:**
-```sql
+\`\`\`sql
 -- List all tables
 \dt
 
@@ -74,19 +74,19 @@ psql $DB_URL
 
 -- Exit psql
 \q
-```
+\`\`\`
 
 ### Option 3: Using Supabase CLI to Execute SQL Files
 
 Run your existing SQL migration scripts against the remote database:
 
-```bash
+\`\`\`bash
 # Execute a single SQL file
 ~/.local/bin/supabase db execute --remote --file scripts/001_create_tables.sql
 
 # Execute SQL directly
 ~/.local/bin/supabase db execute --remote --sql "SELECT * FROM users;"
-```
+\`\`\`
 
 ### Option 4: Using VS Code with Postgres Language Server
 
@@ -102,7 +102,7 @@ Run your existing SQL migration scripts against the remote database:
 
 The Supabase CLI provides a migration workflow:
 
-```bash
+\`\`\`bash
 # Create a new migration
 ~/.local/bin/supabase migration new add_new_table
 
@@ -117,7 +117,7 @@ The Supabase CLI provides a migration workflow:
 
 # Pull remote schema to local
 ~/.local/bin/supabase db pull
-```
+\`\`\`
 
 ## Working with Your Existing SQL Scripts
 
@@ -133,14 +133,14 @@ You have several SQL migration scripts in your `scripts/` directory:
 ### To execute these scripts on your remote database:
 
 **Method A: Using psql**
-```bash
+\`\`\`bash
 psql "postgresql://postgres:[PASSWORD]@db.rwjynnebxruknwhqowjp.supabase.co:5432/postgres" -f scripts/001_create_tables.sql
-```
+\`\`\`
 
 **Method B: Using Supabase CLI**
-```bash
+\`\`\`bash
 ~/.local/bin/supabase db execute --remote --file scripts/001_create_tables.sql
-```
+\`\`\`
 
 ### To edit these scripts:
 
@@ -152,7 +152,7 @@ psql "postgresql://postgres:[PASSWORD]@db.rwjynnebxruknwhqowjp.supabase.co:5432/
 ## Common SQL Operations
 
 ### View Database Schema
-```sql
+\`\`\`sql
 -- List all tables
 SELECT table_name 
 FROM information_schema.tables 
@@ -162,90 +162,90 @@ WHERE table_schema = 'public';
 SELECT column_name, data_type, is_nullable 
 FROM information_schema.columns 
 WHERE table_name = 'your_table_name';
-```
+\`\`\`
 
 ### Create a Table
-```sql
+\`\`\`sql
 CREATE TABLE example_table (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
-```
+\`\`\`
 
 ### Insert Data
-```sql
+\`\`\`sql
 INSERT INTO example_table (name) 
 VALUES ('Test Entry');
-```
+\`\`\`
 
 ### Query Data
-```sql
+\`\`\`sql
 SELECT * FROM example_table;
-```
+\`\`\`
 
 ### Update Data
-```sql
+\`\`\`sql
 UPDATE example_table 
 SET name = 'Updated Name' 
 WHERE id = 1;
-```
+\`\`\`
 
 ### Delete Data
-```sql
+\`\`\`sql
 DELETE FROM example_table 
 WHERE id = 1;
-```
+\`\`\`
 
 ## Best Practices
 
 1. **Always backup before making changes**
-   ```sql
+   \`\`\`sql
    -- Export your database
    pg_dump "postgresql://postgres:[PASSWORD]@db.rwjynnebxruknwhqowjp.supabase.co:5432/postgres" > backup.sql
-   ```
+   \`\`\`
 
 2. **Use transactions for multiple changes**
-   ```sql
+   \`\`\`sql
    BEGIN;
    -- Your SQL statements here
    COMMIT;
    -- or ROLLBACK; if something goes wrong
-   ```
+   \`\`\`
 
 3. **Test queries on development first**
-   ```bash
+   \`\`\`bash
    # Use Supabase Studio's SQL Editor to test before running in terminal
-   ```
+   \`\`\`
 
 4. **Use migrations for schema changes**
-   ```bash
+   \`\`\`bash
    ~/.local/bin/supabase migration new descriptive_name
    # Edit the migration file
    ~/.local/bin/supabase db push
-   ```
+   \`\`\`
 
 ## Troubleshooting
 
 ### Connection Issues
-```bash
+\`\`\`bash
 # Test connection
 psql "postgresql://postgres:[PASSWORD]@db.rwjynnebxruknwhqowjp.supabase.co:5432/postgres" -c "SELECT 1;"
-```
+\`\`\`
 
 ### Check Supabase CLI Status
-```bash
+\`\`\`bash
 ~/.local/bin/supabase status --debug
-```
+\`\`\`
 
 ### View Recent Commands
-```bash
+\`\`\`bash
 # psql history
 cat ~/.psql_history
 
 # Terminal history
 history | grep supabase
-```
+\`\`\`
 
 ## Quick Reference
 

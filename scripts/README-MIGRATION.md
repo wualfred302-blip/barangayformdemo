@@ -40,8 +40,8 @@ The `certificates` table in Supabase is missing several columns that the applica
 
 If you have `psql` installed and your Supabase connection string:
 
-```bash
+\`\`\`bash
 psql "postgresql://postgres:[YOUR_PASSWORD]@db.rwjynnebxruknwhqowjp.supabase.co:5432/postgres" < scripts/006_add_certificate_fields.sql
-```
+\`\`\`
 
 Replace `[YOUR_PASSWORD]` with your Supabase database password.

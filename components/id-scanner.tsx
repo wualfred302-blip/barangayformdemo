@@ -10,6 +10,8 @@ interface IDData {
   address: string
   mobileNumber: string
   age: string
+  idType?: string
+  idNumber?: string
 }
 
 interface IDScannerProps {
@@ -67,7 +69,6 @@ export function IDScanner({ onDataExtracted, disabled }: IDScannerProps) {
         setProgress((prev) => Math.min(prev + 5, 85))
       }, 200)
 
-      // Add timeout for the API request (30 seconds)
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000)
 
@@ -94,7 +95,11 @@ export function IDScanner({ onDataExtracted, disabled }: IDScannerProps) {
           setProgress(90)
           setStatusMessage("Filling form...")
 
-          onDataExtracted(result.data)
+          onDataExtracted({
+            ...result.data,
+            idType: result.data.idType || "",
+            idNumber: result.data.idNumber || "",
+          })
 
           setProgress(100)
           setShowSuccess(true)
@@ -109,7 +114,6 @@ export function IDScanner({ onDataExtracted, disabled }: IDScannerProps) {
           throw new Error(result.error || "Failed to process ID")
         }
       } finally {
-        // Always clear the progress interval
         clearInterval(progressInterval)
       }
     } catch (error: any) {
@@ -118,9 +122,10 @@ export function IDScanner({ onDataExtracted, disabled }: IDScannerProps) {
       setProgress(0)
       setStatusMessage("")
 
-      const message = error.name === "AbortError"
-        ? "Request timed out. Please try again."
-        : (error.message || "Failed to scan ID. Please try again or fill manually.")
+      const message =
+        error.name === "AbortError"
+          ? "Request timed out. Please try again."
+          : error.message || "Failed to scan ID. Please try again or fill manually."
 
       alert(message)
     }
@@ -135,8 +140,8 @@ export function IDScanner({ onDataExtracted, disabled }: IDScannerProps) {
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500">
             <Camera className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-base font-bold text-gray-900">Quick Registration</h3>
-          <p className="mt-1 text-sm text-gray-600">Scan your ID to auto-fill this form</p>
+          <h3 className="text-base font-bold text-gray-900">Scan Your Government ID</h3>
+          <p className="mt-1 text-sm text-gray-600">Required for registration</p>
         </div>
 
         <div className="flex gap-3">
@@ -153,7 +158,7 @@ export function IDScanner({ onDataExtracted, disabled }: IDScannerProps) {
               className={`flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-500 text-sm font-semibold text-white transition ${disabled || isProcessing ? "cursor-not-allowed opacity-50" : "hover:bg-emerald-600 active:scale-[0.98]"}`}
             >
               <Camera className="h-4 w-4" />
-              Scan ID
+              Take Photo
             </div>
           </label>
 
@@ -175,7 +180,7 @@ export function IDScanner({ onDataExtracted, disabled }: IDScannerProps) {
         </div>
 
         <p className="mt-3 text-center text-xs text-gray-500">
-          Supports Philippine National ID, Driver's License, UMID, and more
+          Supports: Philippine National ID, Driver's License, UMID, SSS, Postal ID, Voter's ID
         </p>
       </div>
 
@@ -217,7 +222,7 @@ export function IDScanner({ onDataExtracted, disabled }: IDScannerProps) {
           <div className="w-full border-t border-gray-200" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-gradient-to-b from-emerald-50 to-white px-3 text-gray-500">or fill manually</span>
+          <span className="bg-gradient-to-b from-emerald-50 to-white px-3 text-gray-500">or fill manually below</span>
         </div>
       </div>
     </div>
