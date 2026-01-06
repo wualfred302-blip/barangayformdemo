@@ -220,12 +220,45 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
         const supabase = createClient()
         let mappedQrtData: QRTIDRequest[] = []
 
-        // Load QRT IDs from Supabase
+        // The qr_code_data column contains large base64 strings that cause statement timeouts
         try {
           const { data: qrtData, error: qrtError } = await supabase
             .from("qrt_ids")
-            .select("*")
+            .select(`
+              id,
+              qrt_code,
+              verification_code,
+              user_id,
+              full_name,
+              birth_date,
+              age,
+              gender,
+              civil_status,
+              birth_place,
+              address,
+              height,
+              weight,
+              years_resident,
+              citizenship,
+              emergency_contact_name,
+              emergency_contact_address,
+              emergency_contact_phone,
+              emergency_contact_relationship,
+              photo_url,
+              id_front_image_url,
+              id_back_image_url,
+              status,
+              issued_date,
+              expiry_date,
+              created_at,
+              updated_at,
+              payment_reference,
+              payment_transaction_id,
+              request_type,
+              amount
+            `)
             .order("created_at", { ascending: false })
+            .limit(50)
             .abortSignal(signal)
 
           if (!isMountedRef.current || signal.aborted) return
@@ -235,7 +268,10 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
               console.error("Failed to load QRT IDs from Supabase:", qrtError.message)
             }
           } else if (qrtData) {
-            mappedQrtData = qrtData.map(dbRowToQRTIDRequest)
+            mappedQrtData = qrtData.map((row) => ({
+              ...dbRowToQRTIDRequest(row),
+              qrCodeData: "", // Don't load this initially - fetch on demand
+            }))
             setQrtIds(mappedQrtData)
           }
         } catch (fetchError: any) {
@@ -255,7 +291,7 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
             .from("qrt_verification_logs")
             .select("id, qrt_id, scanned_at, verification_status, notes")
             .order("scanned_at", { ascending: false })
-            .limit(100)
+            .limit(50)
             .abortSignal(signal)
 
           if (!isMountedRef.current || signal.aborted) return
@@ -313,8 +349,41 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
       const supabase = createClient()
       const { data, error } = await supabase
         .from("qrt_ids")
-        .select("*")
+        .select(`
+          id,
+          qrt_code,
+          verification_code,
+          user_id,
+          full_name,
+          birth_date,
+          age,
+          gender,
+          civil_status,
+          birth_place,
+          address,
+          height,
+          weight,
+          years_resident,
+          citizenship,
+          emergency_contact_name,
+          emergency_contact_address,
+          emergency_contact_phone,
+          emergency_contact_relationship,
+          photo_url,
+          id_front_image_url,
+          id_back_image_url,
+          status,
+          issued_date,
+          expiry_date,
+          created_at,
+          updated_at,
+          payment_reference,
+          payment_transaction_id,
+          request_type,
+          amount
+        `)
         .order("created_at", { ascending: false })
+        .limit(50)
         .abortSignal(controller.signal)
 
       if (error) {
@@ -324,7 +393,10 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
           details: error.details,
         })
       } else if (data) {
-        const mappedData = data.map(dbRowToQRTIDRequest)
+        const mappedData = data.map((row) => ({
+          ...dbRowToQRTIDRequest(row),
+          qrCodeData: "", // Don't load this - fetch on demand
+        }))
         setQrtIds(mappedData)
       }
     } catch (error: any) {
