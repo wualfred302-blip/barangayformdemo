@@ -1,0 +1,57 @@
+// Configuration for Postgres Language Server
+// This file enables SQL autocompletion, linting, and type checking in VS Code
+
+{
+  // Database connection settings
+  // To get your connection string:
+  // 1. Go to https://supabase.com/dashboard/project/rwjynnebxruknwhqowjp/settings/database
+  // 2. Click "Connect" or find the "Connection string" section
+  // 3. Select "URI" tab
+  // 4. Copy the connection string in this format:
+  //    postgresql://postgres:[YOUR-PASSWORD]@db.rwjynnebxruknwhqowjp.supabase.co:5432/postgres
+  
+  "db": {
+    // Replace this with your actual connection string from Supabase dashboard
+    // Format: postgresql://username:password@host:port/database
+    "connectionString": "postgresql://postgres:YOUR_PASSWORD@db.rwjynnebxruknwhqowjp.supabase.co:5432/postgres",
+    
+    // Optional: Specify schema (defaults to "public")
+    "schema": "public",
+    
+    // Optional: Set to true to disable database connection (linting only)
+    "disabled": false
+  },
+  
+  // Server settings
+  "server": {
+    // Linting rules
+    "lint": {
+      // Enable/disable specific linting rules
+      "rules": {
+        "pg:syntax": true,  // Syntax errors
+        "pg:core:column-name-style": true,  // Column naming conventions
+        "pg:core:function-name-style": true,  // Function naming conventions
+        "pg:core:table-name-style": true,  // Table naming conventions
+        "pg:core:quoted-identifier": false  // Disallow quoted identifiers
+      }
+    },
+    
+    // Type checking settings
+    "types": {
+      // Enable type checking
+      "enabled": true,
+      
+      // Cache database schema for better performance
+      "cache": true
+    }
+  },
+  
+  // Formatting options
+  "format": {
+    // Format SQL on save
+    "formatOnSave": true,
+    
+    // SQL formatter (requires additional setup)
+    "formatter": "pg-formatter"
+  }
+}

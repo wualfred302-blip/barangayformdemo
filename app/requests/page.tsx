@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
@@ -18,13 +18,13 @@ import { cn } from "@/lib/utils"
 type FilterType = "all" | "processing" | "ready"
 type TabType = "all" | "certificates" | "qrt" | "bayanihan"
 
-export default function RequestsPage() {
+function RequestsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { certificates } = useCertificates()
+  const { certificates, getCertificatesByUserId } = useCertificates()
   const { isAuthenticated, isLoading, user } = useAuth()
   const { requests: bayanihanRequests } = useBayanihan()
-  const { qrtIds, getUserQRTIds, refreshQRTIds } = useQRT()
+  const { qrtIds, getUserQRTIds, refreshQRTIds, isLoaded } = useQRT()
   const [filter, setFilter] = useState<FilterType>("all")
   const [activeTab, setActiveTab] = useState<TabType>("all")
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -42,16 +42,7 @@ export default function RequestsPage() {
     }
   }, [searchParams])
 
-  useEffect(() => {
-    const loadQRTIds = async () => {
-      setIsRefreshing(true)
-      await refreshQRTIds()
-      setIsRefreshing(false)
-    }
-    loadQRTIds()
-  }, [refreshQRTIds])
-
-  if (isLoading || isRefreshing) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F8F9FA]">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#10B981] border-t-transparent" />
@@ -65,8 +56,11 @@ export default function RequestsPage() {
 
   const myQrtIds = user?.id ? getUserQRTIds(user.id) : qrtIds
 
+  // Filter certificates by user ID
+  const myCertificates = user?.id ? getCertificatesByUserId(user.id) : certificates
+
   const combinedRequests = [
-    ...certificates.map(c => ({ type: 'certificate' as const, data: c, date: c.createdAt })),
+    ...myCertificates.map(c => ({ type: 'certificate' as const, data: c, date: c.createdAt })),
     ...myBayanihan.map(b => ({ type: 'bayanihan' as const, data: b, date: b.createdAt })),
     ...myQrtIds.map(q => ({ type: 'qrt' as const, data: q, date: q.createdAt }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -356,5 +350,17 @@ export default function RequestsPage() {
 
       <BottomNav />
     </div>
+  )
+}
+
+export default function RequestsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#3B82F6] border-t-transparent" />
+      </div>
+    }>
+      <RequestsPageContent />
+    </Suspense>
   )
 }

@@ -70,12 +70,16 @@ export default function CertificatePage() {
     computeHash()
   }, [certificate?.staffSignature])
 
-  const fullName = user?.fullName || "JUAN DELA CRUZ"
-  const age = certificate?.age || 25
+  const fullName = certificate?.residentName || "JUAN DELA CRUZ"
   const purok = certificate?.purok || "Purok 1"
-  const yearsOfResidency = certificate?.yearsOfResidency || 5
   const purpose = certificate?.purpose || "Employment"
   const issueDate = formatCertificateDate(new Date())
+
+  const residencyText = certificate?.residencySince
+    ? `since ${new Date(certificate.residencySince).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+    : certificate?.yearsOfResidency
+    ? `for about ${certificate.yearsOfResidency} years`
+    : "for several years"
 
   const verifyUrl = certificate ? getVerificationUrl(certificate.serialNumber) : ""
   const qrData = signatureHash ? `${verifyUrl}?signatureHash=${signatureHash}` : verifyUrl
@@ -102,6 +106,20 @@ export default function CertificatePage() {
     
     const verifyUrl = getVerificationUrl(certificate.serialNumber)
     const pdfQrData = currentHash ? `${verifyUrl}?signatureHash=${currentHash}` : verifyUrl
+
+    // Preload logo as data URL for watermark
+    let logoDataUrl = ""
+    try {
+      const logoResponse = await fetch('/images/logo.png')
+      const logoBlob = await logoResponse.blob()
+      logoDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.readAsDataURL(logoBlob)
+      })
+    } catch (err) {
+      console.error("Failed to preload logo for watermark", err)
+    }
 
     const { jsPDF } = await import("jspdf")
     const doc = new jsPDF("p", "mm", "a4")
@@ -176,30 +194,43 @@ export default function CertificatePage() {
 
     // Header
     doc.setTextColor(0, 0, 0)
-    doc.setFontSize(10)
+    doc.setFontSize(9)
     doc.setFont("helvetica", "normal")
-    doc.text("Republic of the Philippines", contentX + contentWidth / 2, 25, { align: "center" })
-    doc.text("Province of Pampanga", contentX + contentWidth / 2, 31, { align: "center" })
-    doc.text("Municipality of Mabalacat", contentX + contentWidth / 2, 37, { align: "center" })
+    doc.text("Republic of the Philippines", contentX + contentWidth / 2, 22, { align: "center" })
+    doc.text("Province of Pampanga", contentX + contentWidth / 2, 27, { align: "center" })
+    doc.text("Municipality of Mabalacat", contentX + contentWidth / 2, 32, { align: "center" })
     doc.setFont("helvetica", "bold")
     doc.setFontSize(11)
-    doc.text("BARANGAY MAWAQUE", contentX + contentWidth / 2, 44, { align: "center" })
+    doc.text("BARANGAY MAWAQUE", contentX + contentWidth / 2, 38, { align: "center" })
 
     doc.setLineWidth(0.5)
     doc.line(contentX, 50, contentX + contentWidth, 50)
 
     doc.setFontSize(10)
-    doc.text("OFFICE OF THE PUNONG BARANGAY", contentX + contentWidth / 2, 60, { align: "center" })
+    doc.text("OFFICE OF THE PUNONG BARANGAY", contentX + contentWidth / 2, 55, { align: "center" })
+
+    // Watermark
+    try {
+      doc.setGState(doc.GState({ opacity: 0.05 }))
+      if (logoDataUrl) {
+        doc.addImage(logoDataUrl, "PNG", contentX + (contentWidth - 70) / 2, 90, 70, 70)
+      } else {
+        doc.addImage("/images/logo.png", "PNG", contentX + (contentWidth - 70) / 2, 90, 70, 70)
+      }
+      doc.setGState(doc.GState({ opacity: 1 }))
+    } catch (e) {
+      console.error("Failed to add watermark to PDF", e)
+    }
 
     // Title
-    doc.setFontSize(28)
+    doc.setFontSize(24)
     doc.setFont("helvetica", "bold")
-    doc.text("Barangay", contentX + contentWidth / 2, 85, { align: "center" })
-    doc.text("Certification", contentX + contentWidth / 2, 98, { align: "center" })
+    doc.text("BARANGAY", contentX + contentWidth / 2, 88, { align: "center" })
+    doc.text("CERTIFICATION", contentX + contentWidth / 2, 98, { align: "center" })
 
     doc.setFontSize(11)
     doc.setFont("helvetica", "italic")
-    doc.text(`(${certificate?.certificateType || "Residency"})`, contentX + contentWidth / 2, 108, { align: "center" })
+    doc.text(`(${certificate?.certificateType || "Residency"})`, contentX + contentWidth / 2, 105, { align: "center" })
 
     // Body
     doc.setFontSize(11)
@@ -207,66 +238,99 @@ export default function CertificatePage() {
     doc.text("TO WHOM IT MAY CONCERN:", contentX, 130)
 
     doc.setFont("helvetica", "normal")
-    doc.setFontSize(11)
+    doc.setFontSize(10)
 
-    const bodyText = `       This is to certify that ${fullName.toUpperCase()}, ${age} years old, Filipino, and bona-fide resident of ${purok}, Barangay Mawaque, Municipality of Mabalacat, Province of Pampanga for about ${yearsOfResidency} years.`
+    let bodyText = `       This is to certify that ${fullName.toUpperCase()}`
+    if (certificate.sex) bodyText += `, ${certificate.sex}`
+    if (certificate.sexOrientation) bodyText += `, ${certificate.sexOrientation}`
+    bodyText += `, Filipino`
+    if (certificate.civilStatus) bodyText += `, ${certificate.civilStatus}`
+    bodyText += `, and bona-fide resident of ${purok}, Barangay Mawaque, Municipality of Mabalacat, Province of Pampanga ${residencyText}.`
+    
+    let yPosContent = 135
     const splitBody = doc.splitTextToSize(bodyText, contentWidth)
-    doc.text(splitBody, contentX, 145)
+    doc.text(splitBody, contentX, yPosContent)
+    yPosContent += splitBody.length * 6
+
+    if (certificate.occupation || certificate.monthlyIncome) {
+      let jobText = `       The above-named individual is`
+      jobText += certificate.occupation ? ` currently employed as ${certificate.occupation}` : " presently stay-at-home"
+      if (certificate.monthlyIncome) jobText += ` with a monthly income of P${certificate.monthlyIncome.toLocaleString()}`
+      jobText += "."
+      const splitJob = doc.splitTextToSize(jobText, contentWidth)
+      doc.text(splitJob, contentX, yPosContent)
+      yPosContent += splitJob.length * 6
+    }
+
+    if (certificate.validIdType) {
+      let idText = `       Presented Identification: ${certificate.validIdType}`
+      if (certificate.validIdNumber) idText += ` with Number: ${certificate.validIdNumber}`
+      idText += "."
+      const splitId = doc.splitTextToSize(idText, contentWidth)
+      doc.text(splitId, contentX, yPosContent)
+      yPosContent += splitId.length * 6
+    }
 
     const certifyText = `       THIS FURTHER CERTIFIES that he/she is known to me as a person of good moral character, a law-abiding citizen, and has never violated any law, ordinance, or rule duly implemented by the government authorities.`
     const splitCertify = doc.splitTextToSize(certifyText, contentWidth)
-    doc.text(splitCertify, contentX, 175)
+    doc.text(splitCertify, contentX, yPosContent)
+    yPosContent += splitCertify.length * 6
 
     const purposeText = `       This certification is issued upon the request of the above-mentioned individual for ${purpose} purposes.`
     const splitPurpose = doc.splitTextToSize(purposeText, contentWidth)
-    doc.text(splitPurpose, contentX, 210)
+    doc.text(splitPurpose, contentX, yPosContent)
+    yPosContent += splitPurpose.length * 10
 
-    doc.text(`       DONE AND ISSUED this ${issueDate} at`, contentX, 235)
-    doc.text("Barangay Mawaque, Mabalacat, Pampanga.", contentX, 242)
+    doc.text(`       DONE AND ISSUED this ${issueDate} at`, contentX, yPosContent)
+    doc.text("Barangay Mawaque, Mabalacat, Pampanga.", contentX, yPosContent + 7)
 
     // Signature
-    const signatureY = 270
+    const signatureY = 250
 
     if (certificate.staffSignature) {
-      // Add signature image to PDF
       try {
-        doc.addImage(certificate.staffSignature, "PNG", contentX + contentWidth - 50, signatureY - 15, 40, 12)
+        doc.addImage(certificate.staffSignature, "PNG", contentX + contentWidth - 50, signatureY - 15, 40, 10)
       } catch (error) {
         console.error("Failed to add signature to PDF:", error)
       }
     }
 
+    doc.setLineWidth(0.3)
+    doc.line(contentX + contentWidth - 60, signatureY, contentX + contentWidth, signatureY)
     doc.setFont("helvetica", "bold")
-    doc.text(certificate.signedBy || "HON. JOHN DOE", contentX + contentWidth - 30, signatureY, { align: "center" })
+    doc.setFontSize(10)
+    doc.text(certificate.signedBy || "HON. JOHN DOE", contentX + contentWidth - 30, signatureY + 5, { align: "center" })
 
     doc.setFont("helvetica", "normal")
-    doc.setFontSize(9)
+    doc.setFontSize(8)
     const roleText = certificate.signedByRole
       ? certificate.signedByRole.charAt(0).toUpperCase() + certificate.signedByRole.slice(1)
       : "Punong Barangay"
-    doc.text(roleText, contentX + contentWidth - 30, signatureY + 6, { align: "center" })
+    doc.text(roleText, contentX + contentWidth - 30, signatureY + 10, { align: "center" })
 
-    // Add digital signature timestamp
-    if (certificate.signedAt) {
-      doc.setFontSize(7)
-      doc.setTextColor(100, 100, 100)
-      doc.text(
-        `Digitally signed: ${new Date(certificate.signedAt).toLocaleDateString("en-PH")}`,
-        contentX + contentWidth - 30,
-        signatureY + 12,
-        { align: "center" },
-      )
-    }
+    // Footer Info
+    doc.setDrawColor(200, 200, 200)
+    doc.line(contentX, pageHeight - 30, contentX + contentWidth, pageHeight - 30)
+    
+    doc.setFontSize(6.5)
+    doc.setTextColor(120, 120, 120)
+    doc.text("Barangay Mawaque, Municipality of Mabalacat, Province of Pampanga", contentX, pageHeight - 25)
+    doc.text("Tel: (045) 123-4567 | mawaque@mabalacat.gov.ph | www.mawaque.gov.ph", contentX, pageHeight - 21)
 
     // Serial
-    doc.setFontSize(8)
-    doc.text(`Serial No: ${certificate?.serialNumber || "BGRY-MWQ-2025-000001"}`, contentX, pageHeight - 25)
+    doc.setFillColor(245, 245, 245)
+    doc.rect(contentX, pageHeight - 15, 60, 8, "F")
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(9)
+    doc.setFont("courier", "bold")
+    doc.text(`Serial: ${certificate?.serialNumber || "BGRY-MWQ-2025-000001"}`, contentX + 2, pageHeight - 10)
 
     // QR Code
     if (qrDataUrl) {
-      doc.addImage(qrDataUrl, "PNG", contentX + contentWidth - 25, pageHeight - 35, 25, 25)
-      doc.setFontSize(6)
-      doc.text("Scan to verify", contentX + contentWidth - 12.5, pageHeight - 8, { align: "center" })
+      doc.addImage(qrDataUrl, "PNG", contentX + contentWidth - 30, pageHeight - 38, 28, 28)
+      doc.setFontSize(7)
+      doc.setFont("helvetica", "bold")
+      doc.text("Scan to verify", contentX + contentWidth - 15, pageHeight - 8, { align: "center" })
     }
 
     doc.save(`certificate-${certificate?.serialNumber || "document"}.pdf`)
@@ -300,9 +364,9 @@ export default function CertificatePage() {
         {/* Certificate Preview Card */}
         <Card className="mb-6 overflow-hidden rounded-2xl border-0 shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
           <div className="overflow-x-auto">
-            <div className="flex min-w-[600px]">
+            <div className="flex min-w-full sm:min-w-[500px] md:min-w-[650px]">
               {/* Green Sidebar */}
-              <div className="w-36 shrink-0 bg-[#10B981] p-4 text-white">
+              <div className="w-20 sm:w-28 md:w-36 shrink-0 bg-[#10B981] p-3 md:p-4 text-white">
                 <div className="mb-6 text-center">
                   <p className="text-xs font-bold">HON. JOHN DOE</p>
                   <p className="text-[10px] italic">Punong Barangay</p>
@@ -332,22 +396,31 @@ export default function CertificatePage() {
               </div>
 
               {/* Main Content */}
-              <CardContent className="flex-1 p-8">
-                {/* Header */}
-                <div className="mb-6 text-center text-sm">
-                  <p>Republic of the Philippines</p>
-                  <p>Province of Pampanga</p>
-                  <p>Municipality of Mabalacat</p>
-                  <p className="font-bold">BARANGAY MAWAQUE</p>
+              <CardContent className="relative flex-1 p-4 md:p-6 lg:p-8 overflow-hidden">
+                {/* Watermark Overlay */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-[0.05]">
+                  <div className="relative h-48 w-48 md:h-56 md:w-56 lg:h-64 lg:w-64">
+                    <Image src="/images/logo.png" alt="Watermark" fill className="object-contain" />
+                  </div>
                 </div>
-                <hr className="mb-4 border-[#E5E7EB]" />
-                <p className="mb-8 text-center text-sm font-medium">OFFICE OF THE PUNONG BARANGAY</p>
+
+                {/* Header */}
+                <div className="relative z-10 mb-6 text-center text-sm tracking-wide">
+                  <p className="uppercase">Republic of the Philippines</p>
+                  <p className="uppercase">Province of Pampanga</p>
+                  <p className="uppercase">Municipality of Mabalacat</p>
+                  <p className="text-base font-extrabold text-[#111827]">BARANGAY MAWAQUE</p>
+                </div>
+                <hr className="relative z-10 mb-4 border-[#E5E7EB]" />
+                <p className="relative z-10 mb-10 text-center text-sm font-bold tracking-widest text-[#374151]">OFFICE OF THE PUNONG BARANGAY</p>
 
                 {/* Title */}
-                <h2 className="mb-1 text-center text-3xl font-bold text-[#111827]">Barangay</h2>
-                <h2 className="mb-2 text-center text-3xl font-bold text-[#111827]">Certification</h2>
-                <div className="mb-8 flex items-center justify-center gap-2">
-                  <p className="text-center text-sm italic text-[#6B7280]">({certificate.certificateType})</p>
+                <div className="relative z-10 mb-10 text-center">
+                  <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-[#111827]">Barangay</h2>
+                  <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-[#111827]">Certification</h2>
+                </div>
+                <div className="relative z-10 mb-8 flex items-center justify-center gap-2">
+                  <p className="text-center text-sm italic font-medium text-[#6B7280]">({certificate.certificateType})</p>
                   {certificate.staffSignature && (
                     <div 
                       className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200"
@@ -360,70 +433,104 @@ export default function CertificatePage() {
                 </div>
 
                 {/* Body */}
-                <p className="mb-6 font-bold text-[#111827]">TO WHOM IT MAY CONCERN:</p>
-                <p className="mb-4 text-justify text-sm leading-relaxed text-[#374151]">
-                  This is to certify that <span className="font-bold underline">{fullName.toUpperCase()}</span>, {age}{" "}
-                  years old, Filipino, and bona-fide resident of {purok}, Barangay Mawaque, Municipality of Mabalacat,
-                  Province of Pampanga for about {yearsOfResidency} years.
-                </p>
-                <p className="mb-4 text-justify text-sm leading-relaxed text-[#374151]">
-                  THIS FURTHER CERTIFIES that he/she is known to me as a person of good moral character, a law-abiding
-                  citizen, and has never violated any law, ordinance, or rule duly implemented by the government
-                  authorities.
-                </p>
-                <p className="mb-6 text-justify text-sm leading-relaxed text-[#374151]">
-                  This certification is issued upon the request of the above-mentioned individual for {purpose}{" "}
-                  purposes.
-                </p>
-                <p className="mb-10 text-sm text-[#374151]">
-                  DONE AND ISSUED this {issueDate} at Barangay Mawaque, Mabalacat, Pampanga.
-                </p>
-
-                {/* Signature */}
-                <div className="mb-10 text-right">
-                  {certificate.staffSignature && (
-                    <div className="mb-2 inline-block">
-                      <img src={certificate.staffSignature} alt="Digital Signature" className="h-16 w-auto" />
-                    </div>
-                  )}
-                  <p className="font-bold text-[#111827]">{certificate.signedBy || "HON. JOHN DOE"}</p>
-                  <p className="text-sm text-[#6B7280]">
-                    {certificate.signedByRole
-                      ? certificate.signedByRole.charAt(0).toUpperCase() + certificate.signedByRole.slice(1)
-                      : "Punong Barangay"}
+                <div className="relative z-10">
+                  <p className="mb-6 font-bold text-[#111827]">TO WHOM IT MAY CONCERN:</p>
+                  
+                  <p className="mb-6 text-justify text-sm md:text-base leading-normal md:leading-relaxed text-[#374151]">
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This is to certify that <span className="font-bold underline">{fullName.toUpperCase()}</span>, 
+                    {certificate.sex && <span>, {certificate.sex}</span>}
+                    {certificate.sexOrientation && <span>, {certificate.sexOrientation}</span>}, 
+                    Filipino, {certificate.civilStatus && <span>{certificate.civilStatus}, </span>}
+                    and bona-fide resident of <span className="font-bold">{purok}</span>, Barangay Mawaque, Municipality of Mabalacat,
+                    Province of Pampanga {residencyText}.
                   </p>
-                  {certificate.signedAt && (
-                    <p className="mt-1 text-xs text-[#9CA3AF]">
-                      Digitally signed on{" "}
-                      {new Date(certificate.signedAt).toLocaleDateString("en-PH", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
+
+                  {(certificate.occupation || certificate.monthlyIncome) && (
+                    <p className="mb-6 text-justify text-sm md:text-base leading-normal md:leading-relaxed text-[#374151]">
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The above-named individual is 
+                      {certificate.occupation ? ` currently employed as ${certificate.occupation}` : " presently stay-at-home"}
+                      {certificate.monthlyIncome ? ` with a monthly income of ₱${certificate.monthlyIncome.toLocaleString()}` : ""}.
                     </p>
                   )}
+
+                  {certificate.validIdType && (
+                    <p className="mb-6 text-justify text-sm md:text-base leading-normal md:leading-relaxed text-[#374151]">
+                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Presented Identification: <span className="font-bold">{certificate.validIdType}</span>
+                      {certificate.validIdNumber && <span> with Number: <span className="font-bold">{certificate.validIdNumber}</span></span>}.
+                    </p>
+                  )}
+
+                  <p className="mb-6 text-justify text-sm md:text-base leading-normal md:leading-relaxed text-[#374151]">
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;THIS FURTHER CERTIFIES that he/she is known to me as a person of good moral character, a law-abiding
+                    citizen, and has never violated any law, ordinance, or rule duly implemented by the government
+                    authorities.
+                  </p>
+                  <p className="mb-6 text-justify text-sm md:text-base leading-normal md:leading-relaxed text-[#374151]">
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This certification is issued upon the request of the above-mentioned individual for <span className="font-bold">{purpose}</span> purposes.
+                  </p>
+                  <p className="mb-16 text-sm text-[#374151]">
+                    DONE AND ISSUED this {issueDate} at Barangay Mawaque, Mabalacat, Pampanga.
+                  </p>
                 </div>
 
-                {/* Footer */}
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-xs text-[#6B7280]">Serial No: {certificate.serialNumber}</p>
+                {/* Signature */}
+                <div className="relative z-10 mb-16 text-right">
+                  <div className="inline-block text-center">
                     {certificate.staffSignature && (
-                      <div className="mt-2">
-                        <div className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                          <CheckCircle2 className="h-3 w-3" />
-                          <span>Digitally Signed</span>
-                        </div>
-                        {signatureHash && (
-                          <p className="mt-1 font-mono text-[10px] text-gray-400">
-                            Hash: {signatureHash.substring(0, 8)}...
-                          </p>
-                        )}
+                      <div className="mb-0 inline-block translate-y-4">
+                        <img src={certificate.staffSignature} alt="Digital Signature" className="h-16 w-auto" />
                       </div>
                     )}
+                    <p className="text-lg font-bold text-[#111827] border-t border-slate-900 pt-1 min-w-[200px]">
+                      {certificate.signedBy || "HON. JOHN DOE"}
+                    </p>
+                    <p className="text-sm text-[#6B7280]">
+                      {certificate.signedByRole
+                        ? certificate.signedByRole.charAt(0).toUpperCase() + certificate.signedByRole.slice(1)
+                        : "Punong Barangay"}
+                    </p>
+                    {certificate.signedAt && (
+                      <p className="mt-1 text-[10px] text-[#9CA3AF]">
+                        Digitally signed on{" "}
+                        {new Date(certificate.signedAt).toLocaleDateString("en-PH", {
+                          month: "long",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </p>
+                    )}
                   </div>
-                  <div className="rounded-lg border border-[#E5E7EB] p-2">
-                    <QRCodeSVG value={qrData} size={80} level="M" />
+                </div>
+
+                {/* Footer Section */}
+                <div className="relative z-10 mt-12 border-t border-gray-200 pt-6">
+                  <div className="flex items-start justify-between">
+                    <div className="max-w-[70%]">
+                      <div className="mb-4 inline-block px-3 py-1 bg-gray-50 rounded-md border border-gray-100">
+                        <p className="font-mono text-sm text-[#374151]">
+                          <span className="font-bold text-gray-400">Serial No:</span> {certificate.serialNumber}
+                        </p>
+                      </div>
+                      <div className="space-y-1 text-[10px] text-gray-500">
+                        <p className="font-medium">Barangay Mawaque, Municipality of Mabalacat, Province of Pampanga</p>
+                        <div className="flex items-center gap-2">
+                          <span>Tel: (045) 123-4567</span>
+                          <span className="text-gray-300">|</span>
+                          <span>mawaque@mabalacat.gov.ph</span>
+                          <span className="text-gray-300">|</span>
+                          <span>www.mawaque.gov.ph</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="rounded-lg border border-[#E5E7EB] p-2 bg-white">
+                        <QRCodeSVG value={qrData} size={100} level="M" />
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] text-gray-600 font-medium">
+                        <Check className="h-3 w-3 text-emerald-600" />
+                        <span>Scan to Verify</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
