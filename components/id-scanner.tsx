@@ -12,6 +12,7 @@ interface IDData {
   age: string
   idType?: string
   idNumber?: string
+  imageBase64?: string // Added imageBase64 to pass ID image back to parent
 }
 
 interface IDScannerProps {
@@ -99,6 +100,7 @@ export function IDScanner({ onDataExtracted, disabled }: IDScannerProps) {
             ...result.data,
             idType: result.data.idType || "",
             idNumber: result.data.idNumber || "",
+            imageBase64: base64,
           })
 
           setProgress(100)

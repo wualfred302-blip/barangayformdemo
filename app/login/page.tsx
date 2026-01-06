@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, Eye, EyeOff, Smartphone, Lock, Hash } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import { createClient } from "@/lib/supabase/client"
 
 export default function LoginPage() {
   const [mobileNumber, setMobileNumber] = useState("")
@@ -22,14 +21,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
   const { login } = useAuth()
-
-  const hashString = async (str: string, salt: string): Promise<string> => {
-    const encoder = new TextEncoder()
-    const data = encoder.encode(str + salt)
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
-  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,76 +46,38 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const supabase = createClient()
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mobileNumber: cleanMobile,
+          password: loginMethod === "password" ? password : undefined,
+          pin: loginMethod === "pin" ? pin : undefined,
+          method: loginMethod,
+        }),
+      })
 
-      const { data: user, error: fetchError } = await supabase
-        .from("residents")
-        .select("*")
-        .eq("mobile_number", cleanMobile)
-        .single()
+      const result = await response.json()
 
-      if (fetchError || !user) {
-        setError("Mobile number not found. Please register first.")
+      if (!result.success) {
+        setError(result.error)
         setIsLoading(false)
         return
       }
-
-      // Check if account is locked
-      if (user.lockout_until && new Date(user.lockout_until) > new Date()) {
-        const minutesLeft = Math.ceil((new Date(user.lockout_until).getTime() - Date.now()) / 60000)
-        setError(`Account is locked. Please try again in ${minutesLeft} minutes.`)
-        setIsLoading(false)
-        return
-      }
-
-      // Verify credentials
-      let isValid = false
-      if (loginMethod === "password") {
-        const passwordHash = await hashString(password, "barangay_salt_2024")
-        isValid = passwordHash === user.password_hash
-      } else {
-        const pinHash = await hashString(pin, "barangay_pin_salt_2024")
-        isValid = pinHash === user.pin_hash
-      }
-
-      if (!isValid) {
-        // Increment failed attempts
-        const newAttempts = (user.failed_login_attempts || 0) + 1
-        const updates: any = { failed_login_attempts: newAttempts }
-
-        // Lock account after 5 failed attempts
-        if (newAttempts >= 5) {
-          updates.lockout_until = new Date(Date.now() + 15 * 60 * 1000).toISOString()
-          updates.failed_login_attempts = 0
-        }
-
-        await supabase.from("residents").update(updates).eq("id", user.id)
-
-        if (newAttempts >= 5) {
-          setError("Too many failed attempts. Account locked for 15 minutes.")
-        } else {
-          setError(`Invalid ${loginMethod}. ${5 - newAttempts} attempts remaining.`)
-        }
-        setIsLoading(false)
-        return
-      }
-
-      // Reset failed attempts on successful login
-      await supabase.from("residents").update({ failed_login_attempts: 0, lockout_until: null }).eq("id", user.id)
 
       // Login successful
       login({
-        id: user.id,
-        mobileNumber: user.mobile_number,
-        fullName: user.full_name,
-        email: user.email || "",
-        address: user.address,
+        id: result.user.id,
+        mobileNumber: result.user.mobileNumber,
+        fullName: result.user.fullName,
+        email: result.user.email || "",
+        address: result.user.address,
       })
 
       router.push("/dashboard")
     } catch (err: any) {
       console.error("Login error:", err)
-      setError("An error occurred. Please try again.")
+      setError("Connection error. Please try again.")
     } finally {
       setIsLoading(false)
     }

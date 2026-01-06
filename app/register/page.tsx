@@ -9,10 +9,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ArrowLeft, Eye, EyeOff } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { IDScanner } from "@/components/id-scanner"
-import { createClient } from "@/lib/supabase/client"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -29,6 +28,7 @@ export default function RegisterPage() {
     confirmPin: "",
     agreedToTerms: false,
   })
+  const [idImageBase64, setIdImageBase64] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [wasScanned, setWasScanned] = useState(false)
@@ -55,6 +55,7 @@ export default function RegisterPage() {
     age: string
     idType?: string
     idNumber?: string
+    imageBase64?: string
   }) => {
     setFormData((prev) => ({
       ...prev,
@@ -65,6 +66,9 @@ export default function RegisterPage() {
       idType: data.idType || prev.idType,
       idNumber: data.idNumber || prev.idNumber,
     }))
+    if (data.imageBase64) {
+      setIdImageBase64(data.imageBase64)
+    }
     setWasScanned(true)
 
     setTimeout(() => {
@@ -73,20 +77,6 @@ export default function RegisterPage() {
         block: "start",
       })
     }, 300)
-  }
-
-  const hashString = async (str: string, salt: string): Promise<string> => {
-    const encoder = new TextEncoder()
-    const data = encoder.encode(str + salt)
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
-  }
-
-  const generateQRCode = (): string => {
-    const timestamp = Date.now().toString(36)
-    const random = Math.random().toString(36).substring(2, 10)
-    return `BRGY-${timestamp}-${random}`.toUpperCase()
   }
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -143,44 +133,33 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      const passwordHash = await hashString(formData.password, "barangay_salt_2024")
-      const pinHash = await hashString(formData.pin, "barangay_pin_salt_2024")
-      const qrCode = generateQRCode()
-
-      const supabase = createClient()
-
-      // Check if mobile number already exists
-      const { data: existing } = await supabase.from("residents").select("id").eq("mobile_number", cleanMobile).single()
-
-      if (existing) {
-        setError("This mobile number is already registered. Please login instead.")
-        setIsLoading(false)
-        return
-      }
-
-      const { data, error: insertError } = await supabase
-        .from("residents")
-        .insert({
-          full_name: formData.fullName,
-          mobile_number: cleanMobile,
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          mobileNumber: cleanMobile,
           email: formData.email || null,
           address: formData.address,
-          birth_date: formData.birthDate || null,
-          id_type: formData.idType,
-          id_number: formData.idNumber,
-          password_hash: passwordHash,
-          pin_hash: pinHash,
-          qr_code: qrCode,
-        })
-        .select()
-        .single()
+          birthDate: formData.birthDate || null,
+          idType: formData.idType,
+          idNumber: formData.idNumber,
+          password: formData.password,
+          pin: formData.pin,
+          idImageBase64: idImageBase64,
+        }),
+      })
 
-      if (insertError) {
-        console.error("Registration error:", insertError)
-        if (insertError.message.includes("duplicate")) {
-          setError("This mobile number or ID is already registered.")
+      const result = await response.json()
+
+      if (!result.success) {
+        // Handle specific errors
+        if (result.error === "duplicate_mobile") {
+          setError("This mobile number is already registered. Please login instead.")
+        } else if (result.error === "duplicate_id") {
+          setError("An account with this ID already exists. Try logging in or reset your password.")
         } else {
-          setError("Registration failed. Please try again.")
+          setError(result.message || result.error || "Registration failed. Please try again.")
         }
         setIsLoading(false)
         return
@@ -188,21 +167,36 @@ export default function RegisterPage() {
 
       // Login the user
       login({
-        id: data.id,
-        mobileNumber: cleanMobile,
-        fullName: formData.fullName,
-        email: formData.email,
-        address: formData.address,
+        id: result.user.id,
+        mobileNumber: result.user.mobileNumber,
+        fullName: result.user.fullName,
+        email: result.user.email,
+        address: result.user.address,
       })
 
       router.push("/register/success")
     } catch (err: any) {
       console.error("Registration error:", err)
-      setError("An error occurred during registration. Please try again.")
+      setError("Connection error. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
+
+  // Calculate age from birthDate
+  const calculateAge = () => {
+    if (!formData.birthDate) return null
+    const birth = new Date(formData.birthDate)
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    const monthDiff = today.getMonth() - birth.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--
+    }
+    return age
+  }
+
+  const age = calculateAge()
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-emerald-50 to-white">
@@ -227,7 +221,21 @@ export default function RegisterPage() {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <form id="registration-form" onSubmit={handleRegister} className="space-y-4">
-              {error && <div className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-600">{error}</div>}
+              {error && (
+                <div className="flex items-start gap-2 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-600">
+                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <div>
+                    {error}
+                    {(error.includes("login") || error.includes("reset")) && (
+                      <div className="mt-2 flex gap-2">
+                        <Link href="/login" className="text-red-700 underline">
+                          Go to Login
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Personal Information Section */}
               <div className="space-y-1">
@@ -283,7 +291,7 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="birthDate" className="text-sm font-medium">
-                  Birth Date
+                  Birth Date {age !== null && <span className="text-gray-500">({age} years old)</span>}
                 </Label>
                 <Input
                   id="birthDate"
@@ -377,6 +385,19 @@ export default function RegisterPage() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {formData.password && (
+                  <div className="flex gap-1">
+                    <div
+                      className={`h-1 flex-1 rounded ${formData.password.length >= 8 ? "bg-emerald-500" : "bg-gray-200"}`}
+                    />
+                    <div
+                      className={`h-1 flex-1 rounded ${/\d/.test(formData.password) ? "bg-emerald-500" : "bg-gray-200"}`}
+                    />
+                    <div
+                      className={`h-1 flex-1 rounded ${/[A-Z]/.test(formData.password) ? "bg-emerald-500" : "bg-gray-200"}`}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -392,6 +413,9 @@ export default function RegisterPage() {
                   disabled={isLoading}
                   className="h-11"
                 />
+                {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                  <p className="text-xs text-red-500">Passwords do not match</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -404,6 +428,7 @@ export default function RegisterPage() {
                       id="pin"
                       name="pin"
                       type={showPin ? "text" : "password"}
+                      inputMode="numeric"
                       value={formData.pin}
                       onChange={handleChange}
                       placeholder="••••"
@@ -412,6 +437,7 @@ export default function RegisterPage() {
                       className="h-11 text-center tracking-widest"
                     />
                   </div>
+                  <p className="text-xs text-gray-500">For quick login</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPin" className="text-sm font-medium">
@@ -421,6 +447,7 @@ export default function RegisterPage() {
                     id="confirmPin"
                     name="confirmPin"
                     type="password"
+                    inputMode="numeric"
                     value={formData.confirmPin}
                     onChange={handleChange}
                     placeholder="••••"
@@ -428,6 +455,9 @@ export default function RegisterPage() {
                     disabled={isLoading}
                     className="h-11 text-center tracking-widest"
                   />
+                  {formData.confirmPin && formData.pin !== formData.confirmPin && (
+                    <p className="text-xs text-red-500">PINs do not match</p>
+                  )}
                 </div>
               </div>
 
