@@ -1,19 +1,39 @@
-const AZURE_ENDPOINT = "https://baaborern.cognitiveservices.azure.com"
-const AZURE_API_KEY = "6w3QVf4FGXnh7kI5rowYpbNoDpFQ7itBQMMWcubTNeeuhRV95apgJQQJ99CAAC3pKaRXJ3w3AAAFACOGs2Jq"
+const AZURE_ENDPOINT = process.env.AZURE_CV_ENDPOINT || "https://baaborern.cognitiveservices.azure.com"
+const AZURE_API_KEY =
+  process.env.AZURE_CV_API_KEY || "6w3QVf4FGXnh7kI5rowYpbNoDpFQ7itBQMMWcubTNeeuhRV95apgJQQJ99CAAC3pKaRXJ3w3AAAFACOGs2Jq"
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+}
+
+export async function OPTIONS() {
+  return new Response(null, { headers: corsHeaders })
+}
 
 export async function POST(req: Request) {
+  console.log("[v0] OCR API called")
   const startTime = Date.now()
 
   try {
     const { imageBase64 } = await req.json()
+    console.log("[v0] Image received, length:", imageBase64?.length)
 
     if (!imageBase64) {
-      return Response.json({ success: false, error: "No image provided" }, { status: 400 })
+      return Response.json({ success: false, error: "No image provided" }, { status: 400, headers: corsHeaders })
     }
 
+    if (!imageBase64.match(/^[A-Za-z0-9+/=]+$/)) {
+      return Response.json({ success: false, error: "Invalid image data" }, { status: 400, headers: corsHeaders })
+    }
+
+    console.log("[v0] Converting to binary...")
     // Convert base64 to binary
     const binaryData = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0))
+    console.log("[v0] Binary size:", binaryData.length)
 
+    console.log("[v0] Calling Azure CV API...")
     // Call Azure Computer Vision Read API
     const response = await fetch(`${AZURE_ENDPOINT}/vision/v3.2/read/analyze`, {
       method: "POST",
@@ -24,21 +44,31 @@ export async function POST(req: Request) {
       body: binaryData,
     })
 
+    console.log("[v0] Azure response status:", response.status)
+
     if (!response.ok) {
       const errorText = await response.text()
-      console.error("Azure OCR error:", errorText)
-      return Response.json({ success: false, error: `OCR API error: ${response.status}` }, { status: 500 })
+      console.error("[v0] Azure OCR error:", errorText)
+      return Response.json(
+        { success: false, error: `OCR API error: ${response.status} - ${errorText}` },
+        { status: 500, headers: corsHeaders },
+      )
     }
 
     // Get operation location for polling
     const operationLocation = response.headers.get("Operation-Location")
+    console.log("[v0] Operation location:", operationLocation)
+
     if (!operationLocation) {
-      return Response.json({ success: false, error: "No operation location returned" }, { status: 500 })
+      return Response.json(
+        { success: false, error: "No operation location returned" },
+        { status: 500, headers: corsHeaders },
+      )
     }
 
-    // Poll for results (max 10 attempts)
+    console.log("[v0] Polling for results...")
     let result: any = null
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 15; i++) {
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       const pollResponse = await fetch(operationLocation, {
@@ -46,17 +76,24 @@ export async function POST(req: Request) {
       })
 
       result = await pollResponse.json()
+      console.log(`[v0] Poll attempt ${i + 1}, status:`, result.status)
 
       if (result.status === "succeeded") break
       if (result.status === "failed") {
-        return Response.json({ success: false, error: "OCR processing failed" }, { status: 500 })
+        console.error("[v0] OCR processing failed:", result)
+        return Response.json({ success: false, error: "OCR processing failed" }, { status: 500, headers: corsHeaders })
       }
     }
 
     if (!result || result.status !== "succeeded") {
-      return Response.json({ success: false, error: "OCR timeout" }, { status: 500 })
+      console.error("[v0] OCR timeout after polling")
+      return Response.json(
+        { success: false, error: "OCR timeout - please try again" },
+        { status: 500, headers: corsHeaders },
+      )
     }
 
+    console.log("[v0] Extracting text...")
     // Extract all text from the result
     const allText: string[] = []
     for (const readResult of result.analyzeResult?.readResults || []) {
@@ -65,19 +102,29 @@ export async function POST(req: Request) {
       }
     }
 
+    console.log("[v0] Text extracted:", allText.length, "lines")
+
     // Parse the extracted text
     const extractedData = parseIDText(allText)
     const processingTime = Date.now() - startTime
 
-    return Response.json({
-      success: true,
-      data: extractedData,
-      rawText: allText.join("\n"),
-      processingTime,
-    })
+    console.log("[v0] OCR complete in", processingTime, "ms")
+
+    return Response.json(
+      {
+        success: true,
+        data: extractedData,
+        rawText: allText.join("\n"),
+        processingTime,
+      },
+      { headers: corsHeaders },
+    )
   } catch (error: any) {
-    console.error("OCR Error:", error)
-    return Response.json({ success: false, error: error.message || "Failed to process ID" }, { status: 500 })
+    console.error("[v0] OCR Error:", error)
+    return Response.json(
+      { success: false, error: error.message || "Failed to process ID" },
+      { status: 500, headers: corsHeaders },
+    )
   }
 }
 
