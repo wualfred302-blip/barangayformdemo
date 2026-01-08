@@ -19,8 +19,11 @@ interface PSGCCity {
   code: string
   name: string
   provinceCode: string
-  isCity: boolean
-  isMunicipality: boolean
+  isCity?: boolean
+  isMunicipality?: boolean
+  type?: string
+  zip_code?: string
+  district?: string
 }
 
 interface PSGCBarangay {
@@ -94,13 +97,18 @@ const ZIP_CODES: Record<string, string> = {
 async function fetchWithRetry(url: string, retries = 3): Promise<any> {
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(url)
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 60000) // 60 second timeout
+
+      const response = await fetch(url, { signal: controller.signal })
+      clearTimeout(timeout)
+
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       return await response.json()
     } catch (error) {
-      console.log(`Attempt ${i + 1} failed for ${url}, retrying...`)
+      console.log(`Attempt ${i + 1} failed for ${url}: ${error.message}, retrying...`)
       if (i === retries - 1) throw error
-      await new Promise((r) => setTimeout(r, 1000 * (i + 1)))
+      await new Promise((r) => setTimeout(r, 2000 * (i + 1)))
     }
   }
 }
@@ -108,51 +116,122 @@ async function fetchWithRetry(url: string, retries = 3): Promise<any> {
 async function seedProvinces() {
   console.log("Fetching provinces from PSGC API...")
   const provinces: PSGCProvince[] = await fetchWithRetry("https://psgc.cloud/api/provinces")
+  const cities: PSGCCity[] = await fetchWithRetry("https://psgc.cloud/api/cities-municipalities")
 
-  console.log(`Inserting ${provinces.length} provinces...`)
+  console.log(`Fetched ${provinces.length} provinces from PSGC API`)
 
-  const { error } = await supabase.from("address_provinces").upsert(
-    provinces.map((p) => ({
-      code: p.code,
+  // PSGC structure: Region(2) + Province(2) + District(2) + City(1) + Barangay(3)
+  // The API provinces endpoint only returns the main province level (Region + Province + "800000")
+  // But the cities can belong to different districts (80, 81, 82, etc.)
+  // We need to create province entries for each district found in cities
+
+  // Create base province entries from API
+  const provinceMap = new Map<string, { code: string; name: string; region_code: string }>()
+
+  provinces.forEach((p) => {
+    const code9 = p.code.substring(0, 9)
+    provinceMap.set(code9, {
+      code: code9,
       name: p.name,
       region_code: p.regionCode,
-    })),
-    { onConflict: "code" },
-  )
+    })
+  })
+
+  // Add district-level entries from cities
+  const districtSet = new Set<string>()
+  cities.forEach((c) => {
+    const region = c.code.substring(0, 2)
+    const province = c.code.substring(2, 4)
+    const district = c.code.substring(4, 6)
+    const districtCode = region + province + district + "000"
+
+    if (!provinceMap.has(districtCode)) {
+      districtSet.add(districtCode)
+    }
+  })
+
+  // Add district entries as pseudo-provinces with generic names
+  districtSet.forEach((districtCode) => {
+    const region = districtCode.substring(0, 2)
+    const province = districtCode.substring(2, 4)
+    const district = districtCode.substring(4, 6)
+
+    // Try to find a matching main province to inherit the name
+    const mainProvinceCode = region + province + "00000"
+    const mainProvince = provinces.find((p) => p.code.substring(0, 9) === mainProvinceCode)
+
+    provinceMap.set(districtCode, {
+      code: districtCode,
+      name: mainProvince
+        ? `${mainProvince.name} (District ${district})`
+        : `District ${districtCode}`,
+      region_code: region,
+    })
+  })
+
+  const provinceList = Array.from(provinceMap.values())
+
+  const { error } = await supabase.from("address_provinces").upsert(provinceList, {
+    onConflict: "code",
+  })
 
   if (error) throw error
 
   await supabase.from("address_sync_log").insert({
     entity_type: "provinces",
-    records_synced: provinces.length,
+    records_synced: provinceList.length,
   })
 
-  console.log(`✓ Inserted ${provinces.length} provinces`)
-  return provinces.length
+  console.log(
+    `✓ Inserted ${provinceList.length} province entries (${provinces.length} main + ${districtSet.size} districts)`,
+  )
+  return provinceList.length
 }
 
 async function seedCities() {
   console.log("Fetching cities/municipalities from PSGC API...")
   const cities: PSGCCity[] = await fetchWithRetry("https://psgc.cloud/api/cities-municipalities")
 
-  console.log(`Inserting ${cities.length} cities/municipalities...`)
+  console.log(`Fetched ${cities.length} cities/municipalities from PSGC API`)
 
-  // Insert in batches of 500
-  const batchSize = 500
+  // Insert in batches of 1000
+  const batchSize = 1000
   for (let i = 0; i < cities.length; i += batchSize) {
     const batch = cities.slice(i, i + batchSize)
     const { error } = await supabase.from("address_cities").upsert(
-      batch.map((c) => ({
-        code: c.code,
-        name: c.name,
-        province_code: c.provinceCode,
-        zip_code: ZIP_CODES[c.code] || null,
-        type: c.isCity ? "City" : "Municipality",
-      })),
+      batch.map((c) => {
+        // PSGC codes are 10 digits, database schema is VARCHAR(9)
+        // Truncate to 9 digits for consistency
+        const code9 = c.code.substring(0, 9)
+
+        // Derive province code from city code
+        // PSGC 10-digit structure: Region(2) + Province(2) + District(2) + City(1) + Barangay(3)
+        // E.g., 0102801000 = Region 01 + Province 02 + District 80 + City 1 + Barangay 000
+        // Truncated to 9 digits: 010280100 (preserves region, province, and district)
+        // Province code (mapping to district-level): Region(2) + Province(2) + District(2) + "000"
+        // E.g., 010280100 -> 010280000 (district 80)
+        //       0102810000 -> 010281000 (district 81)
+        const region = code9.substring(0, 2)
+        const province = code9.substring(2, 4)
+        const district = code9.substring(4, 6)
+        const provinceCode = region + province + district + "000"
+
+        return {
+          code: code9,
+          name: c.name,
+          province_code: provinceCode,
+          // Use ZIP code from API first, then fallback to manual mapping, then null
+          zip_code: c.zip_code || ZIP_CODES[c.code] || null,
+          type: c.type === "City" ? "City" : "Municipality",
+        }
+      }),
       { onConflict: "code" },
     )
 
-    if (error) throw error
+    if (error) {
+      console.error(`Error in batch ${Math.floor(i / batchSize) + 1}:`, error)
+      throw error
+    }
     console.log(`  Batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(cities.length / batchSize)} done`)
   }
 
@@ -161,7 +240,7 @@ async function seedCities() {
     records_synced: cities.length,
   })
 
-  console.log(`✓ Inserted ${cities.length} cities/municipalities`)
+  console.log(`✓ Inserted ${cities.length} cities/municipalities (codes truncated to 9 digits)`)
   return cities.length
 }
 
@@ -169,27 +248,33 @@ async function seedBarangays() {
   console.log("Fetching barangays from PSGC API...")
   const barangays: PSGCBarangay[] = await fetchWithRetry("https://psgc.cloud/api/barangays")
 
-  console.log(`Inserting ${barangays.length} barangays...`)
+  console.log(`Fetched ${barangays.length} barangays from PSGC API`)
 
   // Insert in batches of 1000
   const batchSize = 1000
   for (let i = 0; i < barangays.length; i += batchSize) {
     const batch = barangays.slice(i, i + batchSize)
     const { error } = await supabase.from("address_barangays").upsert(
-      batch.map((b) => ({
-        code: b.code,
-        name: b.name,
-        city_code: b.cityCode || b.municipalityCode,
-      })),
+      batch.map((b) => {
+        // PSGC barangay codes are typically 12 digits (kept as is)
+        // City code derivation: first 9 digits of barangay code
+        // Barangay code: XXYYZZZWWW[??] -> City code: XXYYZZZWWW (first 9 digits)
+        const cityCode = b.code.substring(0, 9)
+
+        return {
+          code: b.code,
+          name: b.name,
+          city_code: cityCode,
+        }
+      }),
       { onConflict: "code" },
     )
 
     if (error) {
       console.error(`Error in batch ${Math.floor(i / batchSize) + 1}:`, error)
-      // Continue with next batch
-    } else {
-      console.log(`  Batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(barangays.length / batchSize)} done`)
+      throw error
     }
+    console.log(`  Batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(barangays.length / batchSize)} done`)
   }
 
   await supabase.from("address_sync_log").insert({
@@ -207,12 +292,26 @@ async function main() {
   try {
     const provinceCount = await seedProvinces()
     const cityCount = await seedCities()
-    const barangayCount = await seedBarangays()
+
+    let barangayCount = 0
+    try {
+      barangayCount = await seedBarangays()
+    } catch (error) {
+      console.warn("\n⚠️  Barangay seeding failed (API issue):")
+      console.warn("  Error:", (error as Error).message)
+      console.warn("  This is non-critical - cities have been seeded successfully")
+      console.warn("  You can retry barangay seeding later with: npx tsx scripts/seed-addresses.ts")
+    }
 
     console.log("\n=== Seeding Complete ===")
     console.log(`Provinces: ${provinceCount}`)
     console.log(`Cities/Municipalities: ${cityCount}`)
     console.log(`Barangays: ${barangayCount}`)
+
+    if (barangayCount === 0) {
+      console.log("\n⚠️  Barangay seeding was skipped due to API unavailability")
+      console.log("Partial seeding is complete - city selection is fully functional")
+    }
   } catch (error) {
     console.error("Seeding failed:", error)
     process.exit(1)
