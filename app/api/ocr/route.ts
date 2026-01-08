@@ -216,59 +216,167 @@ function parseIDText(lines: string[]): {
   zipCode: string
 } {
   const text = lines.join(" ").toUpperCase()
+  const joinedText = lines.join("\n")
 
-  // Detect ID type
+  // ========== ID TYPE DETECTION ==========
   let idType = "Government ID"
-  if (text.includes("PHILIPPINE IDENTIFICATION") || text.includes("PHILSYS") || text.includes("PSN")) {
-    idType = "Philippine National ID"
-  } else if (text.includes("DRIVER") || text.includes("LICENSE") || text.includes("LTO")) {
-    idType = "Driver's License"
-  } else if (text.includes("UMID") || text.includes("UNIFIED MULTI-PURPOSE")) {
-    idType = "UMID"
-  } else if (text.includes("SSS") || text.includes("SOCIAL SECURITY")) {
-    idType = "SSS ID"
-  } else if (text.includes("PHILHEALTH") || text.includes("PHILIPPINE HEALTH")) {
-    idType = "PhilHealth ID"
-  } else if (text.includes("POSTAL") || text.includes("PHILPOST")) {
-    idType = "Postal ID"
-  } else if (text.includes("VOTER") || text.includes("COMELEC")) {
-    idType = "Voter's ID"
-  } else if (text.includes("PASSPORT") || text.includes("PASAPORTE")) {
-    idType = "Philippine Passport"
-  } else if (text.includes("PRC") || text.includes("PROFESSIONAL REGULATION")) {
-    idType = "PRC ID"
-  } else if (text.includes("BARANGAY")) {
-    idType = "Barangay ID"
-  } else if (text.includes("SENIOR CITIZEN") || text.includes("OSCA")) {
-    idType = "Senior Citizen ID"
-  } else if (text.includes("PWD") || text.includes("PERSON WITH DISABILITY")) {
-    idType = "PWD ID"
+  const idTypePatterns: [RegExp, string][] = [
+    [/PHILIPPINE\s*IDENTIFICATION|PHILSYS|PSN|NATIONAL\s*ID/i, "Philippine National ID"],
+    [/DRIVER['']?S?\s*LICENSE|LTO|LAND\s*TRANSPORTATION/i, "Driver's License"],
+    [/UMID|UNIFIED\s*MULTI[\s-]*PURPOSE/i, "UMID"],
+    [/\bSSS\b|SOCIAL\s*SECURITY\s*SYSTEM/i, "SSS ID"],
+    [/PHILHEALTH|PHILIPPINE\s*HEALTH/i, "PhilHealth ID"],
+    [/POSTAL\s*ID|PHILPOST|PHLPost/i, "Postal ID"],
+    [/VOTER['']?S?\s*ID|COMELEC/i, "Voter's ID"],
+    [/PASSPORT|PASAPORTE|DFA/i, "Philippine Passport"],
+    [/\bPRC\b|PROFESSIONAL\s*REGULATION/i, "PRC ID"],
+    [/BARANGAY\s*(ID|CLEARANCE|CERTIFICATE)/i, "Barangay ID"],
+    [/SENIOR\s*CITIZEN|OSCA|\bSC\s*ID\b/i, "Senior Citizen ID"],
+    [/\bPWD\b|PERSON\s*WITH\s*DISABILITY|DISABILITY\s*ID/i, "PWD ID"],
+  ]
+
+  for (const [pattern, type] of idTypePatterns) {
+    if (pattern.test(text)) {
+      idType = type
+      break
+    }
   }
 
-  // Extract name
+  // ========== NAME EXTRACTION ==========
   let fullName = ""
-  for (const line of lines) {
-    const cleanLine = line.trim()
-    if (/^[A-Za-z\s,.'-]+$/.test(cleanLine) && cleanLine.length > 5 && cleanLine.length < 50) {
-      const lower = cleanLine.toLowerCase()
-      if (!lower.includes("republic") && !lower.includes("philippines") && !lower.includes("identification")) {
-        fullName = cleanLine
+
+  // Method 1: Look for labeled name fields
+  const nameLabels = [
+    /(?:FULL\s*NAME|PANGALAN|NAME|LAST\s*NAME|SURNAME)[:\s]+([A-Za-z\s,.\-']+)/i,
+    /(?:GIVEN\s*NAME|FIRST\s*NAME)[:\s]+([A-Za-z\s.\-']+)/i,
+  ]
+
+  for (const pattern of nameLabels) {
+    const match = joinedText.match(pattern)
+    if (match && match[1].trim().length > 2) {
+      fullName = match[1].trim().replace(/\s+/g, " ")
+      break
+    }
+  }
+
+  // Method 2: Find name-like patterns (all caps, proper length)
+  if (!fullName) {
+    for (const line of lines) {
+      const cleanLine = line.trim()
+      // Name pattern: 2-4 words, proper characters, reasonable length
+      if (
+        /^[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){1,3}$/.test(cleanLine) &&
+        cleanLine.length >= 5 &&
+        cleanLine.length <= 50
+      ) {
+        const lower = cleanLine.toLowerCase()
+        // Skip header text
+        if (
+          !lower.includes("republic") &&
+          !lower.includes("philippines") &&
+          !lower.includes("identification") &&
+          !lower.includes("department") &&
+          !lower.includes("office") &&
+          !lower.includes("barangay") &&
+          !lower.includes("city")
+        ) {
+          fullName = cleanLine
+          break
+        }
+      }
+    }
+  }
+
+  // Method 3: Look for LASTNAME, FIRSTNAME MIDDLENAME format
+  if (!fullName) {
+    const lastFirstMatch = joinedText.match(/([A-Z]+),\s*([A-Z]+(?:\s+[A-Z]\.?)?(?:\s+[A-Z]+)?)/i)
+    if (lastFirstMatch) {
+      fullName = `${lastFirstMatch[2]} ${lastFirstMatch[1]}`
+    }
+  }
+
+  // ========== BIRTH DATE EXTRACTION ==========
+  let birthDate = ""
+
+  // Pattern 1: Labeled date of birth
+  const dobPatterns = [
+    /(?:DATE\s*OF\s*BIRTH|DOB|BIRTHDAY|PETSA\s*NG\s*KAPANGANAKAN|BIRTH\s*DATE)[:\s]+(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i,
+    /(?:DATE\s*OF\s*BIRTH|DOB|BIRTHDAY)[:\s]+([A-Z]+\s+\d{1,2},?\s+\d{4})/i,
+    /(?:DATE\s*OF\s*BIRTH|DOB|BIRTHDAY)[:\s]+(\d{4}[/-]\d{1,2}[/-]\d{1,2})/i,
+  ]
+
+  for (const pattern of dobPatterns) {
+    const match = joinedText.match(pattern)
+    if (match) {
+      birthDate = match[1].trim()
+      break
+    }
+  }
+
+  // Pattern 2: Unlabeled date formats
+  if (!birthDate) {
+    const dateFormats = [
+      /\b(\d{2}[/-]\d{2}[/-]\d{4})\b/, // MM/DD/YYYY or DD/MM/YYYY
+      /\b(\d{4}[/-]\d{2}[/-]\d{2})\b/, // YYYY-MM-DD
+      /\b((?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*\.?\s+\d{1,2},?\s+\d{4})\b/i,
+    ]
+    for (const pattern of dateFormats) {
+      const match = text.match(pattern)
+      if (match) {
+        birthDate = match[1]
         break
       }
     }
   }
 
-  // Extract birth date
-  let birthDate = ""
-  const datePatterns = [/(\d{4}[-/]\d{2}[-/]\d{2})/, /(\d{2}[-/]\d{2}[-/]\d{4})/, /([A-Z]+\s+\d{1,2},?\s+\d{4})/i]
-  for (const pattern of datePatterns) {
+  // ========== ID NUMBER EXTRACTION ==========
+  let idNumber = ""
+
+  // ID-specific patterns
+  const idNumberPatterns: Record<string, RegExp[]> = {
+    "Philippine National ID": [/\b(PSN[:\s]*)?(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})\b/i],
+    "Driver's License": [/\b([A-Z]\d{2}[\s-]?\d{2}[\s-]?\d{6})\b/i, /\b([A-Z]\d{10})\b/i],
+    UMID: [/\b(\d{4}[\s-]?\d{7}[\s-]?\d)\b/, /\b(CRN[:\s]*\d{4}[\s-]?\d{7}[\s-]?\d)\b/i],
+    "SSS ID": [/\b(\d{2}[\s-]?\d{7}[\s-]?\d)\b/, /\b(SS[\s#:]*\d{2}[\s-]?\d{7}[\s-]?\d)\b/i],
+    "PhilHealth ID": [/\b(\d{2}[\s-]?\d{9}[\s-]?\d)\b/, /\b(\d{12})\b/],
+    "Postal ID": [/\b([A-Z]{3}[\s-]?\d{4}[\s-]?\d{7})\b/i, /\b(\d{4}[\s-]?\d{4}[\s-]?\d{4})\b/],
+    "Voter's ID": [/\b(VIN[:\s]*)?(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{2})\b/i],
+    "Philippine Passport": [/\b([A-Z]{1,2}\d{7,8}[A-Z]?)\b/i],
+    "PRC ID": [/\b(\d{7})\b/],
+    "Barangay ID": [/\b(BRGY[\s-]?\d{4,})\b/i, /\b(\d{4,10})\b/],
+    "Senior Citizen ID": [/\b(OSCA[\s-]?\d+)\b/i, /\b(\d{4,12})\b/],
+    "PWD ID": [/\b(PWD[\s-]?\d+)\b/i, /\b(\d{4,12})\b/],
+  }
+
+  // Try ID-specific patterns first
+  const patterns = idNumberPatterns[idType] || []
+  for (const pattern of patterns) {
     const match = text.match(pattern)
     if (match) {
-      birthDate = match[1]
+      idNumber = match[match.length - 1].replace(/\s/g, "")
       break
     }
   }
 
+  // Fallback: Generic ID number patterns
+  if (!idNumber) {
+    const genericPatterns = [
+      /(?:ID\s*(?:NO\.?|NUMBER|#)|NO\.?)[:\s]*([A-Z0-9-]+)/i,
+      /\b(\d{4}[\s-]\d{4}[\s-]\d{4}[\s-]\d{4})\b/, // 16-digit
+      /\b(\d{2}[\s-]\d{7}[\s-]\d)\b/, // SSS format
+      /\b([A-Z]\d{2}[\s-]\d{2}[\s-]\d{6})\b/i, // License format
+      /\b(\d{10,16})\b/, // 10-16 digit numbers
+    ]
+    for (const pattern of genericPatterns) {
+      const match = text.match(pattern)
+      if (match) {
+        idNumber = match[1].replace(/\s/g, "")
+        break
+      }
+    }
+  }
+
+  // ========== ADDRESS EXTRACTION & PARSING ==========
   let address = ""
   let houseLotNo = ""
   let street = ""
@@ -278,91 +386,156 @@ function parseIDText(lines: string[]): {
   let province = ""
   let zipCode = ""
 
-  // Find address lines
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].toUpperCase()
-    if (
-      line.includes("BRGY") ||
-      line.includes("BARANGAY") ||
-      line.includes("CITY") ||
-      line.includes("PROVINCE") ||
-      line.includes("STREET") ||
-      line.includes("PUROK") ||
-      line.includes("SAN") ||
-      line.includes("STA") ||
-      line.includes("STO")
-    ) {
-      address = lines[i]
-      if (i + 1 < lines.length && !lines[i + 1].includes(":")) {
-        address += ", " + lines[i + 1]
-      }
+  // Find address section
+  const addressPatterns = [
+    /(?:ADDRESS|TIRAHAN|RESIDENCE)[:\s]+(.+?)(?=(?:DATE|BIRTH|SEX|NATIONALITY|$))/is,
+    /(?:PERMANENT\s*ADDRESS|HOME\s*ADDRESS)[:\s]+(.+?)(?=(?:DATE|BIRTH|SEX|$))/is,
+  ]
+
+  for (const pattern of addressPatterns) {
+    const match = joinedText.match(pattern)
+    if (match) {
+      address = match[1].replace(/\n/g, ", ").replace(/\s+/g, " ").trim()
       break
+    }
+  }
+
+  // Fallback: Find lines that look like addresses
+  if (!address) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].toUpperCase()
+      if (
+        line.includes("BRGY") ||
+        line.includes("BARANGAY") ||
+        line.includes("PUROK") ||
+        line.includes("STREET") ||
+        line.includes("ST.") ||
+        line.includes("AVE") ||
+        /\b\d+\s+[A-Z]+\s+(ST|AVE|ROAD|DRIVE)/i.test(line)
+      ) {
+        address = lines[i]
+        // Include next line if it continues the address
+        if (i + 1 < lines.length && !lines[i + 1].includes(":") && /^[A-Za-z0-9\s,.-]+$/.test(lines[i + 1])) {
+          address += ", " + lines[i + 1]
+        }
+        break
+      }
     }
   }
 
   // Parse address components
   if (address) {
-    const upperAddress = address.toUpperCase()
+    const upperAddr = address.toUpperCase()
 
-    // Extract house/lot number (numbers at the start)
-    const houseMatch = address.match(/^(\d+[-A-Z]?)\s/i)
-    if (houseMatch) {
-      houseLotNo = houseMatch[1]
+    // House/Lot/Block number
+    const housePatterns = [
+      /^(\d+[-A-Z]?)\s/i,
+      /(?:LOT|LT\.?|BLK\.?|BLOCK|HOUSE|HSE)\s*#?\s*(\d+[-A-Z0-9]*)/i,
+      /\b#\s*(\d+[-A-Z]*)\b/i,
+    ]
+    for (const pattern of housePatterns) {
+      const match = address.match(pattern)
+      if (match) {
+        houseLotNo = match[1]
+        break
+      }
     }
 
-    // Extract street (look for St., Street, Ave, Avenue, Road, Rd)
-    const streetMatch = address.match(
-      /(\d*\s*[A-Za-z\s]+(?:ST\.?|STREET|AVE\.?|AVENUE|ROAD|RD\.?|BLVD\.?|DRIVE|DR\.?))/i,
-    )
-    if (streetMatch) {
-      street = streetMatch[1].trim()
+    // Street
+    const streetPatterns = [
+      /(\d*\s*[A-Za-z\s]+(?:STREET|ST\.?|AVENUE|AVE\.?|ROAD|RD\.?|BOULEVARD|BLVD\.?|DRIVE|DR\.?|LANE|LN\.?))/i,
+      /(?:SITIO|ZONE)\s+([A-Za-z0-9\s]+)/i,
+    ]
+    for (const pattern of streetPatterns) {
+      const match = address.match(pattern)
+      if (match) {
+        street = match[1].trim()
+        break
+      }
     }
 
-    // Extract purok
-    const purokMatch = upperAddress.match(/PUROK\s*(\d+|[A-Z]+)/i)
+    // Purok
+    const purokMatch = upperAddr.match(/PUROK\s*#?\s*(\d+|[A-Z]+[-\s]?\d*)/i)
     if (purokMatch) {
       purok = purokMatch[1]
     }
 
-    // Extract barangay
-    const barangayMatch = upperAddress.match(/(?:BRGY\.?|BARANGAY)\s*([A-Za-z\s]+?)(?:,|CITY|MUNICIPALITY|PROVINCE|$)/i)
-    if (barangayMatch) {
-      barangay = barangayMatch[1].trim()
-    }
-
-    // Extract city/municipality
-    const cityMatch = upperAddress.match(
-      /(?:CITY\s+OF\s+|MUNICIPALITY\s+OF\s+)?([A-Z\s]+)(?:\s+CITY|\s+MUNICIPALITY)?(?:,|PROVINCE|$)/i,
-    )
-    if (cityMatch) {
-      const potentialCity = cityMatch[1].trim()
-      // Common Philippine cities
-      const cities = [
-        "MANILA",
-        "QUEZON",
-        "MAKATI",
-        "PASIG",
-        "TAGUIG",
-        "CALOOCAN",
-        "MABALACAT",
-        "ANGELES",
-        "SAN FERNANDO",
-        "CABANATUAN",
-        "MEYCAUAYAN",
-        "MALOLOS",
-      ]
-      for (const city of cities) {
-        if (upperAddress.includes(city)) {
-          cityMunicipality = city.charAt(0) + city.slice(1).toLowerCase()
-          break
-        }
-      }
-      if (!cityMunicipality && potentialCity.length > 2) {
-        cityMunicipality = potentialCity
+    // Barangay - comprehensive patterns
+    const barangayPatterns = [
+      /(?:BRGY\.?|BARANGAY)\s+([A-Za-z0-9\s.-]+?)(?:,|\s+CITY|\s+MUNICIPALITY|\s+PROVINCE|\s+\d{4}|$)/i,
+      /(?:BRGY\.?|BARANGAY)\s+([A-Za-z0-9\s.-]+)/i,
+    ]
+    for (const pattern of barangayPatterns) {
+      const match = address.match(pattern)
+      if (match) {
+        barangay = match[1].trim().replace(/,+$/, "")
+        break
       }
     }
 
-    // Extract province
+    // City/Municipality - comprehensive list
+    const cities = [
+      // Metro Manila
+      "MANILA",
+      "QUEZON CITY",
+      "MAKATI",
+      "PASIG",
+      "TAGUIG",
+      "CALOOCAN",
+      "PARAÑAQUE",
+      "PARANAQUE",
+      "LAS PIÑAS",
+      "LAS PINAS",
+      "MUNTINLUPA",
+      "MARIKINA",
+      "PASAY",
+      "VALENZUELA",
+      "MALABON",
+      "NAVOTAS",
+      "SAN JUAN",
+      "MANDALUYONG",
+      "PATEROS",
+      // Central Luzon
+      "ANGELES",
+      "MABALACAT",
+      "SAN FERNANDO",
+      "CITY OF SAN FERNANDO",
+      "MEYCAUAYAN",
+      "MALOLOS",
+      "CABANATUAN",
+      "TARLAC",
+      "OLONGAPO",
+      "BALANGA",
+      "SAN JOSE DEL MONTE",
+      // Other major cities
+      "CEBU",
+      "DAVAO",
+      "ZAMBOANGA",
+      "CAGAYAN DE ORO",
+      "BACOLOD",
+      "ILOILO",
+      "BAGUIO",
+    ]
+
+    for (const city of cities) {
+      if (upperAddr.includes(city)) {
+        cityMunicipality = city
+          .split(" ")
+          .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+          .join(" ")
+        break
+      }
+    }
+
+    // Fallback: Look for "CITY OF" or "MUNICIPALITY OF" pattern
+    if (!cityMunicipality) {
+      const cityMatch = address.match(/(?:CITY\s+OF|MUNICIPALITY\s+OF)\s+([A-Za-z\s]+?)(?:,|$)/i)
+      if (cityMatch) {
+        cityMunicipality = cityMatch[1].trim()
+      }
+    }
+
+    // Province
     const provinces = [
       "PAMPANGA",
       "BULACAN",
@@ -370,15 +543,32 @@ function parseIDText(lines: string[]): {
       "TARLAC",
       "ZAMBALES",
       "BATAAN",
+      "AURORA",
       "CAVITE",
       "LAGUNA",
       "BATANGAS",
       "RIZAL",
+      "QUEZON",
+      "PANGASINAN",
+      "LA UNION",
+      "ILOCOS NORTE",
+      "ILOCOS SUR",
+      "BENGUET",
+      "CEBU",
+      "BOHOL",
+      "NEGROS ORIENTAL",
+      "NEGROS OCCIDENTAL",
+      "ILOILO",
+      "CAPIZ",
+      "DAVAO DEL SUR",
+      "DAVAO DEL NORTE",
+      "DAVAO ORIENTAL",
       "METRO MANILA",
       "NCR",
     ]
+
     for (const prov of provinces) {
-      if (upperAddress.includes(prov)) {
+      if (upperAddr.includes(prov)) {
         province = prov
           .split(" ")
           .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
@@ -387,55 +577,77 @@ function parseIDText(lines: string[]): {
       }
     }
 
-    // Extract ZIP code
-    const zipMatch = address.match(/\b(\d{4})\b/)
+    // ZIP code (Philippine ZIP codes are 4 digits)
+    const zipMatch = address.match(/\b(\d{4})\b(?![\d-])/)
     if (zipMatch) {
-      zipCode = zipMatch[1]
+      const potentialZip = Number.parseInt(zipMatch[1])
+      // Philippine ZIP codes range from 0400 to 9811
+      if (potentialZip >= 400 && potentialZip <= 9811) {
+        zipCode = zipMatch[1]
+      }
     }
   }
 
-  // Extract ID number
-  let idNumber = ""
-  const idPatterns = [/(\d{4}-\d{4}-\d{4}-\d{4})/, /([A-Z]\d{2}-\d{2}-\d{6})/, /(\d{2}-\d{7}-\d)/, /(\d{10,12})/]
-  for (const pattern of idPatterns) {
+  // ========== MOBILE NUMBER EXTRACTION ==========
+  let mobileNumber = ""
+  const mobilePatterns = [
+    /(?:MOBILE|CELL|CONTACT|TEL|PHONE)[:\s#]*(?:\+63|0)?(9\d{9})/i,
+    /(?:\+63|0)(9\d{9})/,
+    /\b(09\d{9})\b/,
+  ]
+  for (const pattern of mobilePatterns) {
     const match = text.match(pattern)
     if (match) {
-      idNumber = match[1]
+      mobileNumber = match[1].startsWith("9") ? "0" + match[1] : match[1]
       break
     }
   }
 
-  // Calculate age
+  // ========== AGE CALCULATION ==========
   let age = ""
   if (birthDate) {
     try {
-      const parsed = new Date(birthDate)
-      if (!isNaN(parsed.getTime())) {
+      let parsed: Date | null = null
+
+      // Try different date formats
+      if (/\d{4}[/-]\d{1,2}[/-]\d{1,2}/.test(birthDate)) {
+        parsed = new Date(birthDate)
+      } else if (/\d{1,2}[/-]\d{1,2}[/-]\d{4}/.test(birthDate)) {
+        const parts = birthDate.split(/[/-]/)
+        // Assume MM/DD/YYYY (US format common in PH)
+        parsed = new Date(Number.parseInt(parts[2]), Number.parseInt(parts[0]) - 1, Number.parseInt(parts[1]))
+      } else if (/[A-Z]+\s+\d{1,2},?\s+\d{4}/i.test(birthDate)) {
+        parsed = new Date(birthDate)
+      }
+
+      if (parsed && !isNaN(parsed.getTime())) {
         const today = new Date()
         let calcAge = today.getFullYear() - parsed.getFullYear()
         const monthDiff = today.getMonth() - parsed.getMonth()
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < parsed.getDate())) {
           calcAge--
         }
-        age = calcAge.toString()
+        if (calcAge > 0 && calcAge < 150) {
+          age = calcAge.toString()
+        }
       }
     } catch {}
   }
 
   return {
-    fullName,
+    fullName: fullName.trim(),
     birthDate,
     address,
     idType,
-    idNumber,
-    mobileNumber: "",
+    idNumber: idNumber.trim(),
+    mobileNumber,
     age,
     houseLotNo,
     street,
     purok,
-    barangay,
-    cityMunicipality,
-    province,
+    barangay: barangay.trim(),
+    cityMunicipality: cityMunicipality.trim(),
+    province: province.trim(),
     zipCode,
   }
 }
