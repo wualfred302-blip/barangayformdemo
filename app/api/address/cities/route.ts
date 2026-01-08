@@ -1,19 +1,19 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+export const runtime = "edge"
+export const revalidate = 3600
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = await createClient()
     const { searchParams } = new URL(request.url)
     const search = searchParams.get("search")?.trim() || ""
     const provinceCode = searchParams.get("province_code")?.trim() || ""
 
     let query = supabase
       .from("address_cities")
-      .select("code, name, zip_code, type")
+      .select("code, name, zip_code")
       .order("name", { ascending: true })
       .limit(20)
 
@@ -22,26 +22,20 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.ilike("name", `%${search}%`)
+      // Fuzzy search with prefix match (higher priority) and contains match
+      query = query.or(`name.ilike.${search}%,name.ilike.%${search}%`)
     }
 
     const { data, error } = await query
 
     if (error) {
-      console.error("[v0] City query error:", error)
+      console.error("City query error:", error)
       return NextResponse.json({ error: "Failed to fetch cities" }, { status: 500 })
     }
 
-    return NextResponse.json(
-      { cities: data || [] },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-        },
-      },
-    )
+    return NextResponse.json({ cities: data || [] })
   } catch (error) {
-    console.error("[v0] City API error:", error)
+    console.error("City API error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

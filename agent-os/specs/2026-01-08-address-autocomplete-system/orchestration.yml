@@ -1,0 +1,13 @@
+task_groups:
+  - name: Phase 1 - Backend API Routes
+    claude_code_subagent: general-purpose
+  - name: Phase 2 - Frontend Component Development
+    claude_code_subagent: general-purpose
+  - name: Phase 3 - Address Fuzzy Matching Utility
+    claude_code_subagent: general-purpose
+  - name: Phase 4 - Form Integration
+    claude_code_subagent: general-purpose
+  - name: Phase 5 - Data Seeding (Optional)
+    claude_code_subagent: general-purpose
+  - name: Phase 6 - Documentation & Completion
+    claude_code_subagent: general-purpose

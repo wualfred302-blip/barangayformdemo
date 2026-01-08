@@ -1,12 +1,12 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+export const runtime = "edge"
+export const revalidate = 3600
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = await createClient()
     const { searchParams } = new URL(request.url)
     const search = searchParams.get("search")?.trim() || ""
     const cityCode = searchParams.get("city_code")?.trim() || ""
@@ -23,26 +23,20 @@ export async function GET(request: NextRequest) {
       .limit(20)
 
     if (search) {
-      query = query.ilike("name", `%${search}%`)
+      // Fuzzy search with prefix match (higher priority) and contains match
+      query = query.or(`name.ilike.${search}%,name.ilike.%${search}%`)
     }
 
     const { data, error } = await query
 
     if (error) {
-      console.error("[v0] Barangay query error:", error)
+      console.error("Barangay query error:", error)
       return NextResponse.json({ error: "Failed to fetch barangays" }, { status: 500 })
     }
 
-    return NextResponse.json(
-      { barangays: data || [] },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-        },
-      },
-    )
+    return NextResponse.json({ barangays: data || [] })
   } catch (error) {
-    console.error("[v0] Barangay API error:", error)
+    console.error("Barangay API error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

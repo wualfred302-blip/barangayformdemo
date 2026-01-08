@@ -43,7 +43,7 @@ export function AddressCombobox({
   const [loading, setLoading] = React.useState(false)
   const [search, setSearch] = React.useState("")
   const [customMode, setCustomMode] = React.useState(false)
-  const debounceRef = React.useRef<NodeJS.Timeout>()
+  const debounceRef = React.useRef<NodeJS.Timeout | undefined>(undefined)
 
   // Fetch options when dropdown opens or search changes
   const fetchOptions = React.useCallback(
@@ -131,8 +131,7 @@ export function AddressCombobox({
     onValueChange(e.target.value, undefined, undefined)
   }
 
-  const isDisabled =
-    disabled || (type === "barangay" && !parentCode) || (type === "city" && !parentCode && type === "city")
+  const isDisabled = disabled || (type === "barangay" && !parentCode)
 
   // Custom input mode
   if (customMode) {

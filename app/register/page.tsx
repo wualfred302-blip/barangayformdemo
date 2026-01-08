@@ -14,6 +14,7 @@ import { ArrowLeft, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { IDScanner } from "@/components/id-scanner"
 import { AddressCombobox } from "@/components/address-combobox"
+import { fuzzyMatchAddresses } from "@/lib/address-matcher"
 
 const ID_TYPES = [
   { value: "philippine_national_id", label: "Philippine National ID (PhilSys)" },
@@ -92,7 +93,7 @@ export default function RegisterPage() {
     if (error) setError(null)
   }
 
-  const handleIDDataExtracted = (data: {
+  const handleIDDataExtracted = async (data: {
     fullName: string
     birthDate: string
     address: string
@@ -139,6 +140,19 @@ export default function RegisterPage() {
       }
     }
 
+    // Perform fuzzy matching on OCR-extracted addresses
+    const addressMatches = await fuzzyMatchAddresses({
+      province: data.province,
+      city: data.cityMunicipality,
+      barangay: data.barangay,
+    })
+
+    // Use matched names and codes, fallback to original OCR text
+    const finalProvince = addressMatches.province?.name || data.province || ""
+    const finalCity = addressMatches.city?.name || data.cityMunicipality || ""
+    const finalBarangay = addressMatches.barangay?.name || data.barangay || ""
+    const finalZipCode = addressMatches.city?.zip_code || data.zipCode || ""
+
     setFormData((prev) => ({
       ...prev,
       fullName: data.fullName || prev.fullName,
@@ -149,21 +163,29 @@ export default function RegisterPage() {
       houseLotNo: data.houseLotNo || prev.houseLotNo,
       street: data.street || prev.street,
       purok: data.purok || prev.purok,
-      barangay: data.barangay || prev.barangay,
-      cityMunicipality: data.cityMunicipality || prev.cityMunicipality,
-      province: data.province || prev.province,
-      zipCode: data.zipCode || prev.zipCode,
+      barangay: finalBarangay,
+      cityMunicipality: finalCity,
+      province: finalProvince,
+      zipCode: finalZipCode,
     }))
+
+    // Store matched codes for cascading
+    if (addressMatches.province?.code) {
+      setProvinceCode(addressMatches.province.code)
+    }
+    if (addressMatches.city?.code) {
+      setCityCode(addressMatches.city.code)
+    }
 
     setScannedFields({
       fullName: !!data.fullName,
       birthDate: !!data.birthDate,
       idType: !!mappedIdType,
       idNumber: !!data.idNumber,
-      province: !!data.province,
-      cityMunicipality: !!data.cityMunicipality,
-      barangay: !!data.barangay,
-      zipCode: !!data.zipCode,
+      province: !!finalProvince,
+      cityMunicipality: !!finalCity,
+      barangay: !!finalBarangay,
+      zipCode: !!finalZipCode,
       houseLotNo: !!data.houseLotNo,
       street: !!data.street,
       purok: !!data.purok,
