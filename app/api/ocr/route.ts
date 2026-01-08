@@ -218,6 +218,95 @@ function parseIDText(lines: string[]): {
   const text = lines.join(" ").toUpperCase()
   const joinedText = lines.join("\n")
 
+  const LABELS_TO_FILTER = [
+    // Tagalog labels
+    "MGA PANGALAN",
+    "PANGALAN",
+    "APELYIDO",
+    "UNANG PANGALAN",
+    "GITNANG PANGALAN",
+    "TIRAHAN",
+    "KASARIAN",
+    "PETSA NG KAPANGANAKAN",
+    "LUGAR NG KAPANGANAKAN",
+    "NASYONALIDAD",
+    "KATAYUANG SIBIL",
+    "TRABAHO",
+    "LAGDA",
+    "PIRMA",
+    "TAAS",
+    "TIMBANG",
+    "KULAY NG MATA",
+    "KULAY NG BUHOK",
+    "MGA PANGALAN NG MAGULANG",
+    "PANGALAN NG AMA",
+    "PANGALAN NG INA",
+    // English labels commonly found on IDs
+    "FULL NAME",
+    "FIRST NAME",
+    "MIDDLE NAME",
+    "LAST NAME",
+    "SURNAME",
+    "GIVEN NAME",
+    "ADDRESS",
+    "PERMANENT ADDRESS",
+    "PRESENT ADDRESS",
+    "DATE OF BIRTH",
+    "PLACE OF BIRTH",
+    "NATIONALITY",
+    "CITIZENSHIP",
+    "CIVIL STATUS",
+    "MARITAL STATUS",
+    "SEX",
+    "GENDER",
+    "BLOOD TYPE",
+    "HEIGHT",
+    "WEIGHT",
+    "OCCUPATION",
+    "SIGNATURE",
+    "STREET",
+    "PROVINCE",
+    "CITY",
+    "MUNICIPALITY",
+    "BARANGAY",
+    "BRGY",
+    "ZIP CODE",
+    "POSTAL CODE",
+    // ID-specific headers
+    "REPUBLIKA NG PILIPINAS",
+    "REPUBLIC OF THE PHILIPPINES",
+    "PHILIPPINE IDENTIFICATION",
+    "PHILIPPINE STATISTICS AUTHORITY",
+    "PHILSYS",
+    "COMMON REFERENCE NUMBER",
+    "CRN",
+    "PHILSYS NUMBER",
+    "PSN",
+  ]
+
+  // Function to clean extracted text by removing labels
+  const cleanExtractedText = (text: string): string => {
+    let cleaned = text.trim()
+    for (const label of LABELS_TO_FILTER) {
+      // Remove label at start of string
+      const labelRegex = new RegExp(`^${label}[:\\s]*`, "i")
+      cleaned = cleaned.replace(labelRegex, "")
+      // Remove label anywhere with colon
+      const labelWithColonRegex = new RegExp(`\\b${label}[:\\s]+`, "gi")
+      cleaned = cleaned.replace(labelWithColonRegex, "")
+    }
+    return cleaned.trim()
+  }
+
+  // Function to check if text is just a label
+  const isJustLabel = (text: string): boolean => {
+    const upper = text.toUpperCase().trim()
+    return LABELS_TO_FILTER.some(
+      (label) =>
+        upper === label || upper === label + ":" || upper.startsWith(label + " ") || upper.endsWith(" " + label),
+    )
+  }
+
   // ========== ID TYPE DETECTION ==========
   let idType = "Government ID"
   const idTypePatterns: [RegExp, string][] = [
@@ -245,17 +334,20 @@ function parseIDText(lines: string[]): {
   // ========== NAME EXTRACTION ==========
   let fullName = ""
 
-  // Method 1: Look for labeled name fields
+  // Method 1: Look for labeled name fields and extract value after label
   const nameLabels = [
-    /(?:FULL\s*NAME|PANGALAN|NAME|LAST\s*NAME|SURNAME)[:\s]+([A-Za-z\s,.\-']+)/i,
-    /(?:GIVEN\s*NAME|FIRST\s*NAME)[:\s]+([A-Za-z\s.\-']+)/i,
+    /(?:FULL\s*NAME|PANGALAN|NAME|MGA\s*PANGALAN)[:\s]+([A-Za-z\s,.\-']+)/i,
+    /(?:LAST\s*NAME|SURNAME|APELYIDO)[:\s]+([A-Za-z\s.\-']+)/i,
   ]
 
   for (const pattern of nameLabels) {
     const match = joinedText.match(pattern)
     if (match && match[1].trim().length > 2) {
-      fullName = match[1].trim().replace(/\s+/g, " ")
-      break
+      const extracted = cleanExtractedText(match[1])
+      if (!isJustLabel(extracted) && extracted.length > 2) {
+        fullName = extracted.replace(/\s+/g, " ")
+        break
+      }
     }
   }
 
@@ -263,6 +355,9 @@ function parseIDText(lines: string[]): {
   if (!fullName) {
     for (const line of lines) {
       const cleanLine = line.trim()
+      // Skip if line is a known label
+      if (isJustLabel(cleanLine)) continue
+
       // Name pattern: 2-4 words, proper characters, reasonable length
       if (
         /^[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){1,3}$/.test(cleanLine) &&
@@ -270,7 +365,7 @@ function parseIDText(lines: string[]): {
         cleanLine.length <= 50
       ) {
         const lower = cleanLine.toLowerCase()
-        // Skip header text
+        // Skip header text and labels
         if (
           !lower.includes("republic") &&
           !lower.includes("philippines") &&
@@ -278,7 +373,11 @@ function parseIDText(lines: string[]): {
           !lower.includes("department") &&
           !lower.includes("office") &&
           !lower.includes("barangay") &&
-          !lower.includes("city")
+          !lower.includes("city") &&
+          !lower.includes("pangalan") &&
+          !lower.includes("name") &&
+          !lower.includes("address") &&
+          !lower.includes("tirahan")
         ) {
           fullName = cleanLine
           break
@@ -291,14 +390,16 @@ function parseIDText(lines: string[]): {
   if (!fullName) {
     const lastFirstMatch = joinedText.match(/([A-Z]+),\s*([A-Z]+(?:\s+[A-Z]\.?)?(?:\s+[A-Z]+)?)/i)
     if (lastFirstMatch) {
-      fullName = `${lastFirstMatch[2]} ${lastFirstMatch[1]}`
+      const extracted = `${lastFirstMatch[2]} ${lastFirstMatch[1]}`
+      if (!isJustLabel(extracted)) {
+        fullName = extracted
+      }
     }
   }
 
   // ========== BIRTH DATE EXTRACTION ==========
   let birthDate = ""
 
-  // Pattern 1: Labeled date of birth
   const dobPatterns = [
     /(?:DATE\s*OF\s*BIRTH|DOB|BIRTHDAY|PETSA\s*NG\s*KAPANGANAKAN|BIRTH\s*DATE)[:\s]+(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i,
     /(?:DATE\s*OF\s*BIRTH|DOB|BIRTHDAY)[:\s]+([A-Z]+\s+\d{1,2},?\s+\d{4})/i,
@@ -313,11 +414,10 @@ function parseIDText(lines: string[]): {
     }
   }
 
-  // Pattern 2: Unlabeled date formats
   if (!birthDate) {
     const dateFormats = [
-      /\b(\d{2}[/-]\d{2}[/-]\d{4})\b/, // MM/DD/YYYY or DD/MM/YYYY
-      /\b(\d{4}[/-]\d{2}[/-]\d{2})\b/, // YYYY-MM-DD
+      /\b(\d{2}[/-]\d{2}[/-]\d{4})\b/,
+      /\b(\d{4}[/-]\d{2}[/-]\d{2})\b/,
       /\b((?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*\.?\s+\d{1,2},?\s+\d{4})\b/i,
     ]
     for (const pattern of dateFormats) {
@@ -332,7 +432,6 @@ function parseIDText(lines: string[]): {
   // ========== ID NUMBER EXTRACTION ==========
   let idNumber = ""
 
-  // ID-specific patterns
   const idNumberPatterns: Record<string, RegExp[]> = {
     "Philippine National ID": [/\b(PSN[:\s]*)?(\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4})\b/i],
     "Driver's License": [/\b([A-Z]\d{2}[\s-]?\d{2}[\s-]?\d{6})\b/i, /\b([A-Z]\d{10})\b/i],
@@ -348,7 +447,6 @@ function parseIDText(lines: string[]): {
     "PWD ID": [/\b(PWD[\s-]?\d+)\b/i, /\b(\d{4,12})\b/],
   }
 
-  // Try ID-specific patterns first
   const patterns = idNumberPatterns[idType] || []
   for (const pattern of patterns) {
     const match = text.match(pattern)
@@ -358,14 +456,13 @@ function parseIDText(lines: string[]): {
     }
   }
 
-  // Fallback: Generic ID number patterns
   if (!idNumber) {
     const genericPatterns = [
       /(?:ID\s*(?:NO\.?|NUMBER|#)|NO\.?)[:\s]*([A-Z0-9-]+)/i,
-      /\b(\d{4}[\s-]\d{4}[\s-]\d{4}[\s-]\d{4})\b/, // 16-digit
-      /\b(\d{2}[\s-]\d{7}[\s-]\d)\b/, // SSS format
-      /\b([A-Z]\d{2}[\s-]\d{2}[\s-]\d{6})\b/i, // License format
-      /\b(\d{10,16})\b/, // 10-16 digit numbers
+      /\b(\d{4}[\s-]\d{4}[\s-]\d{4}[\s-]\d{4})\b/,
+      /\b(\d{2}[\s-]\d{7}[\s-]\d)\b/,
+      /\b([A-Z]\d{2}[\s-]\d{2}[\s-]\d{6})\b/i,
+      /\b(\d{10,16})\b/,
     ]
     for (const pattern of genericPatterns) {
       const match = text.match(pattern)
@@ -386,7 +483,6 @@ function parseIDText(lines: string[]): {
   let province = ""
   let zipCode = ""
 
-  // Find address section
   const addressPatterns = [
     /(?:ADDRESS|TIRAHAN|RESIDENCE)[:\s]+(.+?)(?=(?:DATE|BIRTH|SEX|NATIONALITY|$))/is,
     /(?:PERMANENT\s*ADDRESS|HOME\s*ADDRESS)[:\s]+(.+?)(?=(?:DATE|BIRTH|SEX|$))/is,
@@ -400,21 +496,21 @@ function parseIDText(lines: string[]): {
     }
   }
 
-  // Fallback: Find lines that look like addresses
   if (!address) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].toUpperCase()
+      if (isJustLabel(lines[i])) continue
+
       if (
-        line.includes("BRGY") ||
-        line.includes("BARANGAY") ||
-        line.includes("PUROK") ||
-        line.includes("STREET") ||
-        line.includes("ST.") ||
-        line.includes("AVE") ||
-        /\b\d+\s+[A-Z]+\s+(ST|AVE|ROAD|DRIVE)/i.test(line)
+        (line.includes("BRGY") ||
+          line.includes("BARANGAY") ||
+          line.includes("PUROK") ||
+          /\b\d+\s+[A-Z]+\s+(ST|AVE|ROAD|DRIVE)/i.test(line)) &&
+        line !== "STREET" &&
+        line !== "BARANGAY" &&
+        line !== "PROVINCE"
       ) {
         address = lines[i]
-        // Include next line if it continues the address
         if (i + 1 < lines.length && !lines[i + 1].includes(":") && /^[A-Za-z0-9\s,.-]+$/.test(lines[i + 1])) {
           address += ", " + lines[i + 1]
         }
@@ -441,7 +537,6 @@ function parseIDText(lines: string[]): {
       }
     }
 
-    // Street
     const streetPatterns = [
       /(\d*\s*[A-Za-z\s]+(?:STREET|ST\.?|AVENUE|AVE\.?|ROAD|RD\.?|BOULEVARD|BLVD\.?|DRIVE|DR\.?|LANE|LN\.?))/i,
       /(?:SITIO|ZONE)\s+([A-Za-z0-9\s]+)/i,
@@ -449,8 +544,12 @@ function parseIDText(lines: string[]): {
     for (const pattern of streetPatterns) {
       const match = address.match(pattern)
       if (match) {
-        street = match[1].trim()
-        break
+        const extracted = match[1].trim()
+        // Don't use if it's just "STREET" or very short
+        if (extracted.toUpperCase() !== "STREET" && extracted.length > 3) {
+          street = extracted
+          break
+        }
       }
     }
 
@@ -460,7 +559,7 @@ function parseIDText(lines: string[]): {
       purok = purokMatch[1]
     }
 
-    // Barangay - comprehensive patterns
+    // Barangay
     const barangayPatterns = [
       /(?:BRGY\.?|BARANGAY)\s+([A-Za-z0-9\s.-]+?)(?:,|\s+CITY|\s+MUNICIPALITY|\s+PROVINCE|\s+\d{4}|$)/i,
       /(?:BRGY\.?|BARANGAY)\s+([A-Za-z0-9\s.-]+)/i,
@@ -473,9 +572,8 @@ function parseIDText(lines: string[]): {
       }
     }
 
-    // City/Municipality - comprehensive list
+    // City/Municipality
     const cities = [
-      // Metro Manila
       "MANILA",
       "QUEZON CITY",
       "MAKATI",
@@ -495,7 +593,6 @@ function parseIDText(lines: string[]): {
       "SAN JUAN",
       "MANDALUYONG",
       "PATEROS",
-      // Central Luzon
       "ANGELES",
       "MABALACAT",
       "SAN FERNANDO",
@@ -507,7 +604,6 @@ function parseIDText(lines: string[]): {
       "OLONGAPO",
       "BALANGA",
       "SAN JOSE DEL MONTE",
-      // Other major cities
       "CEBU",
       "DAVAO",
       "ZAMBOANGA",
@@ -527,7 +623,6 @@ function parseIDText(lines: string[]): {
       }
     }
 
-    // Fallback: Look for "CITY OF" or "MUNICIPALITY OF" pattern
     if (!cityMunicipality) {
       const cityMatch = address.match(/(?:CITY\s+OF|MUNICIPALITY\s+OF)\s+([A-Za-z\s]+?)(?:,|$)/i)
       if (cityMatch) {
@@ -577,11 +672,10 @@ function parseIDText(lines: string[]): {
       }
     }
 
-    // ZIP code (Philippine ZIP codes are 4 digits)
+    // ZIP code
     const zipMatch = address.match(/\b(\d{4})\b(?![\d-])/)
     if (zipMatch) {
       const potentialZip = Number.parseInt(zipMatch[1])
-      // Philippine ZIP codes range from 0400 to 9811
       if (potentialZip >= 400 && potentialZip <= 9811) {
         zipCode = zipMatch[1]
       }
@@ -608,13 +702,10 @@ function parseIDText(lines: string[]): {
   if (birthDate) {
     try {
       let parsed: Date | null = null
-
-      // Try different date formats
       if (/\d{4}[/-]\d{1,2}[/-]\d{1,2}/.test(birthDate)) {
         parsed = new Date(birthDate)
       } else if (/\d{1,2}[/-]\d{1,2}[/-]\d{4}/.test(birthDate)) {
         const parts = birthDate.split(/[/-]/)
-        // Assume MM/DD/YYYY (US format common in PH)
         parsed = new Date(Number.parseInt(parts[2]), Number.parseInt(parts[0]) - 1, Number.parseInt(parts[1]))
       } else if (/[A-Z]+\s+\d{1,2},?\s+\d{4}/i.test(birthDate)) {
         parsed = new Date(birthDate)
@@ -635,7 +726,7 @@ function parseIDText(lines: string[]): {
   }
 
   return {
-    fullName: fullName.trim(),
+    fullName: cleanExtractedText(fullName).trim(),
     birthDate,
     address,
     idType,
@@ -643,11 +734,11 @@ function parseIDText(lines: string[]): {
     mobileNumber,
     age,
     houseLotNo,
-    street,
+    street: cleanExtractedText(street).trim(),
     purok,
-    barangay: barangay.trim(),
-    cityMunicipality: cityMunicipality.trim(),
-    province: province.trim(),
+    barangay: cleanExtractedText(barangay).trim(),
+    cityMunicipality: cleanExtractedText(cityMunicipality).trim(),
+    province: cleanExtractedText(province).trim(),
     zipCode,
   }
 }

@@ -83,7 +83,6 @@ export default function RegisterPage() {
     idType?: string
     idNumber?: string
     imageBase64?: string
-    // New parsed address fields
     houseLotNo?: string
     street?: string
     purok?: string
@@ -92,7 +91,6 @@ export default function RegisterPage() {
     province?: string
     zipCode?: string
   }) => {
-    // Map OCR idType to dropdown value
     let mappedIdType = ""
     if (data.idType) {
       const idTypeLower = data.idType.toLowerCase()
@@ -130,7 +128,6 @@ export default function RegisterPage() {
       mobileNumber: data.mobileNumber || prev.mobileNumber,
       idType: mappedIdType || prev.idType,
       idNumber: data.idNumber || prev.idNumber,
-      // Populate parsed address fields
       houseLotNo: data.houseLotNo || prev.houseLotNo,
       street: data.street || prev.street,
       purok: data.purok || prev.purok,
@@ -156,7 +153,6 @@ export default function RegisterPage() {
     e.preventDefault()
     setError(null)
 
-    // Validation
     if (!formData.fullName || !formData.mobileNumber || !formData.barangay || !formData.cityMunicipality) {
       setError("Please fill in all required fields (Name, Mobile, Barangay, City/Municipality).")
       return
@@ -284,6 +280,9 @@ export default function RegisterPage() {
 
   const age = calculateAge()
 
+  const inputBaseClass = "h-12 w-full text-base"
+  const inputScannedClass = "border-emerald-300 bg-emerald-50/50"
+
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-emerald-50 to-white">
       <header className="sticky top-0 z-10 flex h-14 items-center border-b border-slate-100 bg-white/80 px-4 backdrop-blur-sm">
@@ -306,7 +305,7 @@ export default function RegisterPage() {
 
         <Card className="border-0 shadow-sm">
           <CardContent className="p-5">
-            <form id="registration-form" onSubmit={handleRegister} className="space-y-6">
+            <form id="registration-form" onSubmit={handleRegister} className="space-y-8">
               {error && (
                 <div className="flex items-start gap-2 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-600">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -323,10 +322,10 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              <div className="space-y-4">
-                <div className="border-b border-gray-200 pb-2">
-                  <h3 className="text-lg font-bold text-gray-900">Personal Information</h3>
-                  <p className="text-sm text-gray-500">From your scanned ID</p>
+              <section className="space-y-5">
+                <div className="border-b-2 border-gray-200 pb-3">
+                  <h3 className="text-xl font-bold text-gray-900">Personal Information</h3>
+                  <p className="mt-1 text-sm text-gray-500">From your scanned ID</p>
                 </div>
 
                 <div className="space-y-2">
@@ -340,11 +339,11 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     placeholder="Juan Dela Cruz"
                     disabled={isLoading}
-                    className={`h-11 ${wasScanned && formData.fullName ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                    className={`${inputBaseClass} ${wasScanned && formData.fullName ? inputScannedClass : ""}`}
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="idType" className="text-sm font-medium">
                       ID Type <span className="text-red-500">*</span>
@@ -355,9 +354,9 @@ export default function RegisterPage() {
                       disabled={isLoading}
                     >
                       <SelectTrigger
-                        className={`h-11 ${wasScanned && formData.idType ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                        className={`h-12 w-full ${wasScanned && formData.idType ? inputScannedClass : ""}`}
                       >
-                        <SelectValue placeholder="Select ID type" />
+                        <SelectValue placeholder="Select ID" />
                       </SelectTrigger>
                       <SelectContent>
                         {ID_TYPES.map((type) => (
@@ -379,7 +378,7 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="1234-5678-9012"
                       disabled={isLoading}
-                      className={`h-11 ${wasScanned && formData.idNumber ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                      className={`${inputBaseClass} ${wasScanned && formData.idNumber ? inputScannedClass : ""}`}
                     />
                   </div>
                 </div>
@@ -395,18 +394,18 @@ export default function RegisterPage() {
                     value={formData.birthDate}
                     onChange={handleChange}
                     disabled={isLoading}
-                    className={`h-11 ${wasScanned && formData.birthDate ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                    className={`${inputBaseClass} ${wasScanned && formData.birthDate ? inputScannedClass : ""}`}
                   />
                 </div>
-              </div>
+              </section>
 
-              <div className="space-y-4">
-                <div className="border-b border-gray-200 pb-2">
-                  <h3 className="text-lg font-bold text-gray-900">Address</h3>
-                  <p className="text-sm text-gray-500">Complete address for beneficiary ID</p>
+              <section className="space-y-5">
+                <div className="border-b-2 border-gray-200 pb-3">
+                  <h3 className="text-xl font-bold text-gray-900">Address</h3>
+                  <p className="mt-1 text-sm text-gray-500">Complete address for beneficiary ID</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="houseLotNo" className="text-sm font-medium">
                       House/Lot No.
@@ -418,7 +417,7 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="123"
                       disabled={isLoading}
-                      className={`h-11 ${wasScanned && formData.houseLotNo ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                      className={`${inputBaseClass} ${wasScanned && formData.houseLotNo ? inputScannedClass : ""}`}
                     />
                   </div>
                   <div className="space-y-2">
@@ -432,12 +431,12 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="Rizal Street"
                       disabled={isLoading}
-                      className={`h-11 ${wasScanned && formData.street ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                      className={`${inputBaseClass} ${wasScanned && formData.street ? inputScannedClass : ""}`}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="purok" className="text-sm font-medium">
                       Purok
@@ -449,7 +448,7 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="1"
                       disabled={isLoading}
-                      className={`h-11 ${wasScanned && formData.purok ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                      className={`${inputBaseClass} ${wasScanned && formData.purok ? inputScannedClass : ""}`}
                     />
                   </div>
                   <div className="space-y-2">
@@ -463,12 +462,12 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="Mawaque"
                       disabled={isLoading}
-                      className={`h-11 ${wasScanned && formData.barangay ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                      className={`${inputBaseClass} ${wasScanned && formData.barangay ? inputScannedClass : ""}`}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="cityMunicipality" className="text-sm font-medium">
                       City/Municipality <span className="text-red-500">*</span>
@@ -480,7 +479,7 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="Mabalacat"
                       disabled={isLoading}
-                      className={`h-11 ${wasScanned && formData.cityMunicipality ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                      className={`${inputBaseClass} ${wasScanned && formData.cityMunicipality ? inputScannedClass : ""}`}
                     />
                   </div>
                   <div className="space-y-2">
@@ -494,30 +493,34 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="Pampanga"
                       disabled={isLoading}
-                      className={`h-11 ${wasScanned && formData.province ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                      className={`${inputBaseClass} ${wasScanned && formData.province ? inputScannedClass : ""}`}
                     />
                   </div>
                 </div>
 
-                <div className="w-1/2 pr-1.5 space-y-2">
-                  <Label htmlFor="zipCode" className="text-sm font-medium">
-                    ZIP Code
-                  </Label>
-                  <Input
-                    id="zipCode"
-                    name="zipCode"
-                    value={formData.zipCode}
-                    onChange={handleChange}
-                    placeholder="2010"
-                    disabled={isLoading}
-                    className={`h-11 ${wasScanned && formData.zipCode ? "border-emerald-300 bg-emerald-50/50" : ""}`}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="zipCode" className="text-sm font-medium">
+                      ZIP Code
+                    </Label>
+                    <Input
+                      id="zipCode"
+                      name="zipCode"
+                      value={formData.zipCode}
+                      onChange={handleChange}
+                      placeholder="2010"
+                      disabled={isLoading}
+                      className={`${inputBaseClass} ${wasScanned && formData.zipCode ? inputScannedClass : ""}`}
+                    />
+                  </div>
+                  {/* Empty cell for alignment */}
+                  <div />
                 </div>
-              </div>
+              </section>
 
-              <div className="space-y-4">
-                <div className="border-b border-gray-200 pb-2">
-                  <h3 className="text-lg font-bold text-gray-900">Contact Information</h3>
+              <section className="space-y-5">
+                <div className="border-b-2 border-gray-200 pb-3">
+                  <h3 className="text-xl font-bold text-gray-900">Contact Information</h3>
                 </div>
 
                 <div className="space-y-2">
@@ -530,15 +533,15 @@ export default function RegisterPage() {
                     type="tel"
                     value={formData.mobileNumber}
                     onChange={handleChange}
-                    placeholder="+63 912 345 6789"
+                    placeholder="09123456789"
                     disabled={isLoading}
-                    className="h-11"
+                    className={`${inputBaseClass} ${wasScanned && formData.mobileNumber ? inputScannedClass : ""}`}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm font-medium">
-                    Email (optional)
+                    Email Address <span className="text-gray-400">(optional)</span>
                   </Label>
                   <Input
                     id="email"
@@ -546,17 +549,17 @@ export default function RegisterPage() {
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="your.email@example.com"
+                    placeholder="juan@email.com"
                     disabled={isLoading}
-                    className="h-11"
+                    className={inputBaseClass}
                   />
                 </div>
-              </div>
+              </section>
 
-              <div className="space-y-4">
-                <div className="border-b border-gray-200 pb-2">
-                  <h3 className="text-lg font-bold text-gray-900">Security</h3>
-                  <p className="text-sm text-gray-500">Create your password and PIN for login</p>
+              <section className="space-y-5">
+                <div className="border-b-2 border-gray-200 pb-3">
+                  <h3 className="text-xl font-bold text-gray-900">Security</h3>
+                  <p className="mt-1 text-sm text-gray-500">Create your login credentials</p>
                 </div>
 
                 <div className="space-y-2">
@@ -570,31 +573,18 @@ export default function RegisterPage() {
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={handleChange}
-                      placeholder="Min 8 chars, 1 number"
+                      placeholder="Min 8 characters, 1 number"
                       disabled={isLoading}
-                      className="h-11 pr-10"
+                      className={`${inputBaseClass} pr-10`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
-                  {formData.password && (
-                    <div className="flex gap-1">
-                      <div
-                        className={`h-1 flex-1 rounded ${formData.password.length >= 8 ? "bg-emerald-500" : "bg-gray-200"}`}
-                      />
-                      <div
-                        className={`h-1 flex-1 rounded ${/\d/.test(formData.password) ? "bg-emerald-500" : "bg-gray-200"}`}
-                      />
-                      <div
-                        className={`h-1 flex-1 rounded ${/[A-Z]/.test(formData.password) ? "bg-emerald-500" : "bg-gray-200"}`}
-                      />
-                    </div>
-                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -604,18 +594,16 @@ export default function RegisterPage() {
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={formData.confirmPassword}
                     onChange={handleChange}
+                    placeholder="Re-enter password"
                     disabled={isLoading}
-                    className="h-11"
+                    className={inputBaseClass}
                   />
-                  {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                    <p className="text-xs text-red-500">Passwords do not match</p>
-                  )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="pin" className="text-sm font-medium">
                       4-Digit PIN <span className="text-red-500">*</span>
@@ -626,15 +614,21 @@ export default function RegisterPage() {
                         name="pin"
                         type={showPin ? "text" : "password"}
                         inputMode="numeric"
+                        maxLength={4}
                         value={formData.pin}
                         onChange={handleChange}
                         placeholder="••••"
-                        maxLength={4}
                         disabled={isLoading}
-                        className="h-11 text-center tracking-widest"
+                        className={`${inputBaseClass} pr-10 text-center tracking-widest`}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPin(!showPin)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      >
+                        {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
-                    <p className="text-xs text-gray-500">For quick login</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirmPin" className="text-sm font-medium">
@@ -643,49 +637,53 @@ export default function RegisterPage() {
                     <Input
                       id="confirmPin"
                       name="confirmPin"
-                      type="password"
+                      type={showPin ? "text" : "password"}
                       inputMode="numeric"
+                      maxLength={4}
                       value={formData.confirmPin}
                       onChange={handleChange}
                       placeholder="••••"
-                      maxLength={4}
                       disabled={isLoading}
-                      className="h-11 text-center tracking-widest"
+                      className={`${inputBaseClass} text-center tracking-widest`}
                     />
-                    {formData.confirmPin && formData.pin !== formData.confirmPin && (
-                      <p className="text-xs text-red-500">PINs do not match</p>
-                    )}
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div className="flex items-start gap-3 pt-2">
-                <Checkbox
-                  id="agreedToTerms"
-                  checked={formData.agreedToTerms}
-                  onCheckedChange={(checked) => setFormData({ ...formData, agreedToTerms: checked === true })}
+              {/* Privacy Agreement & Submit */}
+              <section className="space-y-5 pt-2">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="agreedToTerms"
+                    checked={formData.agreedToTerms}
+                    onCheckedChange={(checked) => setFormData({ ...formData, agreedToTerms: checked === true })}
+                    disabled={isLoading}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="agreedToTerms" className="text-sm leading-relaxed text-gray-600">
+                    I agree to the{" "}
+                    <Link href="/privacy" className="text-emerald-600 underline">
+                      Privacy Policy
+                    </Link>{" "}
+                    and consent to the collection and processing of my personal data.
+                  </Label>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="h-14 w-full bg-emerald-600 text-base font-semibold hover:bg-emerald-700"
                   disabled={isLoading}
-                  className="mt-0.5"
-                />
-                <Label htmlFor="agreedToTerms" className="text-sm leading-tight text-gray-600">
-                  I agree to the Privacy Policy and Terms of Service
-                </Label>
-              </div>
+                >
+                  {isLoading ? "Creating Account..." : "Create Account"}
+                </Button>
 
-              <Button
-                type="submit"
-                className="h-12 w-full rounded-xl bg-emerald-500 text-sm font-semibold hover:bg-emerald-600"
-                disabled={isLoading}
-              >
-                {isLoading ? "Creating account..." : "Register"}
-              </Button>
-
-              <p className="text-center text-sm text-gray-500">
-                Already have an account?{" "}
-                <Link href="/login" className="font-medium text-emerald-600 hover:underline">
-                  Sign In
-                </Link>
-              </p>
+                <p className="text-center text-sm text-gray-500">
+                  Already have an account?{" "}
+                  <Link href="/login" className="font-medium text-emerald-600">
+                    Sign In
+                  </Link>
+                </p>
+              </section>
             </form>
           </CardContent>
         </Card>
