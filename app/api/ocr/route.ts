@@ -16,22 +16,6 @@ export async function POST(req: Request) {
   const startTime = Date.now()
 
   try {
-    if (!AZURE_ENDPOINT || !AZURE_API_KEY) {
-      console.error(
-        "[v0] Missing Azure configuration - AZURE_CV_ENDPOINT:",
-        !!AZURE_ENDPOINT,
-        "AZURE_CV_API_KEY:",
-        !!AZURE_API_KEY,
-      )
-      return Response.json(
-        {
-          success: false,
-          error: "OCR service not configured. Please add AZURE_CV_ENDPOINT and AZURE_CV_API_KEY environment variables.",
-        },
-        { status: 500, headers: corsHeaders },
-      )
-    }
-
     const body = await req.json()
     const { imageBase64 } = body
 
@@ -39,16 +23,25 @@ export async function POST(req: Request) {
       return Response.json({ success: false, error: "No image provided" }, { status: 400, headers: corsHeaders })
     }
 
-    if (!imageBase64.match(/^[A-Za-z0-9+/=]+$/)) {
-      return Response.json({ success: false, error: "Invalid image data" }, { status: 400, headers: corsHeaders })
+    let binaryData: Uint8Array
+    try {
+      const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "")
+      binaryData = Uint8Array.from(atob(cleanBase64), (c) => c.charCodeAt(0))
+    } catch (decodeError) {
+      return Response.json(
+        { success: false, error: "Invalid base64 image data" },
+        { status: 400, headers: corsHeaders },
+      )
     }
 
-    // Convert base64 to binary
-    const binaryData = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0))
+    const analyzeUrl = `${AZURE_ENDPOINT}/vision/v3.1/read/analyze`
+
+    console.log("[v0] Calling Azure OCR at:", analyzeUrl)
+    console.log("[v0] Image size (bytes):", binaryData.length)
 
     let response: Response
     try {
-      response = await fetch(`${AZURE_ENDPOINT}/vision/v3.2/read/analyze`, {
+      response = await fetch(analyzeUrl, {
         method: "POST",
         headers: {
           "Ocp-Apim-Subscription-Key": AZURE_API_KEY,
@@ -57,52 +50,78 @@ export async function POST(req: Request) {
         body: binaryData,
       })
     } catch (fetchError: any) {
-      console.error("[v0] Azure fetch failed:", fetchError.message)
+      console.error("[v0] Azure fetch network error:", fetchError.message)
       return Response.json(
-        { success: false, error: `Cannot connect to OCR service. Check your AZURE_CV_ENDPOINT is correct.` },
+        { success: false, error: `Network error connecting to Azure: ${fetchError.message}` },
         { status: 500, headers: corsHeaders },
       )
     }
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("[v0] Azure OCR error:", response.status, errorText)
-      return Response.json(
-        { success: false, error: `OCR API error: ${response.status}` },
-        { status: 500, headers: corsHeaders },
-      )
+    console.log("[v0] Azure response status:", response.status)
+
+    if (response.status !== 202) {
+      let errorMessage = `Azure OCR returned status ${response.status}`
+      try {
+        const errorBody = await response.text()
+        console.error("[v0] Azure error body:", errorBody)
+        if (errorBody) {
+          const errorJson = JSON.parse(errorBody)
+          errorMessage = errorJson.error?.message || errorJson.message || errorMessage
+        }
+      } catch {}
+      return Response.json({ success: false, error: errorMessage }, { status: 500, headers: corsHeaders })
     }
 
-    // Get operation location for polling
-    const operationLocation = response.headers.get("Operation-Location")
+    let operationLocation: string | null = null
+    try {
+      operationLocation = response.headers.get("Operation-Location")
+    } catch (headerError: any) {
+      console.error("[v0] Error getting Operation-Location header:", headerError.message)
+    }
+
+    console.log("[v0] Operation-Location:", operationLocation)
 
     if (!operationLocation) {
       return Response.json(
-        { success: false, error: "No operation location returned from Azure" },
+        { success: false, error: "Azure did not return Operation-Location header" },
         { status: 500, headers: corsHeaders },
       )
     }
 
-    // Poll for results
     let result: any = null
-    for (let i = 0; i < 15; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+    for (let i = 0; i < 20; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 1500))
 
-      const pollResponse = await fetch(operationLocation, {
-        headers: { "Ocp-Apim-Subscription-Key": AZURE_API_KEY },
-      })
+      console.log("[v0] Polling attempt", i + 1)
 
-      result = await pollResponse.json()
+      try {
+        const pollResponse = await fetch(operationLocation, {
+          headers: { "Ocp-Apim-Subscription-Key": AZURE_API_KEY },
+        })
 
-      if (result.status === "succeeded") break
-      if (result.status === "failed") {
-        return Response.json({ success: false, error: "OCR processing failed" }, { status: 500, headers: corsHeaders })
+        if (!pollResponse.ok) {
+          console.error("[v0] Poll response not ok:", pollResponse.status)
+          continue
+        }
+
+        result = await pollResponse.json()
+        console.log("[v0] Poll result status:", result.status)
+
+        if (result.status === "succeeded") break
+        if (result.status === "failed") {
+          return Response.json(
+            { success: false, error: "OCR processing failed" },
+            { status: 500, headers: corsHeaders },
+          )
+        }
+      } catch (pollError: any) {
+        console.error("[v0] Poll error:", pollError.message)
       }
     }
 
     if (!result || result.status !== "succeeded") {
       return Response.json(
-        { success: false, error: "OCR timeout - please try again" },
+        { success: false, error: "OCR timeout - please try again with a clearer image" },
         { status: 500, headers: corsHeaders },
       )
     }
@@ -114,6 +133,8 @@ export async function POST(req: Request) {
         allText.push(line.text)
       }
     }
+
+    console.log("[v0] Extracted lines:", allText.length)
 
     // Parse the extracted text
     const extractedData = parseIDText(allText)
@@ -129,7 +150,7 @@ export async function POST(req: Request) {
       { headers: corsHeaders },
     )
   } catch (error: any) {
-    console.error("[v0] OCR Error:", error.message)
+    console.error("[v0] OCR Error:", error.message, error.stack)
     return Response.json(
       { success: false, error: error.message || "Failed to process ID" },
       { status: 500, headers: corsHeaders },
@@ -168,9 +189,7 @@ function parseIDText(lines: string[]): {
   let fullName = ""
   for (const line of lines) {
     const cleanLine = line.trim()
-    // Look for lines with mostly letters and spaces (typical names)
     if (/^[A-Za-z\s,.'-]+$/.test(cleanLine) && cleanLine.length > 5 && cleanLine.length < 50) {
-      // Skip common non-name lines
       const lower = cleanLine.toLowerCase()
       if (!lower.includes("republic") && !lower.includes("philippines") && !lower.includes("identification")) {
         fullName = cleanLine
@@ -190,7 +209,7 @@ function parseIDText(lines: string[]): {
     }
   }
 
-  // Extract address - look for common address indicators
+  // Extract address
   let address = ""
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].toUpperCase()
@@ -203,7 +222,6 @@ function parseIDText(lines: string[]): {
       line.includes("PUROK")
     ) {
       address = lines[i]
-      // Include next line if it looks like continuation
       if (i + 1 < lines.length && !lines[i + 1].includes(":")) {
         address += ", " + lines[i + 1]
       }
@@ -213,12 +231,7 @@ function parseIDText(lines: string[]): {
 
   // Extract ID number
   let idNumber = ""
-  const idPatterns = [
-    /(\d{4}-\d{4}-\d{4}-\d{4})/, // PhilID CRN format
-    /([A-Z]\d{2}-\d{2}-\d{6})/, // Driver's license
-    /(\d{2}-\d{7}-\d)/, // SSS format
-    /(\d{10,12})/, // Generic long number
-  ]
+  const idPatterns = [/(\d{4}-\d{4}-\d{4}-\d{4})/, /([A-Z]\d{2}-\d{2}-\d{6})/, /(\d{2}-\d{7}-\d)/, /(\d{10,12})/]
   for (const pattern of idPatterns) {
     const match = text.match(pattern)
     if (match) {
@@ -227,7 +240,7 @@ function parseIDText(lines: string[]): {
     }
   }
 
-  // Calculate age if birthDate found
+  // Calculate age
   let age = ""
   if (birthDate) {
     try {
