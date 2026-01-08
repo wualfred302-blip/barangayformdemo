@@ -252,6 +252,12 @@ function parseIDText(lines: string[]): {
     return parsePhilippineNationalID(lines, text)
   }
 
+  // ========== DRIVER'S LICENSE SPECIFIC PARSING ==========
+  // Driver's License has a specific format from LTO
+  if (idType === "Driver's License") {
+    return parseDriversLicense(lines, text)
+  }
+
   // ========== GENERIC PARSING FOR OTHER IDs ==========
   return parseGenericID(lines, text, joinedText, idType)
 }
@@ -488,6 +494,168 @@ function extractNamesPositionally(lines: string[]): { lastName: string; givenNam
   if (potentialNames.length >= 3) middleName = potentialNames[2]
 
   return { lastName, givenNames, middleName }
+}
+
+// Specialized parser for Driver's License (LTO format)
+function parseDriversLicense(lines: string[], text: string): {
+  fullName: string
+  birthDate: string
+  address: string
+  idType: string
+  idNumber: string
+  mobileNumber: string
+  age: string
+  houseLotNo: string
+  street: string
+  purok: string
+  barangay: string
+  cityMunicipality: string
+  province: string
+  zipCode: string
+} {
+  let fullName = ""
+  let birthDate = ""
+  let address = ""
+  let idNumber = ""
+
+  console.log("[Driver's License] Parsing lines:", lines)
+
+  // ========== NAME EXTRACTION ==========
+  // Format: "LAST NAME, FIRST NAME, MIDDLE NAME" appears after the header
+  // Look for line with comma-separated name format
+  for (const line of lines) {
+    const trimmed = line.trim()
+
+    // Match pattern: "LASTNAME, FIRSTNAME MIDDLENAME" or "LASTNAME, FIRSTNAME"
+    // Must have at least one comma and be mostly letters
+    if (/^[A-Z][A-Za-z\s\-']+,\s*[A-Z][A-Za-z\s\-']+$/.test(trimmed)) {
+      // Make sure it's not a label line
+      const upper = trimmed.toUpperCase()
+      if (!upper.includes("ADDRESS") &&
+          !upper.includes("BIRTH") &&
+          !upper.includes("LICENSE") &&
+          !upper.includes("PROVINCE") &&
+          trimmed.length >= 10 &&
+          trimmed.length <= 50) {
+        fullName = trimmed
+        console.log("[Driver's License] Found name:", fullName)
+        break
+      }
+    }
+  }
+
+  // ========== BIRTH DATE EXTRACTION ==========
+  // Format: "BIRTH DATE" label followed by date in various formats
+  // Common formats: 1971-03-15, 03/15/1971, 15/03/1971
+
+  // First try: Look for labeled birth date
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    if (/BIRTH\s*DATE/i.test(line)) {
+      // Check same line for date
+      const sameLine = line.replace(/BIRTH\s*DATE/i, "").trim()
+      if (sameLine && /\d/.test(sameLine)) {
+        // Extract date from same line
+        const dateMatch = sameLine.match(/(\d{4}[\-\/]\d{1,2}[\-\/]\d{1,2}|\d{1,2}[\-\/]\d{1,2}[\-\/]\d{2,4})/)
+        if (dateMatch) {
+          birthDate = dateMatch[1]
+          console.log("[Driver's License] Found birthDate on same line:", birthDate)
+          break
+        }
+      }
+
+      // Check next line for date
+      if (i + 1 < lines.length) {
+        const nextLine = lines[i + 1].trim()
+        const dateMatch = nextLine.match(/^(\d{4}[\-\/]\d{1,2}[\-\/]\d{1,2}|\d{1,2}[\-\/]\d{1,2}[\-\/]\d{2,4})/)
+        if (dateMatch) {
+          birthDate = dateMatch[1]
+          console.log("[Driver's License] Found birthDate on next line:", birthDate)
+          break
+        }
+      }
+    }
+  }
+
+  // Second try: Look for any date in YYYY-MM-DD or similar format
+  if (!birthDate) {
+    const datePattern = /\b(\d{4}[\-\/]\d{1,2}[\-\/]\d{1,2})\b/
+    const match = text.match(datePattern)
+    if (match) {
+      const year = parseInt(match[1].substring(0, 4))
+      // Sanity check: birth year should be between 1900 and current year
+      if (year >= 1900 && year <= new Date().getFullYear()) {
+        birthDate = match[1]
+        console.log("[Driver's License] Found birthDate via pattern:", birthDate)
+      }
+    }
+  }
+
+  // ========== ADDRESS EXTRACTION ==========
+  // Format: "ADDRESS (NO. STREET, CITY MUN., PROVINCE)" followed by actual address
+  // Example: "18 -, SUBIC, ZAMBALES"
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim().toUpperCase()
+    if (line.includes("ADDRESS") && (line.includes("STREET") || line.includes("PROVINCE"))) {
+      // This is the label line, address is on next line(s)
+      if (i + 1 < lines.length) {
+        const nextLine = lines[i + 1].trim()
+        // Check if next line looks like an address (has numbers or location names)
+        if (nextLine && (
+          /^\d+/.test(nextLine) ||  // Starts with house number
+          /,/.test(nextLine) ||      // Has commas (typical for Philippine addresses)
+          nextLine.length > 10       // Long enough to be an address
+        )) {
+          address = nextLine
+          console.log("[Driver's License] Found address:", address)
+          break
+        }
+      }
+    }
+  }
+
+  // If label-based extraction failed, look for comma-separated address pattern
+  if (!address) {
+    for (const line of lines) {
+      const trimmed = line.trim()
+      // Philippine address typically has commas and location names
+      if (/^\d+.*,.*[A-Z]+.*,.*[A-Z]+/.test(trimmed) || // "18 -, SUBIC, ZAMBALES"
+          /^[A-Z][A-Za-z\s]+,\s*[A-Z][A-Za-z\s]+,\s*[A-Z][A-Za-z\s]+/.test(trimmed)) {
+        // Make sure it's not the name line
+        if (trimmed !== fullName && trimmed.toUpperCase() !== fullName.toUpperCase()) {
+          address = trimmed
+          console.log("[Driver's License] Found address via pattern:", address)
+          break
+        }
+      }
+    }
+  }
+
+  // ========== LICENSE NUMBER EXTRACTION ==========
+  // Format: C09-89-032775 (letter + 2 digits + dash + 2 digits + dash + 6 digits)
+  const licenseMatch = text.match(/\b([A-Z]\d{2}[\s\-]?\d{2}[\s\-]?\d{5,7})\b/i)
+  if (licenseMatch) {
+    idNumber = licenseMatch[1].replace(/\s/g, "")
+    console.log("[Driver's License] Found license number:", idNumber)
+  }
+
+  // Parse address components
+  const addressComponents = parseAddressComponents(address)
+
+  // Calculate age
+  const age = calculateAge(birthDate)
+
+  return {
+    fullName,
+    birthDate,
+    address,
+    idType: "Driver's License",
+    idNumber,
+    mobileNumber: "", // Driver's License doesn't usually show mobile number
+    age,
+    ...addressComponents,
+  }
 }
 
 // Parse address into components
