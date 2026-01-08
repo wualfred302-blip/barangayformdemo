@@ -95,12 +95,12 @@ This specification outlines the consolidation of the QRT ID Dashboard, bringing 
 
 ### 3. Data Integration
 - **Unified List Structure:** Combine QRT IDs with certificates and bayanihan requests
-  ```typescript
+  \`\`\`typescript
   type CombinedRequest =
     | { type: 'certificate', data: Certificate }
     | { type: 'bayanihan', data: BayanihanRequest }
     | { type: 'qrt', data: QRTIDRequest }
-  ```
+  \`\`\`
 - **Sorting:** By creation date (existing pattern)
 - **Filtering:** Maintain current status-based filters
 - **Status Mapping:**

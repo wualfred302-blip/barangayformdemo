@@ -39,14 +39,14 @@ Refinement of the QRT ID Form (/app/qrt-id/request/page.tsx) to improve user exp
 
 ### 1.3 Current Address Field Implementation (Lines 433-446)
 **Single textarea field:**
-```
+\`\`\`
 Current Address (formData.address)
 - Uses Textarea component
 - Placeholder: "Street, Barangay, City, Province"
 - Minimum height: 100px
 - No structured field separation
 - Limited for government form standards
-```
+\`\`\`
 
 **Issues:**
 - Single unstructured field not suitable for official government forms
@@ -80,13 +80,13 @@ Current Address (formData.address)
 **Replace textarea with structured fields:**
 
 **Current Address Section (Step 1):**
-```
+\`\`\`
 1. Address Line / House Number (required)
 2. Street / Barangay (required)
 3. City / Municipality (required)
 4. Province (required)
 5. Postal Code (required) - 4 digits
-```
+\`\`\`
 
 **Emergency Contact Address Section (Step 2):**
 - Same 5-field structure (consistency)

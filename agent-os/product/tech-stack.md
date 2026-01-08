@@ -344,7 +344,7 @@ The Barangay Linkod App is built with a modern, scalable technology stack optimi
 ## Data Flow Architecture
 
 ### Client-Server Flow
-```
+\`\`\`
 Client (React Components)
     ↓
 Contexts (State Management)
@@ -356,7 +356,7 @@ Supabase (PostgreSQL + Auth)
 Data Layer (Row-Level Security)
     ↓
 Response back to Client
-```
+\`\`\`
 
 ### Real-Time Features
 - Supabase Realtime subscriptions (when enabled)
@@ -366,7 +366,7 @@ Response back to Client
 - Blotter incident updates
 
 ### File Upload Flow
-```
+\`\`\`
 User selects file
     ↓
 Client validation (Zod)
@@ -376,7 +376,7 @@ Upload to Supabase Storage
 Store reference in database
     ↓
 Display with CDN URL
-```
+\`\`\`
 
 ---
 
@@ -526,27 +526,27 @@ Display with CDN URL
 ## Development Workflow
 
 ### Local Development
-```bash
+\`\`\`bash
 npm install
 npm run dev
 # Runs on http://localhost:3000
-```
+\`\`\`
 
 ### Building for Production
-```bash
+\`\`\`bash
 npm run build
 npm start
-```
+\`\`\`
 
 ### Linting
-```bash
+\`\`\`bash
 npm run lint
-```
+\`\`\`
 
 ### Testing
-```bash
+\`\`\`bash
 npx playwright test
-```
+\`\`\`
 
 ### Environment Setup
 - Copy `.env.local.example` to `.env.local`

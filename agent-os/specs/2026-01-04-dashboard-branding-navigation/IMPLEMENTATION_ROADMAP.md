@@ -3,7 +3,7 @@
 ## Current State vs Proposed State
 
 ### Before (Current)
-```
+\`\`\`
 ┌─────────────────────────────────────────┐
 │ Dashboard Header (60px)                 │
 │ [Logo] Barangay Mawaque                 │
@@ -24,10 +24,10 @@
 │ [🏠]Home  [📋]Services  [✓]Requests    │
 │           [📢]News      [👤]Profile    │
 └─────────────────────────────────────────┘
-```
+\`\`\`
 
 ### After (Proposed)
-```
+\`\`\`
 ┌─────────────────────────────────────────┐
 │ Dashboard Header (MODIFIED/REMOVED)     │
 │ [Option A/B/C - user to decide]         │
@@ -46,7 +46,7 @@
 │ Bottom Navigation (3 items)             │
 │ [🏠]Home  [📢]News  [👤]Profile        │
 └─────────────────────────────────────────┘
-```
+\`\`\`
 
 ---
 
@@ -124,7 +124,7 @@
 
 ## Decision Tree for Header
 
-```
+\`\`\`
 Q: What replaces the Barangay Mawaque branding?
 
 ├─ A) Remove entirely
@@ -146,13 +146,13 @@ Q: What replaces the Barangay Mawaque branding?
 └─ E) Custom approach
    └─ Action: [User specifies]
       Result: [Custom implementation]
-```
+\`\`\`
 
 ---
 
 ## Decision Tree for Bottom Navigation
 
-```
+\`\`\`
 Q: Remove Services and Requests buttons?
 
 ├─ YES (Recommended)
@@ -166,7 +166,7 @@ Q: Remove Services and Requests buttons?
    │
    └─ Keep Requests?
       └─ Clarify reasoning (dashboard tab available?)
-```
+\`\`\`
 
 ---
 
