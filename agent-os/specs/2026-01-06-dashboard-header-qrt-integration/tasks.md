@@ -1218,7 +1218,7 @@ Final polish pass including code cleanup, documentation, cross-browser testing, 
 ### Common Patterns to Follow
 
 **Component Structure:**
-```typescript
+\`\`\`typescript
 "use client"
 
 import { ... } // External imports first
@@ -1236,7 +1236,7 @@ export function ComponentName({ props }: ComponentProps) {
   // Computed values
   // JSX return
 }
-```
+\`\`\`
 
 **Styling Conventions:**
 - Use Tailwind utility classes
