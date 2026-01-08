@@ -3,23 +3,29 @@ import bcrypt from "bcryptjs"
 
 // ID format validation patterns per ID type
 const ID_FORMATS: Record<string, RegExp> = {
-  "Philippine National ID": /^\d{4}-\d{4}-\d{4}-\d{4}$/, // 1234-5678-9012-3456
-  "Driver's License": /^[A-Z]\d{2}-\d{2}-\d{6}$/, // N01-12-123456
-  UMID: /^\d{4}-\d{7}-\d$/, // 1234-1234567-1
-  "SSS ID": /^\d{2}-\d{7}-\d$/, // 12-1234567-1
-  "Postal ID": /^[A-Z0-9]{6,15}$/, // Flexible alphanumeric
-  "Voter's ID": /^[A-Z0-9]{6,20}$/, // Flexible per region
-  "Government ID": /^.{5,30}$/, // Fallback - any reasonable length
+  philippine_national_id: /^\d{4}-\d{4}-\d{4}-\d{4}$/, // 1234-5678-9012-3456
+  drivers_license: /^[A-Z]\d{2}-\d{2}-\d{6}$/, // N01-12-123456
+  umid: /^\d{4}-\d{7}-\d$/, // 1234-1234567-1
+  sss_id: /^\d{2}-\d{7}-\d$/, // 12-1234567-1
+  philhealth_id: /^\d{2}-\d{9}-\d$/, // 12-123456789-1
+  postal_id: /^[A-Z0-9]{6,15}$/, // Flexible alphanumeric
+  voters_id: /^[A-Z0-9]{6,20}$/, // Flexible per region
+  passport: /^[A-Z]{1,2}\d{7,8}[A-Z]?$/, // P1234567A
+  prc_id: /^\d{7}$/, // 1234567
+  barangay_id: /^.{3,30}$/, // Flexible - varies by barangay
+  senior_citizen_id: /^.{3,30}$/, // Flexible
+  pwd_id: /^.{3,30}$/, // Flexible
+  other: /^.{3,30}$/, // Fallback
 }
 
 function validateIDFormat(idType: string, idNumber: string): { valid: boolean; error?: string } {
-  const pattern = ID_FORMATS[idType] || ID_FORMATS["Government ID"]
+  const pattern = ID_FORMATS[idType] || ID_FORMATS["other"]
   const cleanedNumber = idNumber.replace(/\s/g, "").toUpperCase()
 
   if (!pattern.test(cleanedNumber)) {
     return {
       valid: false,
-      error: `Invalid ${idType} format. Please check your ID number.`,
+      error: `Invalid ID number format. Please check your ID number.`,
     }
   }
   return { valid: true }
@@ -28,10 +34,27 @@ function validateIDFormat(idType: string, idNumber: string): { valid: boolean; e
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { fullName, mobileNumber, email, address, birthDate, idType, idNumber, password, pin, idImageBase64 } = body
+    const {
+      fullName,
+      mobileNumber,
+      email,
+      address,
+      houseLotNo,
+      street,
+      purok,
+      barangay,
+      cityMunicipality,
+      province,
+      zipCode,
+      birthDate,
+      idType,
+      idNumber,
+      password,
+      pin,
+      idImageBase64,
+    } = body
 
-    // Validate required fields
-    if (!fullName || !mobileNumber || !address || !idType || !idNumber || !password || !pin) {
+    if (!fullName || !mobileNumber || !barangay || !cityMunicipality || !idType || !idNumber || !password || !pin) {
       return Response.json({ success: false, error: "Missing required fields" }, { status: 400 })
     }
 
@@ -110,27 +133,58 @@ export async function POST(req: Request) {
     // Upload ID image to Supabase Storage if provided
     let idDocumentUrl: string | null = null
     if (idImageBase64) {
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("id-documents")
-        .upload(`${qrCode}/government_id.jpg`, Buffer.from(idImageBase64, "base64"), {
-          contentType: "image/jpeg",
-          upsert: true,
-        })
+      try {
+        // Remove data URL prefix if present
+        let cleanBase64 = idImageBase64
+        if (cleanBase64.includes(",")) {
+          cleanBase64 = cleanBase64.split(",")[1]
+        }
 
-      if (!uploadError && uploadData) {
-        const { data: urlData } = supabase.storage.from("id-documents").getPublicUrl(`${qrCode}/government_id.jpg`)
-        idDocumentUrl = urlData.publicUrl
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("id-documents")
+          .upload(`${qrCode}/government_id.jpg`, Buffer.from(cleanBase64, "base64"), {
+            contentType: "image/jpeg",
+            upsert: true,
+          })
+
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabase.storage.from("id-documents").getPublicUrl(`${qrCode}/government_id.jpg`)
+          idDocumentUrl = urlData.publicUrl
+        }
+      } catch (uploadErr) {
+        console.error("Upload error:", uploadErr)
+        // Continue without image - not critical
       }
     }
 
-    // Insert into residents table
+    const fullAddress =
+      address ||
+      [
+        houseLotNo,
+        street,
+        purok ? `Purok ${purok}` : "",
+        barangay ? `Barangay ${barangay}` : "",
+        cityMunicipality,
+        province,
+        zipCode,
+      ]
+        .filter(Boolean)
+        .join(", ")
+
     const { data, error: insertError } = await supabase
       .from("residents")
       .insert({
         full_name: fullName,
         mobile_number: cleanMobile,
         email: email || null,
-        address,
+        address: fullAddress,
+        house_lot_no: houseLotNo || null,
+        street: street || null,
+        purok: purok || null,
+        barangay: barangay || null,
+        city_municipality: cityMunicipality || null,
+        province: province || null,
+        zip_code: zipCode || null,
         birth_date: birthDate || null,
         id_type: idType,
         id_number: idNumber.replace(/\s/g, "").toUpperCase(),

@@ -207,6 +207,13 @@ function parseIDText(lines: string[]): {
   idNumber: string
   mobileNumber: string
   age: string
+  houseLotNo: string
+  street: string
+  purok: string
+  barangay: string
+  cityMunicipality: string
+  province: string
+  zipCode: string
 } {
   const text = lines.join(" ").toUpperCase()
 
@@ -220,10 +227,22 @@ function parseIDText(lines: string[]): {
     idType = "UMID"
   } else if (text.includes("SSS") || text.includes("SOCIAL SECURITY")) {
     idType = "SSS ID"
+  } else if (text.includes("PHILHEALTH") || text.includes("PHILIPPINE HEALTH")) {
+    idType = "PhilHealth ID"
   } else if (text.includes("POSTAL") || text.includes("PHILPOST")) {
     idType = "Postal ID"
   } else if (text.includes("VOTER") || text.includes("COMELEC")) {
     idType = "Voter's ID"
+  } else if (text.includes("PASSPORT") || text.includes("PASAPORTE")) {
+    idType = "Philippine Passport"
+  } else if (text.includes("PRC") || text.includes("PROFESSIONAL REGULATION")) {
+    idType = "PRC ID"
+  } else if (text.includes("BARANGAY")) {
+    idType = "Barangay ID"
+  } else if (text.includes("SENIOR CITIZEN") || text.includes("OSCA")) {
+    idType = "Senior Citizen ID"
+  } else if (text.includes("PWD") || text.includes("PERSON WITH DISABILITY")) {
+    idType = "PWD ID"
   }
 
   // Extract name
@@ -250,8 +269,16 @@ function parseIDText(lines: string[]): {
     }
   }
 
-  // Extract address
   let address = ""
+  let houseLotNo = ""
+  let street = ""
+  let purok = ""
+  let barangay = ""
+  let cityMunicipality = ""
+  let province = ""
+  let zipCode = ""
+
+  // Find address lines
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].toUpperCase()
     if (
@@ -260,13 +287,110 @@ function parseIDText(lines: string[]): {
       line.includes("CITY") ||
       line.includes("PROVINCE") ||
       line.includes("STREET") ||
-      line.includes("PUROK")
+      line.includes("PUROK") ||
+      line.includes("SAN") ||
+      line.includes("STA") ||
+      line.includes("STO")
     ) {
       address = lines[i]
       if (i + 1 < lines.length && !lines[i + 1].includes(":")) {
         address += ", " + lines[i + 1]
       }
       break
+    }
+  }
+
+  // Parse address components
+  if (address) {
+    const upperAddress = address.toUpperCase()
+
+    // Extract house/lot number (numbers at the start)
+    const houseMatch = address.match(/^(\d+[-A-Z]?)\s/i)
+    if (houseMatch) {
+      houseLotNo = houseMatch[1]
+    }
+
+    // Extract street (look for St., Street, Ave, Avenue, Road, Rd)
+    const streetMatch = address.match(
+      /(\d*\s*[A-Za-z\s]+(?:ST\.?|STREET|AVE\.?|AVENUE|ROAD|RD\.?|BLVD\.?|DRIVE|DR\.?))/i,
+    )
+    if (streetMatch) {
+      street = streetMatch[1].trim()
+    }
+
+    // Extract purok
+    const purokMatch = upperAddress.match(/PUROK\s*(\d+|[A-Z]+)/i)
+    if (purokMatch) {
+      purok = purokMatch[1]
+    }
+
+    // Extract barangay
+    const barangayMatch = upperAddress.match(/(?:BRGY\.?|BARANGAY)\s*([A-Za-z\s]+?)(?:,|CITY|MUNICIPALITY|PROVINCE|$)/i)
+    if (barangayMatch) {
+      barangay = barangayMatch[1].trim()
+    }
+
+    // Extract city/municipality
+    const cityMatch = upperAddress.match(
+      /(?:CITY\s+OF\s+|MUNICIPALITY\s+OF\s+)?([A-Z\s]+)(?:\s+CITY|\s+MUNICIPALITY)?(?:,|PROVINCE|$)/i,
+    )
+    if (cityMatch) {
+      const potentialCity = cityMatch[1].trim()
+      // Common Philippine cities
+      const cities = [
+        "MANILA",
+        "QUEZON",
+        "MAKATI",
+        "PASIG",
+        "TAGUIG",
+        "CALOOCAN",
+        "MABALACAT",
+        "ANGELES",
+        "SAN FERNANDO",
+        "CABANATUAN",
+        "MEYCAUAYAN",
+        "MALOLOS",
+      ]
+      for (const city of cities) {
+        if (upperAddress.includes(city)) {
+          cityMunicipality = city.charAt(0) + city.slice(1).toLowerCase()
+          break
+        }
+      }
+      if (!cityMunicipality && potentialCity.length > 2) {
+        cityMunicipality = potentialCity
+      }
+    }
+
+    // Extract province
+    const provinces = [
+      "PAMPANGA",
+      "BULACAN",
+      "NUEVA ECIJA",
+      "TARLAC",
+      "ZAMBALES",
+      "BATAAN",
+      "CAVITE",
+      "LAGUNA",
+      "BATANGAS",
+      "RIZAL",
+      "METRO MANILA",
+      "NCR",
+    ]
+    for (const prov of provinces) {
+      if (upperAddress.includes(prov)) {
+        province = prov
+          .split(" ")
+          .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+          .join(" ")
+        break
+      }
+    }
+
+    // Extract ZIP code
+    const zipMatch = address.match(/\b(\d{4})\b/)
+    if (zipMatch) {
+      zipCode = zipMatch[1]
     }
   }
 
@@ -306,5 +430,12 @@ function parseIDText(lines: string[]): {
     idNumber,
     mobileNumber: "",
     age,
+    houseLotNo,
+    street,
+    purok,
+    barangay,
+    cityMunicipality,
+    province,
+    zipCode,
   }
 }

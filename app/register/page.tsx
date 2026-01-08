@@ -9,16 +9,39 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { IDScanner } from "@/components/id-scanner"
+
+const ID_TYPES = [
+  { value: "philippine_national_id", label: "Philippine National ID (PhilSys)" },
+  { value: "drivers_license", label: "Driver's License" },
+  { value: "umid", label: "UMID" },
+  { value: "sss_id", label: "SSS ID" },
+  { value: "philhealth_id", label: "PhilHealth ID" },
+  { value: "postal_id", label: "Postal ID" },
+  { value: "voters_id", label: "Voter's ID" },
+  { value: "passport", label: "Philippine Passport" },
+  { value: "prc_id", label: "PRC ID" },
+  { value: "barangay_id", label: "Barangay ID" },
+  { value: "senior_citizen_id", label: "Senior Citizen ID" },
+  { value: "pwd_id", label: "PWD ID" },
+  { value: "other", label: "Other Government ID" },
+]
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     fullName: "",
     mobileNumber: "",
     email: "",
-    address: "",
+    houseLotNo: "",
+    street: "",
+    purok: "",
+    barangay: "",
+    cityMunicipality: "",
+    province: "",
+    zipCode: "",
     birthDate: "",
     idType: "",
     idNumber: "",
@@ -39,10 +62,14 @@ export default function RegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    // For PIN fields, only allow digits and max 4 characters
     if ((name === "pin" || name === "confirmPin") && value.length > 4) return
     if ((name === "pin" || name === "confirmPin") && !/^\d*$/.test(value)) return
 
+    setFormData({ ...formData, [name]: value })
+    if (error) setError(null)
+  }
+
+  const handleSelectChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value })
     if (error) setError(null)
   }
@@ -56,15 +83,61 @@ export default function RegisterPage() {
     idType?: string
     idNumber?: string
     imageBase64?: string
+    // New parsed address fields
+    houseLotNo?: string
+    street?: string
+    purok?: string
+    barangay?: string
+    cityMunicipality?: string
+    province?: string
+    zipCode?: string
   }) => {
+    // Map OCR idType to dropdown value
+    let mappedIdType = ""
+    if (data.idType) {
+      const idTypeLower = data.idType.toLowerCase()
+      if (idTypeLower.includes("national") || idTypeLower.includes("philsys")) {
+        mappedIdType = "philippine_national_id"
+      } else if (idTypeLower.includes("driver")) {
+        mappedIdType = "drivers_license"
+      } else if (idTypeLower.includes("umid")) {
+        mappedIdType = "umid"
+      } else if (idTypeLower.includes("sss")) {
+        mappedIdType = "sss_id"
+      } else if (idTypeLower.includes("philhealth")) {
+        mappedIdType = "philhealth_id"
+      } else if (idTypeLower.includes("postal")) {
+        mappedIdType = "postal_id"
+      } else if (idTypeLower.includes("voter")) {
+        mappedIdType = "voters_id"
+      } else if (idTypeLower.includes("passport")) {
+        mappedIdType = "passport"
+      } else if (idTypeLower.includes("prc")) {
+        mappedIdType = "prc_id"
+      } else if (idTypeLower.includes("barangay")) {
+        mappedIdType = "barangay_id"
+      } else if (idTypeLower.includes("senior")) {
+        mappedIdType = "senior_citizen_id"
+      } else if (idTypeLower.includes("pwd")) {
+        mappedIdType = "pwd_id"
+      }
+    }
+
     setFormData((prev) => ({
       ...prev,
       fullName: data.fullName || prev.fullName,
       birthDate: data.birthDate || prev.birthDate,
-      address: data.address || prev.address,
       mobileNumber: data.mobileNumber || prev.mobileNumber,
-      idType: data.idType || prev.idType,
+      idType: mappedIdType || prev.idType,
       idNumber: data.idNumber || prev.idNumber,
+      // Populate parsed address fields
+      houseLotNo: data.houseLotNo || prev.houseLotNo,
+      street: data.street || prev.street,
+      purok: data.purok || prev.purok,
+      barangay: data.barangay || prev.barangay,
+      cityMunicipality: data.cityMunicipality || prev.cityMunicipality,
+      province: data.province || prev.province,
+      zipCode: data.zipCode || prev.zipCode,
     }))
     if (data.imageBase64) {
       setIdImageBase64(data.imageBase64)
@@ -84,24 +157,22 @@ export default function RegisterPage() {
     setError(null)
 
     // Validation
-    if (!formData.fullName || !formData.mobileNumber || !formData.address) {
-      setError("Please fill in all required fields (Name, Mobile, Address).")
+    if (!formData.fullName || !formData.mobileNumber || !formData.barangay || !formData.cityMunicipality) {
+      setError("Please fill in all required fields (Name, Mobile, Barangay, City/Municipality).")
       return
     }
 
     if (!formData.idType || !formData.idNumber) {
-      setError("Please scan your ID or enter ID type and number manually.")
+      setError("Please scan your ID or select ID type and enter ID number manually.")
       return
     }
 
-    // Mobile number validation
     const cleanMobile = formData.mobileNumber.replace(/\s/g, "")
     if (!/^(\+63|0)9\d{9}$/.test(cleanMobile)) {
       setError("Please enter a valid Philippine mobile number.")
       return
     }
 
-    // Password validation
     if (formData.password.length < 8) {
       setError("Password must be at least 8 characters.")
       return
@@ -115,7 +186,6 @@ export default function RegisterPage() {
       return
     }
 
-    // PIN validation
     if (!/^\d{4}$/.test(formData.pin)) {
       setError("PIN must be exactly 4 digits.")
       return
@@ -133,6 +203,18 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
+      const fullAddress = [
+        formData.houseLotNo,
+        formData.street,
+        formData.purok ? `Purok ${formData.purok}` : "",
+        formData.barangay ? `Barangay ${formData.barangay}` : "",
+        formData.cityMunicipality,
+        formData.province,
+        formData.zipCode,
+      ]
+        .filter(Boolean)
+        .join(", ")
+
       const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,7 +222,14 @@ export default function RegisterPage() {
           fullName: formData.fullName,
           mobileNumber: cleanMobile,
           email: formData.email || null,
-          address: formData.address,
+          address: fullAddress,
+          houseLotNo: formData.houseLotNo || null,
+          street: formData.street || null,
+          purok: formData.purok || null,
+          barangay: formData.barangay || null,
+          cityMunicipality: formData.cityMunicipality || null,
+          province: formData.province || null,
+          zipCode: formData.zipCode || null,
           birthDate: formData.birthDate || null,
           idType: formData.idType,
           idNumber: formData.idNumber,
@@ -153,7 +242,6 @@ export default function RegisterPage() {
       const result = await response.json()
 
       if (!result.success) {
-        // Handle specific errors
         if (result.error === "duplicate_mobile") {
           setError("This mobile number is already registered. Please login instead.")
         } else if (result.error === "duplicate_id") {
@@ -165,7 +253,6 @@ export default function RegisterPage() {
         return
       }
 
-      // Login the user
       login({
         id: result.user.id,
         mobileNumber: result.user.mobileNumber,
@@ -183,7 +270,6 @@ export default function RegisterPage() {
     }
   }
 
-  // Calculate age from birthDate
   const calculateAge = () => {
     if (!formData.birthDate) return null
     const birth = new Date(formData.birthDate)
@@ -219,8 +305,8 @@ export default function RegisterPage() {
         )}
 
         <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <form id="registration-form" onSubmit={handleRegister} className="space-y-4">
+          <CardContent className="p-5">
+            <form id="registration-form" onSubmit={handleRegister} className="space-y-6">
               {error && (
                 <div className="flex items-start gap-2 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-600">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -237,227 +323,339 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* Personal Information Section */}
-              <div className="space-y-1">
-                <h3 className="text-sm font-semibold text-gray-700">Personal Information</h3>
-                <p className="text-xs text-gray-500">From your scanned ID</p>
-              </div>
+              <div className="space-y-4">
+                <div className="border-b border-gray-200 pb-2">
+                  <h3 className="text-lg font-bold text-gray-900">Personal Information</h3>
+                  <p className="text-sm text-gray-500">From your scanned ID</p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-sm font-medium">
-                  Full Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="fullName"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  placeholder="Juan Dela Cruz"
-                  disabled={isLoading}
-                  className={`h-11 ${wasScanned && formData.fullName ? "border-emerald-300 bg-emerald-50/50" : ""}`}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="idType" className="text-sm font-medium">
-                    ID Type <span className="text-red-500">*</span>
+                  <Label htmlFor="fullName" className="text-sm font-medium">
+                    Full Name <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="idType"
-                    name="idType"
-                    value={formData.idType}
+                    id="fullName"
+                    name="fullName"
+                    value={formData.fullName}
                     onChange={handleChange}
-                    placeholder="National ID"
+                    placeholder="Juan Dela Cruz"
                     disabled={isLoading}
-                    className={`h-11 ${wasScanned && formData.idType ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                    className={`h-11 ${wasScanned && formData.fullName ? "border-emerald-300 bg-emerald-50/50" : ""}`}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="idNumber" className="text-sm font-medium">
-                    ID Number <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="idNumber"
-                    name="idNumber"
-                    value={formData.idNumber}
-                    onChange={handleChange}
-                    placeholder="1234-5678-9012"
-                    disabled={isLoading}
-                    className={`h-11 ${wasScanned && formData.idNumber ? "border-emerald-300 bg-emerald-50/50" : ""}`}
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="birthDate" className="text-sm font-medium">
-                  Birth Date {age !== null && <span className="text-gray-500">({age} years old)</span>}
-                </Label>
-                <Input
-                  id="birthDate"
-                  name="birthDate"
-                  type="date"
-                  value={formData.birthDate}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  className={`h-11 ${wasScanned && formData.birthDate ? "border-emerald-300 bg-emerald-50/50" : ""}`}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address" className="text-sm font-medium">
-                  Address <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Purok 1, Barangay Mawaque"
-                  disabled={isLoading}
-                  className={`h-11 ${wasScanned && formData.address ? "border-emerald-300 bg-emerald-50/50" : ""}`}
-                />
-              </div>
-
-              {/* Contact Information Section */}
-              <div className="space-y-1 pt-2">
-                <h3 className="text-sm font-semibold text-gray-700">Contact Information</h3>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="mobileNumber" className="text-sm font-medium">
-                  Mobile Number <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="mobileNumber"
-                  name="mobileNumber"
-                  type="tel"
-                  value={formData.mobileNumber}
-                  onChange={handleChange}
-                  placeholder="+63 912 345 6789"
-                  disabled={isLoading}
-                  className="h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email (optional)
-                </Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="your.email@example.com"
-                  disabled={isLoading}
-                  className="h-11"
-                />
-              </div>
-
-              {/* Security Section */}
-              <div className="space-y-1 pt-2">
-                <h3 className="text-sm font-semibold text-gray-700">Security</h3>
-                <p className="text-xs text-gray-500">Create your password and PIN for login</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium">
-                  Password <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Min 8 chars, 1 number"
-                    disabled={isLoading}
-                    className="h-11 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {formData.password && (
-                  <div className="flex gap-1">
-                    <div
-                      className={`h-1 flex-1 rounded ${formData.password.length >= 8 ? "bg-emerald-500" : "bg-gray-200"}`}
-                    />
-                    <div
-                      className={`h-1 flex-1 rounded ${/\d/.test(formData.password) ? "bg-emerald-500" : "bg-gray-200"}`}
-                    />
-                    <div
-                      className={`h-1 flex-1 rounded ${/[A-Z]/.test(formData.password) ? "bg-emerald-500" : "bg-gray-200"}`}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="idType" className="text-sm font-medium">
+                      ID Type <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={formData.idType}
+                      onValueChange={(value) => handleSelectChange("idType", value)}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger
+                        className={`h-11 ${wasScanned && formData.idType ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                      >
+                        <SelectValue placeholder="Select ID type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ID_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="idNumber" className="text-sm font-medium">
+                      ID Number <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="idNumber"
+                      name="idNumber"
+                      value={formData.idNumber}
+                      onChange={handleChange}
+                      placeholder="1234-5678-9012"
+                      disabled={isLoading}
+                      className={`h-11 ${wasScanned && formData.idNumber ? "border-emerald-300 bg-emerald-50/50" : ""}`}
                     />
                   </div>
-                )}
-              </div>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-sm font-medium">
-                  Confirm Password <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  className="h-11"
-                />
-                {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                  <p className="text-xs text-red-500">Passwords do not match</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="pin" className="text-sm font-medium">
-                    4-Digit PIN <span className="text-red-500">*</span>
+                  <Label htmlFor="birthDate" className="text-sm font-medium">
+                    Birth Date {age !== null && <span className="text-gray-500">({age} years old)</span>}
+                  </Label>
+                  <Input
+                    id="birthDate"
+                    name="birthDate"
+                    type="date"
+                    value={formData.birthDate}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className={`h-11 ${wasScanned && formData.birthDate ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="border-b border-gray-200 pb-2">
+                  <h3 className="text-lg font-bold text-gray-900">Address</h3>
+                  <p className="text-sm text-gray-500">Complete address for beneficiary ID</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="houseLotNo" className="text-sm font-medium">
+                      House/Lot No.
+                    </Label>
+                    <Input
+                      id="houseLotNo"
+                      name="houseLotNo"
+                      value={formData.houseLotNo}
+                      onChange={handleChange}
+                      placeholder="123"
+                      disabled={isLoading}
+                      className={`h-11 ${wasScanned && formData.houseLotNo ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="street" className="text-sm font-medium">
+                      Street
+                    </Label>
+                    <Input
+                      id="street"
+                      name="street"
+                      value={formData.street}
+                      onChange={handleChange}
+                      placeholder="Rizal Street"
+                      disabled={isLoading}
+                      className={`h-11 ${wasScanned && formData.street ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="purok" className="text-sm font-medium">
+                      Purok
+                    </Label>
+                    <Input
+                      id="purok"
+                      name="purok"
+                      value={formData.purok}
+                      onChange={handleChange}
+                      placeholder="1"
+                      disabled={isLoading}
+                      className={`h-11 ${wasScanned && formData.purok ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="barangay" className="text-sm font-medium">
+                      Barangay <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="barangay"
+                      name="barangay"
+                      value={formData.barangay}
+                      onChange={handleChange}
+                      placeholder="Mawaque"
+                      disabled={isLoading}
+                      className={`h-11 ${wasScanned && formData.barangay ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="cityMunicipality" className="text-sm font-medium">
+                      City/Municipality <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="cityMunicipality"
+                      name="cityMunicipality"
+                      value={formData.cityMunicipality}
+                      onChange={handleChange}
+                      placeholder="Mabalacat"
+                      disabled={isLoading}
+                      className={`h-11 ${wasScanned && formData.cityMunicipality ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="province" className="text-sm font-medium">
+                      Province
+                    </Label>
+                    <Input
+                      id="province"
+                      name="province"
+                      value={formData.province}
+                      onChange={handleChange}
+                      placeholder="Pampanga"
+                      disabled={isLoading}
+                      className={`h-11 ${wasScanned && formData.province ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="w-1/2 pr-1.5 space-y-2">
+                  <Label htmlFor="zipCode" className="text-sm font-medium">
+                    ZIP Code
+                  </Label>
+                  <Input
+                    id="zipCode"
+                    name="zipCode"
+                    value={formData.zipCode}
+                    onChange={handleChange}
+                    placeholder="2010"
+                    disabled={isLoading}
+                    className={`h-11 ${wasScanned && formData.zipCode ? "border-emerald-300 bg-emerald-50/50" : ""}`}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="border-b border-gray-200 pb-2">
+                  <h3 className="text-lg font-bold text-gray-900">Contact Information</h3>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="mobileNumber" className="text-sm font-medium">
+                    Mobile Number <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="mobileNumber"
+                    name="mobileNumber"
+                    type="tel"
+                    value={formData.mobileNumber}
+                    onChange={handleChange}
+                    placeholder="+63 912 345 6789"
+                    disabled={isLoading}
+                    className="h-11"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    Email (optional)
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="your.email@example.com"
+                    disabled={isLoading}
+                    className="h-11"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="border-b border-gray-200 pb-2">
+                  <h3 className="text-lg font-bold text-gray-900">Security</h3>
+                  <p className="text-sm text-gray-500">Create your password and PIN for login</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-sm font-medium">
+                    Password <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <Input
-                      id="pin"
-                      name="pin"
-                      type={showPin ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Min 8 chars, 1 number"
+                      disabled={isLoading}
+                      className="h-11 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {formData.password && (
+                    <div className="flex gap-1">
+                      <div
+                        className={`h-1 flex-1 rounded ${formData.password.length >= 8 ? "bg-emerald-500" : "bg-gray-200"}`}
+                      />
+                      <div
+                        className={`h-1 flex-1 rounded ${/\d/.test(formData.password) ? "bg-emerald-500" : "bg-gray-200"}`}
+                      />
+                      <div
+                        className={`h-1 flex-1 rounded ${/[A-Z]/.test(formData.password) ? "bg-emerald-500" : "bg-gray-200"}`}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className="h-11"
+                  />
+                  {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                    <p className="text-xs text-red-500">Passwords do not match</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="pin" className="text-sm font-medium">
+                      4-Digit PIN <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="pin"
+                        name="pin"
+                        type={showPin ? "text" : "password"}
+                        inputMode="numeric"
+                        value={formData.pin}
+                        onChange={handleChange}
+                        placeholder="••••"
+                        maxLength={4}
+                        disabled={isLoading}
+                        className="h-11 text-center tracking-widest"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">For quick login</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPin" className="text-sm font-medium">
+                      Confirm PIN <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="confirmPin"
+                      name="confirmPin"
+                      type="password"
                       inputMode="numeric"
-                      value={formData.pin}
+                      value={formData.confirmPin}
                       onChange={handleChange}
                       placeholder="••••"
                       maxLength={4}
                       disabled={isLoading}
                       className="h-11 text-center tracking-widest"
                     />
+                    {formData.confirmPin && formData.pin !== formData.confirmPin && (
+                      <p className="text-xs text-red-500">PINs do not match</p>
+                    )}
                   </div>
-                  <p className="text-xs text-gray-500">For quick login</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPin" className="text-sm font-medium">
-                    Confirm PIN <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="confirmPin"
-                    name="confirmPin"
-                    type="password"
-                    inputMode="numeric"
-                    value={formData.confirmPin}
-                    onChange={handleChange}
-                    placeholder="••••"
-                    maxLength={4}
-                    disabled={isLoading}
-                    className="h-11 text-center tracking-widest"
-                  />
-                  {formData.confirmPin && formData.pin !== formData.confirmPin && (
-                    <p className="text-xs text-red-500">PINs do not match</p>
-                  )}
                 </div>
               </div>
 
