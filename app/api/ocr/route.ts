@@ -1,5 +1,6 @@
-const AZURE_ENDPOINT = process.env.AZURE_CV_ENDPOINT
-const AZURE_API_KEY = process.env.AZURE_CV_API_KEY
+const AZURE_ENDPOINT = process.env.AZURE_CV_ENDPOINT || "https://barangaylinkod.cognitiveservices.azure.com"
+const AZURE_API_KEY =
+  process.env.AZURE_CV_API_KEY || "6w3QVf4FGXnh7kI5rowYpbNoDpFQ7itBQMMWcubTNeeuhRV95apgJQQJ99CAAC3pKaRXJ3w3AAAFACOGs2Jq"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
