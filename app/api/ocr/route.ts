@@ -177,10 +177,17 @@ export async function POST(req: Request) {
     }
 
     console.log("[v0] Extracted lines:", allText.length)
+    console.log("[v0] === RAW AZURE OCR OUTPUT ===")
+    allText.forEach((line, idx) => {
+      console.log(`[v0] Line ${idx}: "${line}"`)
+    })
+    console.log("[v0] === END RAW OUTPUT ===")
 
     // Parse the extracted text
     const extractedData = parseIDText(allText)
     const processingTime = Date.now() - startTime
+
+    console.log("[v0] Final extracted data:", JSON.stringify(extractedData, null, 2))
 
     return Response.json(
       {
@@ -249,16 +256,19 @@ function parseIDText(lines: string[]): {
   // ========== PHILIPPINE NATIONAL ID SPECIFIC PARSING ==========
   // PhilSys ID has a specific format with bilingual labels
   if (idType === "Philippine National ID") {
+    console.log("[OCR Parser] ✓ Using specialized Philippine National ID parser")
     return parsePhilippineNationalID(lines, text)
   }
 
   // ========== DRIVER'S LICENSE SPECIFIC PARSING ==========
   // Driver's License has a specific format from LTO
   if (idType === "Driver's License") {
+    console.log("[OCR Parser] ✓ Using specialized Driver's License parser")
     return parseDriversLicense(lines, text)
   }
 
   // ========== GENERIC PARSING FOR OTHER IDs ==========
+  console.log("[OCR Parser] → Using generic ID parser")
   return parseGenericID(lines, text, joinedText, idType)
 }
 
@@ -645,6 +655,14 @@ function parseDriversLicense(lines: string[], text: string): {
 
   // Calculate age
   const age = calculateAge(birthDate)
+
+  console.log("[Driver's License] === EXTRACTION SUMMARY ===")
+  console.log(`[Driver's License] Full Name: "${fullName}"`)
+  console.log(`[Driver's License] Birth Date: "${birthDate}"`)
+  console.log(`[Driver's License] Address: "${address}"`)
+  console.log(`[Driver's License] ID Number: "${idNumber}"`)
+  console.log(`[Driver's License] Age: "${age}"`)
+  console.log(`[Driver's License] Address Components:`, addressComponents)
 
   return {
     fullName,
