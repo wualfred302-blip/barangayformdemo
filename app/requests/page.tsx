@@ -22,18 +22,20 @@ function RequestsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { certificates, getCertificatesByUserId } = useCertificates()
-  const { isAuthenticated, isLoading, user } = useAuth()
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const { requests: bayanihanRequests } = useBayanihan()
-  const { qrtIds, getUserQRTIds, refreshQRTIds, isLoaded } = useQRT()
+  const { qrtIds, getUserQRTIds, refreshQRTIds, isLoaded: qrtLoaded } = useQRT()
   const [filter, setFilter] = useState<FilterType>("all")
   const [activeTab, setActiveTab] = useState<TabType>("all")
   const [isRefreshing, setIsRefreshing] = useState(false)
 
+  const isContextReady = !authLoading && qrtLoaded
+
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated) {
       router.push("/login")
     }
-  }, [isLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, router])
 
   useEffect(() => {
     const tab = searchParams.get("tab") as TabType
@@ -42,7 +44,7 @@ function RequestsPageContent() {
     }
   }, [searchParams])
 
-  if (isLoading) {
+  if (authLoading || !isContextReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F8F9FA]">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#10B981] border-t-transparent" />
@@ -50,42 +52,37 @@ function RequestsPageContent() {
     )
   }
 
-  const myBayanihan = bayanihanRequests.filter(
-    (req) => req.residentName === (user?.fullName || "Anonymous")
-  )
+  const myBayanihan = bayanihanRequests.filter((req) => req.residentName === (user?.fullName || "Anonymous"))
 
-  const myQrtIds = user?.id ? getUserQRTIds(user.id) : qrtIds
+  const myQrtIds = user?.id ? getUserQRTIds(user.id) : []
 
-  // Filter certificates by user ID
   const myCertificates = user?.id ? getCertificatesByUserId(user.id) : certificates
 
   const combinedRequests = [
-    ...myCertificates.map(c => ({ type: 'certificate' as const, data: c, date: c.createdAt })),
-    ...myBayanihan.map(b => ({ type: 'bayanihan' as const, data: b, date: b.createdAt })),
-    ...myQrtIds.map(q => ({ type: 'qrt' as const, data: q, date: q.createdAt }))
+    ...myCertificates.map((c) => ({ type: "certificate" as const, data: c, date: c.createdAt })),
+    ...myBayanihan.map((b) => ({ type: "bayanihan" as const, data: b, date: b.createdAt })),
+    ...myQrtIds.map((q) => ({ type: "qrt" as const, data: q, date: q.createdAt })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const filteredRequests = combinedRequests.filter((item) => {
-    // Filter by tab
     if (activeTab !== "all") {
       if (activeTab === "certificates" && item.type !== "certificate") return false
       if (activeTab === "qrt" && item.type !== "qrt") return false
       if (activeTab === "bayanihan" && item.type !== "bayanihan") return false
     }
 
-    // Filter by status
     if (filter === "all") return true
 
     if (filter === "processing") {
-      if (item.type === 'certificate') return item.data.status === 'processing'
-      if (item.type === 'bayanihan') return ['pending', 'in_progress'].includes(item.data.status)
-      if (item.type === 'qrt') return ['pending', 'processing'].includes(item.data.status)
+      if (item.type === "certificate") return item.data.status === "processing"
+      if (item.type === "bayanihan") return ["pending", "in_progress"].includes(item.data.status)
+      if (item.type === "qrt") return ["pending", "processing"].includes(item.data.status)
     }
 
     if (filter === "ready") {
-      if (item.type === 'certificate') return item.data.status === 'ready'
-      if (item.type === 'bayanihan') return ['resolved', 'rejected'].includes(item.data.status)
-      if (item.type === 'qrt') return ['ready', 'issued'].includes(item.data.status)
+      if (item.type === "certificate") return item.data.status === "ready"
+      if (item.type === "bayanihan") return ["resolved", "rejected"].includes(item.data.status)
+      if (item.type === "qrt") return ["ready", "issued"].includes(item.data.status)
     }
 
     return false
@@ -110,7 +107,6 @@ function RequestsPageContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F8F9FA]">
-      {/* Header */}
       <header className="bg-white px-5 py-4 shadow-sm">
         <div className="flex items-center gap-4">
           <Link href="/dashboard" className="rounded-full p-1 hover:bg-gray-100">
@@ -125,7 +121,6 @@ function RequestsPageContent() {
         </div>
       </header>
 
-      {/* Tab Navigation */}
       <div className="bg-white px-5 py-3 border-b border-gray-100">
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {[
@@ -148,7 +143,6 @@ function RequestsPageContent() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
       <div className="bg-white px-5 pb-4 pt-2">
         <div className="flex gap-2">
           {filters.map((f) => (
@@ -166,7 +160,6 @@ function RequestsPageContent() {
         </div>
       </div>
 
-      {/* Main Content */}
       <main className="flex-1 px-5 pb-28 pt-4">
         {filteredRequests.length === 0 ? (
           <Card className="overflow-hidden rounded-2xl border-0 bg-white shadow-md">
@@ -182,10 +175,10 @@ function RequestsPageContent() {
                 <Button asChild className="rounded-xl bg-[#10B981] hover:bg-[#059669] w-full">
                   <Link href="/request">Request a Certificate</Link>
                 </Button>
-                <Button asChild variant="outline" className="rounded-xl w-full border-gray-200">
+                <Button asChild variant="outline" className="rounded-xl w-full border-gray-200 bg-transparent">
                   <Link href="/qrt-id/request">Request QRT ID</Link>
                 </Button>
-                <Button asChild variant="outline" className="rounded-xl w-full border-gray-200">
+                <Button asChild variant="outline" className="rounded-xl w-full border-gray-200 bg-transparent">
                   <Link href="/bayanihan">Request Assistance</Link>
                 </Button>
               </div>
@@ -194,8 +187,8 @@ function RequestsPageContent() {
         ) : (
           <div className="space-y-3">
             {filteredRequests.map((item) => {
-              if (item.type === 'certificate') {
-                const cert = item.data;
+              if (item.type === "certificate") {
+                const cert = item.data
                 return (
                   <Link key={cert.id} href={`/certificate/${cert.id}`}>
                     <Card className="overflow-hidden rounded-2xl border-0 bg-white shadow-md transition-transform active:scale-[0.98]">
@@ -213,7 +206,9 @@ function RequestsPageContent() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Certificate</span>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                Certificate
+                              </span>
                             </div>
                             <p className="font-semibold text-[#1A1A1A]">{cert.certificateType}</p>
                             <p className="text-sm text-gray-500">
@@ -229,7 +224,9 @@ function RequestsPageContent() {
                           <span
                             className={cn(
                               "rounded-full px-3 py-1 text-xs font-medium",
-                              cert.status === "ready" ? "bg-[#10B981]/10 text-[#10B981]" : "bg-orange-100 text-orange-600",
+                              cert.status === "ready"
+                                ? "bg-[#10B981]/10 text-[#10B981]"
+                                : "bg-orange-100 text-orange-600",
                             )}
                           >
                             {cert.status === "ready" ? "Ready" : "Processing"}
@@ -240,14 +237,18 @@ function RequestsPageContent() {
                     </Card>
                   </Link>
                 )
-              } else if (item.type === 'bayanihan') {
-                const bayanihan = item.data;
-                const isCompleted = ['resolved', 'rejected'].includes(bayanihan.status);
-                const statusLabel = 
-                  bayanihan.status === 'resolved' ? 'Resolved' : 
-                  bayanihan.status === 'rejected' ? 'Rejected' :
-                  bayanihan.status === 'in_progress' ? 'In Progress' : 'Pending';
-                  
+              } else if (item.type === "bayanihan") {
+                const bayanihan = item.data
+                const isCompleted = ["resolved", "rejected"].includes(bayanihan.status)
+                const statusLabel =
+                  bayanihan.status === "resolved"
+                    ? "Resolved"
+                    : bayanihan.status === "rejected"
+                      ? "Rejected"
+                      : bayanihan.status === "in_progress"
+                        ? "In Progress"
+                        : "Pending"
+
                 return (
                   <Link key={bayanihan.id} href={`/bayanihan`}>
                     <Card className="overflow-hidden rounded-2xl border-0 bg-white shadow-md transition-transform active:scale-[0.98]">
@@ -259,21 +260,25 @@ function RequestsPageContent() {
                               isCompleted ? "bg-[#10B981]/10" : "bg-blue-100",
                             )}
                           >
-                            <HandHeart
-                              className={cn("h-6 w-6", isCompleted ? "text-[#10B981]" : "text-blue-500")}
-                            />
+                            <HandHeart className={cn("h-6 w-6", isCompleted ? "text-[#10B981]" : "text-blue-500")} />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bayanihan</span>
-                                <span className={cn(
-                                    "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
-                                    bayanihan.urgency === 'high' ? "bg-red-100 text-red-700" :
-                                    bayanihan.urgency === 'medium' ? "bg-amber-100 text-amber-700" :
-                                    "bg-emerald-100 text-emerald-700"
-                                )}>
-                                    {bayanihan.urgency.toUpperCase()}
-                                </span>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                Bayanihan
+                              </span>
+                              <span
+                                className={cn(
+                                  "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                                  bayanihan.urgency === "high"
+                                    ? "bg-red-100 text-red-700"
+                                    : bayanihan.urgency === "medium"
+                                      ? "bg-amber-100 text-amber-700"
+                                      : "bg-emerald-100 text-emerald-700",
+                                )}
+                              >
+                                {bayanihan.urgency.toUpperCase()}
+                              </span>
                             </div>
                             <p className="font-semibold text-[#1A1A1A]">{bayanihan.type}</p>
                             <p className="text-xs text-gray-500 font-mono mt-0.5">{bayanihan.number}</p>
@@ -291,7 +296,7 @@ function RequestsPageContent() {
                             className={cn(
                               "rounded-full px-3 py-1 text-xs font-medium",
                               isCompleted ? "bg-[#10B981]/10 text-[#10B981]" : "bg-blue-100 text-blue-600",
-                              bayanihan.status === 'rejected' && "bg-red-100 text-red-600"
+                              bayanihan.status === "rejected" && "bg-red-100 text-red-600",
                             )}
                           >
                             {statusLabel}
@@ -302,8 +307,8 @@ function RequestsPageContent() {
                   </Link>
                 )
               } else {
-                const qrt = item.data;
-                const isReady = ['ready', 'issued'].includes(qrt.status);
+                const qrt = item.data
+                const isReady = ["ready", "issued"].includes(qrt.status)
 
                 return (
                   <Link key={qrt.id} href={`/requests/qrt/${qrt.id}`}>
@@ -316,13 +321,13 @@ function RequestsPageContent() {
                               isReady ? "bg-[#10B981]/10" : "bg-orange-100",
                             )}
                           >
-                            <CreditCard
-                              className={cn("h-6 w-6", isReady ? "text-[#10B981]" : "text-orange-500")}
-                            />
+                            <CreditCard className={cn("h-6 w-6", isReady ? "text-[#10B981]" : "text-orange-500")} />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">QRT ID</span>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                QRT ID
+                              </span>
                             </div>
                             <p className="font-semibold text-[#1A1A1A]">{qrt.qrtCode || "Processing..."}</p>
                             <p className="text-sm text-gray-500">
@@ -355,11 +360,13 @@ function RequestsPageContent() {
 
 export default function RequestsPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#3B82F6] border-t-transparent" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#3B82F6] border-t-transparent" />
+        </div>
+      }
+    >
       <RequestsPageContent />
     </Suspense>
   )

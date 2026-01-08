@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { IDScanner } from "@/components/id-scanner"
+import { AddressCombobox } from "@/components/address-combobox"
 
 const ID_TYPES = [
   { value: "philippine_national_id", label: "Philippine National ID (PhilSys)" },
@@ -51,10 +52,27 @@ export default function RegisterPage() {
     confirmPin: "",
     agreedToTerms: false,
   })
+
+  const [provinceCode, setProvinceCode] = useState("")
+  const [cityCode, setCityCode] = useState("")
+
+  const [scannedFields, setScannedFields] = useState({
+    fullName: false,
+    birthDate: false,
+    idType: false,
+    idNumber: false,
+    province: false,
+    cityMunicipality: false,
+    barangay: false,
+    zipCode: false,
+    houseLotNo: false,
+    street: false,
+    purok: false,
+  })
+
   const [idImageBase64, setIdImageBase64] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [wasScanned, setWasScanned] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showPin, setShowPin] = useState(false)
   const router = useRouter()
@@ -136,10 +154,24 @@ export default function RegisterPage() {
       province: data.province || prev.province,
       zipCode: data.zipCode || prev.zipCode,
     }))
+
+    setScannedFields({
+      fullName: !!data.fullName,
+      birthDate: !!data.birthDate,
+      idType: !!mappedIdType,
+      idNumber: !!data.idNumber,
+      province: !!data.province,
+      cityMunicipality: !!data.cityMunicipality,
+      barangay: !!data.barangay,
+      zipCode: !!data.zipCode,
+      houseLotNo: !!data.houseLotNo,
+      street: !!data.street,
+      purok: !!data.purok,
+    })
+
     if (data.imageBase64) {
       setIdImageBase64(data.imageBase64)
     }
-    setWasScanned(true)
 
     setTimeout(() => {
       document.getElementById("registration-form")?.scrollIntoView({
@@ -147,6 +179,35 @@ export default function RegisterPage() {
         block: "start",
       })
     }, 300)
+  }
+
+  const handleProvinceChange = (value: string, code?: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      province: value,
+      cityMunicipality: "",
+      barangay: "",
+      zipCode: "",
+    }))
+    setProvinceCode(code || "")
+    setCityCode("")
+    setScannedFields((prev) => ({ ...prev, province: false }))
+  }
+
+  const handleCityChange = (value: string, code?: string, zipCode?: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      cityMunicipality: value,
+      barangay: "",
+      zipCode: zipCode || prev.zipCode,
+    }))
+    setCityCode(code || "")
+    setScannedFields((prev) => ({ ...prev, cityMunicipality: false, zipCode: !!zipCode }))
+  }
+
+  const handleBarangayChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, barangay: value }))
+    setScannedFields((prev) => ({ ...prev, barangay: false }))
   }
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -282,6 +343,7 @@ export default function RegisterPage() {
 
   const inputBaseClass = "h-12 w-full text-base"
   const inputScannedClass = "border-emerald-300 bg-emerald-50/50"
+  const hasAnyScannedField = Object.values(scannedFields).some(Boolean)
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-emerald-50 to-white">
@@ -295,7 +357,7 @@ export default function RegisterPage() {
       <main className="flex-1 px-4 py-6">
         <IDScanner onDataExtracted={handleIDDataExtracted} disabled={isLoading} />
 
-        {wasScanned && (
+        {hasAnyScannedField && (
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
             <p className="text-center text-sm font-medium text-emerald-700">
               ID scanned successfully! Review and complete the details below.
@@ -322,6 +384,7 @@ export default function RegisterPage() {
                 </div>
               )}
 
+              {/* Personal Information Section */}
               <section className="space-y-5">
                 <div className="border-b-2 border-gray-200 pb-3">
                   <h3 className="text-xl font-bold text-gray-900">Personal Information</h3>
@@ -339,7 +402,7 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     placeholder="Juan Dela Cruz"
                     disabled={isLoading}
-                    className={`${inputBaseClass} ${wasScanned && formData.fullName ? inputScannedClass : ""}`}
+                    className={`${inputBaseClass} ${scannedFields.fullName ? inputScannedClass : ""}`}
                   />
                 </div>
 
@@ -353,9 +416,7 @@ export default function RegisterPage() {
                       onValueChange={(value) => handleSelectChange("idType", value)}
                       disabled={isLoading}
                     >
-                      <SelectTrigger
-                        className={`h-12 w-full ${wasScanned && formData.idType ? inputScannedClass : ""}`}
-                      >
+                      <SelectTrigger className={`h-12 w-full ${scannedFields.idType ? inputScannedClass : ""}`}>
                         <SelectValue placeholder="Select ID" />
                       </SelectTrigger>
                       <SelectContent>
@@ -378,7 +439,7 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="1234-5678-9012"
                       disabled={isLoading}
-                      className={`${inputBaseClass} ${wasScanned && formData.idNumber ? inputScannedClass : ""}`}
+                      className={`${inputBaseClass} ${scannedFields.idNumber ? inputScannedClass : ""}`}
                     />
                   </div>
                 </div>
@@ -394,11 +455,12 @@ export default function RegisterPage() {
                     value={formData.birthDate}
                     onChange={handleChange}
                     disabled={isLoading}
-                    className={`${inputBaseClass} ${wasScanned && formData.birthDate ? inputScannedClass : ""}`}
+                    className={`${inputBaseClass} ${scannedFields.birthDate ? inputScannedClass : ""}`}
                   />
                 </div>
               </section>
 
+              {/* Address Section - CHANGED to use AddressCombobox */}
               <section className="space-y-5">
                 <div className="border-b-2 border-gray-200 pb-3">
                   <h3 className="text-xl font-bold text-gray-900">Address</h3>
@@ -417,7 +479,7 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="123"
                       disabled={isLoading}
-                      className={`${inputBaseClass} ${wasScanned && formData.houseLotNo ? inputScannedClass : ""}`}
+                      className={`${inputBaseClass} ${scannedFields.houseLotNo ? inputScannedClass : ""}`}
                     />
                   </div>
                   <div className="space-y-2">
@@ -431,96 +493,92 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="Rizal Street"
                       disabled={isLoading}
-                      className={`${inputBaseClass} ${wasScanned && formData.street ? inputScannedClass : ""}`}
+                      className={`${inputBaseClass} ${scannedFields.street ? inputScannedClass : ""}`}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="purok" className="text-sm font-medium">
-                      Purok
-                    </Label>
-                    <Input
-                      id="purok"
-                      name="purok"
-                      value={formData.purok}
-                      onChange={handleChange}
-                      placeholder="1"
-                      disabled={isLoading}
-                      className={`${inputBaseClass} ${wasScanned && formData.purok ? inputScannedClass : ""}`}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="barangay" className="text-sm font-medium">
-                      Barangay <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="barangay"
-                      name="barangay"
-                      value={formData.barangay}
-                      onChange={handleChange}
-                      placeholder="Mawaque"
-                      disabled={isLoading}
-                      className={`${inputBaseClass} ${wasScanned && formData.barangay ? inputScannedClass : ""}`}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="purok" className="text-sm font-medium">
+                    Purok
+                  </Label>
+                  <Input
+                    id="purok"
+                    name="purok"
+                    value={formData.purok}
+                    onChange={handleChange}
+                    placeholder="1"
+                    disabled={isLoading}
+                    className={`${inputBaseClass} ${scannedFields.purok ? inputScannedClass : ""}`}
+                  />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cityMunicipality" className="text-sm font-medium">
-                      City/Municipality <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="cityMunicipality"
-                      name="cityMunicipality"
-                      value={formData.cityMunicipality}
-                      onChange={handleChange}
-                      placeholder="Mabalacat"
-                      disabled={isLoading}
-                      className={`${inputBaseClass} ${wasScanned && formData.cityMunicipality ? inputScannedClass : ""}`}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="province" className="text-sm font-medium">
-                      Province
-                    </Label>
-                    <Input
-                      id="province"
-                      name="province"
-                      value={formData.province}
-                      onChange={handleChange}
-                      placeholder="Pampanga"
-                      disabled={isLoading}
-                      className={`${inputBaseClass} ${wasScanned && formData.province ? inputScannedClass : ""}`}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Province</Label>
+                  <AddressCombobox
+                    type="province"
+                    value={formData.province}
+                    onValueChange={handleProvinceChange}
+                    placeholder="Select or search province"
+                    wasScanned={scannedFields.province}
+                    disabled={isLoading}
+                  />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="zipCode" className="text-sm font-medium">
-                      ZIP Code
-                    </Label>
-                    <Input
-                      id="zipCode"
-                      name="zipCode"
-                      value={formData.zipCode}
-                      onChange={handleChange}
-                      placeholder="2010"
-                      disabled={isLoading}
-                      className={`${inputBaseClass} ${wasScanned && formData.zipCode ? inputScannedClass : ""}`}
-                    />
-                  </div>
-                  {/* Empty cell for alignment */}
-                  <div />
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    City/Municipality <span className="text-red-500">*</span>
+                  </Label>
+                  <AddressCombobox
+                    type="city"
+                    value={formData.cityMunicipality}
+                    onValueChange={handleCityChange}
+                    placeholder="Select or search city"
+                    parentCode={provinceCode}
+                    wasScanned={scannedFields.cityMunicipality}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Barangay <span className="text-red-500">*</span>
+                  </Label>
+                  <AddressCombobox
+                    type="barangay"
+                    value={formData.barangay}
+                    onValueChange={handleBarangayChange}
+                    placeholder={cityCode ? "Select or search barangay" : "Select city first"}
+                    parentCode={cityCode}
+                    wasScanned={scannedFields.barangay}
+                    disabled={isLoading || !cityCode}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode" className="text-sm font-medium">
+                    ZIP Code
+                  </Label>
+                  <Input
+                    id="zipCode"
+                    name="zipCode"
+                    value={formData.zipCode}
+                    onChange={handleChange}
+                    placeholder="2010"
+                    disabled={isLoading}
+                    className={`${inputBaseClass} ${scannedFields.zipCode ? inputScannedClass : ""}`}
+                  />
+                  {scannedFields.zipCode && <p className="text-xs text-emerald-600">Auto-filled from selected city</p>}
                 </div>
               </section>
 
+              {/* Contact Information Section */}
               <section className="space-y-5">
                 <div className="border-b-2 border-gray-200 pb-3">
                   <h3 className="text-xl font-bold text-gray-900">Contact Information</h3>
+                  <p className="mt-1 text-sm text-gray-500">How we can reach you</p>
                 </div>
 
                 <div className="space-y-2">
@@ -533,15 +591,15 @@ export default function RegisterPage() {
                     type="tel"
                     value={formData.mobileNumber}
                     onChange={handleChange}
-                    placeholder="09123456789"
+                    placeholder="09XX XXX XXXX"
                     disabled={isLoading}
-                    className={`${inputBaseClass} ${wasScanned && formData.mobileNumber ? inputScannedClass : ""}`}
+                    className={inputBaseClass}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm font-medium">
-                    Email Address <span className="text-gray-400">(optional)</span>
+                    Email Address <span className="text-gray-400">(Optional)</span>
                   </Label>
                   <Input
                     id="email"
@@ -549,13 +607,14 @@ export default function RegisterPage() {
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="juan@email.com"
+                    placeholder="juan@example.com"
                     disabled={isLoading}
                     className={inputBaseClass}
                   />
                 </div>
               </section>
 
+              {/* Security Section */}
               <section className="space-y-5">
                 <div className="border-b-2 border-gray-200 pb-3">
                   <h3 className="text-xl font-bold text-gray-900">Security</h3>
@@ -573,7 +632,7 @@ export default function RegisterPage() {
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={handleChange}
-                      placeholder="Min 8 characters, 1 number"
+                      placeholder="Min. 8 characters, 1 number"
                       disabled={isLoading}
                       className={`${inputBaseClass} pr-10`}
                     />
@@ -619,14 +678,14 @@ export default function RegisterPage() {
                         onChange={handleChange}
                         placeholder="••••"
                         disabled={isLoading}
-                        className={`${inputBaseClass} pr-10 text-center tracking-widest`}
+                        className={`${inputBaseClass} pr-10`}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPin(!showPin)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                       >
-                        {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPin ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
                     </div>
                   </div>
@@ -644,42 +703,42 @@ export default function RegisterPage() {
                       onChange={handleChange}
                       placeholder="••••"
                       disabled={isLoading}
-                      className={`${inputBaseClass} text-center tracking-widest`}
+                      className={inputBaseClass}
                     />
                   </div>
                 </div>
               </section>
 
-              {/* Privacy Agreement & Submit */}
-              <section className="space-y-5 pt-2">
-                <div className="flex items-start gap-3">
+              {/* Terms and Submit */}
+              <section className="space-y-5">
+                <div className="flex items-start space-x-3">
                   <Checkbox
                     id="agreedToTerms"
                     checked={formData.agreedToTerms}
-                    onCheckedChange={(checked) => setFormData({ ...formData, agreedToTerms: checked === true })}
+                    onCheckedChange={(checked) => setFormData({ ...formData, agreedToTerms: checked as boolean })}
                     disabled={isLoading}
-                    className="mt-0.5"
+                    className="mt-1"
                   />
                   <Label htmlFor="agreedToTerms" className="text-sm leading-relaxed text-gray-600">
                     I agree to the{" "}
                     <Link href="/privacy" className="text-emerald-600 underline">
                       Privacy Policy
                     </Link>{" "}
-                    and consent to the collection and processing of my personal data.
+                    and consent to the collection of my personal data for registration purposes.
                   </Label>
                 </div>
 
                 <Button
                   type="submit"
-                  className="h-14 w-full bg-emerald-600 text-base font-semibold hover:bg-emerald-700"
                   disabled={isLoading}
+                  className="h-12 w-full bg-emerald-600 text-base font-semibold hover:bg-emerald-700"
                 >
                   {isLoading ? "Creating Account..." : "Create Account"}
                 </Button>
 
                 <p className="text-center text-sm text-gray-500">
                   Already have an account?{" "}
-                  <Link href="/login" className="font-medium text-emerald-600">
+                  <Link href="/login" className="font-medium text-emerald-600 hover:underline">
                     Sign In
                   </Link>
                 </p>

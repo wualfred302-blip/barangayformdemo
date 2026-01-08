@@ -19,7 +19,6 @@ export interface QRTIDRequest {
   verificationCode: string
   userId: string
   fullName: string
-  email: string
   phoneNumber: string
   birthDate: string
   age: number
@@ -88,7 +87,6 @@ function dbRowToQRTIDRequest(row: Record<string, unknown>): QRTIDRequest {
     verificationCode: row.verification_code as string,
     userId: (row.user_id as string) || "anonymous",
     fullName: row.full_name as string,
-    email: row.email as string,
     phoneNumber: row.phone_number as string,
     birthDate: row.birth_date as string,
     age: row.age as number,
@@ -127,7 +125,6 @@ function qrtRequestToDbRow(request: QRTIDRequest): Record<string, unknown> {
     verification_code: request.verificationCode,
     user_id: request.userId,
     full_name: request.fullName,
-    email: request.email,
     phone_number: request.phoneNumber,
     birth_date: request.birthDate,
     age: request.age,
@@ -421,6 +418,7 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
         verification_code: request.verificationCode,
         user_id: request.userId,
         full_name: request.fullName,
+        phone_number: request.phoneNumber,
         birth_date: request.birthDate,
         age: request.age,
         gender: request.gender,
@@ -547,7 +545,23 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
 
   const getUserQRTIds = useCallback(
     (userId: string) => {
-      return qrtIds.filter((qrt) => qrt.userId === userId)
+      if (!userId) {
+        console.warn("[QRT Context] getUserQRTIds called with empty userId")
+        return []
+      }
+
+      const results = qrtIds.filter((qrt) => qrt.userId === userId)
+
+      // Debug logging to help identify mismatches
+      if (results.length === 0 && qrtIds.length > 0) {
+        console.warn("[QRT Context] No QRT IDs found for userId:", {
+          searchUserId: userId,
+          totalQrtIds: qrtIds.length,
+          uniqueUserIds: [...new Set(qrtIds.map((q) => q.userId))].slice(0, 5),
+        })
+      }
+
+      return results
     },
     [qrtIds],
   )
