@@ -1,4 +1,7 @@
-const AZURE_ENDPOINT = process.env.AZURE_CV_ENDPOINT || "https://barangaylinkod.cognitiveservices.azure.com"
+const AZURE_ENDPOINT = (process.env.AZURE_CV_ENDPOINT || "https://barangaylinkod.cognitiveservices.azure.com").replace(
+  /\/+$/,
+  "",
+)
 const AZURE_API_KEY =
   process.env.AZURE_CV_API_KEY || "6w3QVf4FGXnh7kI5rowYpbNoDpFQ7itBQMMWcubTNeeuhRV95apgJQQJ99CAAC3pKaRXJ3w3AAAFACOGs2Jq"
 
@@ -25,9 +28,21 @@ export async function POST(req: Request) {
 
     let binaryData: Uint8Array
     try {
-      const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "")
-      binaryData = Uint8Array.from(atob(cleanBase64), (c) => c.charCodeAt(0))
+      // Remove data URL prefix if present
+      let cleanBase64 = imageBase64
+      if (cleanBase64.includes(",")) {
+        cleanBase64 = cleanBase64.split(",")[1]
+      }
+      cleanBase64 = cleanBase64.replace(/\s/g, "")
+
+      // Decode base64 to binary
+      const binaryString = atob(cleanBase64)
+      binaryData = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        binaryData[i] = binaryString.charCodeAt(i)
+      }
     } catch (decodeError) {
+      console.error("[v0] Base64 decode error:", decodeError)
       return Response.json(
         { success: false, error: "Invalid base64 image data" },
         { status: 400, headers: corsHeaders },
@@ -38,9 +53,13 @@ export async function POST(req: Request) {
 
     console.log("[v0] Calling Azure OCR at:", analyzeUrl)
     console.log("[v0] Image size (bytes):", binaryData.length)
+    console.log("[v0] API Key present:", !!AZURE_API_KEY)
 
     let response: Response
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
       response = await fetch(analyzeUrl, {
         method: "POST",
         headers: {
@@ -48,11 +67,24 @@ export async function POST(req: Request) {
           "Content-Type": "application/octet-stream",
         },
         body: binaryData,
+        signal: controller.signal,
       })
-    } catch (fetchError: any) {
-      console.error("[v0] Azure fetch network error:", fetchError.message)
+
+      clearTimeout(timeoutId)
+    } catch (fetchError: unknown) {
+      const errorMessage = fetchError instanceof Error ? fetchError.message : "Unknown network error"
+      console.error("[v0] Azure fetch error:", errorMessage)
+
+      // Check for abort
+      if (errorMessage.includes("abort")) {
+        return Response.json(
+          { success: false, error: "Request timed out. Please try again." },
+          { status: 500, headers: corsHeaders },
+        )
+      }
+
       return Response.json(
-        { success: false, error: `Network error connecting to Azure: ${fetchError.message}` },
+        { success: false, error: `Network error: ${errorMessage}` },
         { status: 500, headers: corsHeaders },
       )
     }
@@ -65,30 +97,39 @@ export async function POST(req: Request) {
         const errorBody = await response.text()
         console.error("[v0] Azure error body:", errorBody)
         if (errorBody) {
-          const errorJson = JSON.parse(errorBody)
-          errorMessage = errorJson.error?.message || errorJson.message || errorMessage
+          try {
+            const errorJson = JSON.parse(errorBody)
+            errorMessage = errorJson.error?.message || errorJson.message || errorMessage
+          } catch {
+            errorMessage = errorBody.slice(0, 200)
+          }
         }
       } catch {}
       return Response.json({ success: false, error: errorMessage }, { status: 500, headers: corsHeaders })
     }
 
-    let operationLocation: string | null = null
-    try {
-      operationLocation = response.headers.get("Operation-Location")
-    } catch (headerError: any) {
-      console.error("[v0] Error getting Operation-Location header:", headerError.message)
-    }
+    const operationLocation = response.headers.get("Operation-Location") || response.headers.get("operation-location")
 
     console.log("[v0] Operation-Location:", operationLocation)
 
     if (!operationLocation) {
+      // Log all headers for debugging
+      const headerNames: string[] = []
+      response.headers.forEach((value, key) => {
+        headerNames.push(`${key}: ${value}`)
+      })
+      console.log("[v0] All response headers:", headerNames.join(", "))
+
       return Response.json(
         { success: false, error: "Azure did not return Operation-Location header" },
         { status: 500, headers: corsHeaders },
       )
     }
 
-    let result: any = null
+    let result: {
+      status?: string
+      analyzeResult?: { readResults?: Array<{ lines?: Array<{ text: string }> }> }
+    } | null = null
     for (let i = 0; i < 20; i++) {
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
@@ -105,17 +146,18 @@ export async function POST(req: Request) {
         }
 
         result = await pollResponse.json()
-        console.log("[v0] Poll result status:", result.status)
+        console.log("[v0] Poll result status:", result?.status)
 
-        if (result.status === "succeeded") break
-        if (result.status === "failed") {
+        if (result?.status === "succeeded") break
+        if (result?.status === "failed") {
           return Response.json(
             { success: false, error: "OCR processing failed" },
             { status: 500, headers: corsHeaders },
           )
         }
-      } catch (pollError: any) {
-        console.error("[v0] Poll error:", pollError.message)
+      } catch (pollError: unknown) {
+        const pollErrorMsg = pollError instanceof Error ? pollError.message : "Unknown poll error"
+        console.error("[v0] Poll error:", pollErrorMsg)
       }
     }
 
@@ -149,12 +191,11 @@ export async function POST(req: Request) {
       },
       { headers: corsHeaders },
     )
-  } catch (error: any) {
-    console.error("[v0] OCR Error:", error.message, error.stack)
-    return Response.json(
-      { success: false, error: error.message || "Failed to process ID" },
-      { status: 500, headers: corsHeaders },
-    )
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : "Failed to process ID"
+    const errorStack = error instanceof Error ? error.stack : ""
+    console.error("[v0] OCR Error:", errorMsg, errorStack)
+    return Response.json({ success: false, error: errorMsg }, { status: 500, headers: corsHeaders })
   }
 }
 
