@@ -11,7 +11,7 @@ Implement a comprehensive registration flow with mandatory government ID scannin
 - **Image Processing**: Client-side compression before upload
 
 ## Azure Computer Vision API
-- **API Key**: [REDACTED]
+- **API Key**: `6w3QVf4FGXnh7kI5rowYpbNoDpFQ7itBQMMWcubTNeeuhRV95apgJQQJ99CAAC3pKaRXJ3w3AAAFACOGs2Jq`
 - **Usage**: Extract text from government ID images
 - **Endpoint**: Use Azure Computer Vision Read API for OCR
 

@@ -1,16 +1,6 @@
 "use client"
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  memo,
-  useRef,
-  type ReactNode,
-} from "react"
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, memo, type ReactNode } from "react"
 import { createClient } from "@/lib/supabase/client"
 
 export interface QRTIDRequest {
@@ -182,126 +172,79 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
   const [verificationLogs, setVerificationLogs] = useState<QRTVerificationLog[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
 
-  const isMountedRef = useRef(true)
-  const abortControllerRef = useRef<AbortController | null>(null)
-
   useEffect(() => {
-    isMountedRef.current = true
-
     const loadData = async () => {
-      abortControllerRef.current = new AbortController()
-      const signal = abortControllerRef.current.signal
-
       // Set a timeout to ensure isLoaded is set even if Supabase hangs
       const timeoutId = setTimeout(() => {
-        if (isMountedRef.current) {
-          console.warn("[QRT Context] Load timeout reached, setting isLoaded to true")
-          setIsLoaded(true)
-        }
-      }, 5000)
+        console.warn("[QRT Context] Load timeout reached, setting isLoaded to true")
+        setIsLoaded(true)
+      }, 5000) // 5 second timeout
 
       try {
+        const supabase = createClient()
+
         // Load current request from localStorage FIRST (synchronous, doesn't depend on network)
         try {
           const storedCurrent = localStorage.getItem(CURRENT_REQUEST_KEY)
-          if (storedCurrent && isMountedRef.current) {
+          if (storedCurrent) {
             const parsedCurrent = JSON.parse(storedCurrent)
             setCurrentRequest(parsedCurrent)
+            console.log("[QRT Context] Loaded current request from localStorage")
           }
         } catch (e) {
           console.error("[QRT Context] Failed to load from localStorage:", e)
         }
 
-        if (signal.aborted) {
-          clearTimeout(timeoutId)
-          return
-        }
+        // Load QRT IDs from Supabase with AbortController for timeout
+        const controller = new AbortController()
+        const supabaseTimeout = setTimeout(() => controller.abort(), 4000)
 
-        const supabase = createClient()
-        let mappedQrtData: QRTIDRequest[] = []
-
-        // The qr_code_data column contains large base64 strings that cause statement timeouts
         try {
           const { data: qrtData, error: qrtError } = await supabase
             .from("qrt_ids")
-            .select(`
-              id,
-              qrt_code,
-              verification_code,
-              user_id,
-              full_name,
-              birth_date,
-              age,
-              gender,
-              civil_status,
-              birth_place,
-              address,
-              height,
-              weight,
-              years_resident,
-              citizenship,
-              emergency_contact_name,
-              emergency_contact_address,
-              emergency_contact_phone,
-              emergency_contact_relationship,
-              photo_url,
-              id_front_image_url,
-              id_back_image_url,
-              status,
-              issued_date,
-              expiry_date,
-              created_at,
-              updated_at,
-              payment_reference,
-              payment_transaction_id,
-              request_type,
-              amount
-            `)
+            .select("*")
             .order("created_at", { ascending: false })
-            .limit(50)
-            .abortSignal(signal)
+            .abortSignal(controller.signal)
 
-          if (!isMountedRef.current || signal.aborted) return
+          clearTimeout(supabaseTimeout)
 
+          let mappedQrtData: QRTIDRequest[] = []
           if (qrtError) {
-            if (qrtError.name !== "AbortError" && !qrtError.message?.includes("aborted")) {
-              console.error("Failed to load QRT IDs from Supabase:", qrtError.message)
-            }
+            console.error("Failed to load QRT IDs from Supabase:", {
+              message: qrtError.message,
+              code: qrtError.code,
+              details: qrtError.details,
+            })
           } else if (qrtData) {
-            mappedQrtData = qrtData.map((row) => ({
-              ...dbRowToQRTIDRequest(row),
-              qrCodeData: "", // Don't load this initially - fetch on demand
-            }))
+            mappedQrtData = qrtData.map(dbRowToQRTIDRequest)
             setQrtIds(mappedQrtData)
           }
-        } catch (fetchError: any) {
-          if (fetchError.name !== "AbortError" && !fetchError.message?.includes("aborted")) {
-            console.error("[QRT Context] Supabase QRT query failed:", fetchError)
-          }
-        }
 
-        if (signal.aborted || !isMountedRef.current) {
-          clearTimeout(timeoutId)
-          return
-        }
+          // Load verification logs (also with abort signal)
+          const logsController = new AbortController()
+          const logsTimeout = setTimeout(() => logsController.abort(), 3000)
 
-        // Load verification logs
-        try {
           const { data: logsData, error: logsError } = await supabase
             .from("qrt_verification_logs")
             .select("id, qrt_id, scanned_at, verification_status, notes")
             .order("scanned_at", { ascending: false })
-            .limit(50)
-            .abortSignal(signal)
+            .limit(100)
+            .abortSignal(logsController.signal)
 
-          if (!isMountedRef.current || signal.aborted) return
+          clearTimeout(logsTimeout)
 
           if (logsError) {
-            if (logsError.name !== "AbortError" && !logsError.message?.includes("aborted")) {
-              console.error("Failed to load verification logs from Supabase:", logsError.message)
+            if (logsError.name !== 'AbortError') {
+              console.error("Failed to load verification logs from Supabase:", {
+                message: logsError.message,
+                code: logsError.code,
+                details: logsError.details,
+              })
             }
           } else if (logsData) {
+            // Map logs and look up QRT data from loaded QRT IDs
             const mappedLogs: QRTVerificationLog[] = logsData.map((log) => {
+              // Find the corresponding QRT ID from local data
               const qrtMatch = mappedQrtData.find((qrt) => qrt.id === log.qrt_id)
               return {
                 qrtCode: qrtMatch?.qrtCode || "",
@@ -313,32 +256,22 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
             })
             setVerificationLogs(mappedLogs)
           }
-        } catch (fetchError: any) {
-          if (fetchError.name !== "AbortError" && !fetchError.message?.includes("aborted")) {
-            console.error("[QRT Context] Supabase logs query failed:", fetchError)
+        } catch (fetchError) {
+          if ((fetchError as Error).name === 'AbortError') {
+            console.warn("[QRT Context] Supabase query timed out")
+          } else {
+            console.error("[QRT Context] Supabase query failed:", fetchError)
           }
         }
-      } catch (error: any) {
-        if (error.name !== "AbortError" && !error.message?.includes("aborted")) {
-          console.error("Failed to load data:", error)
-        }
+      } catch (error) {
+        console.error("Failed to load data:", error)
       } finally {
         clearTimeout(timeoutId)
-        if (isMountedRef.current) {
-          setIsLoaded(true)
-        }
+        setIsLoaded(true)
       }
     }
 
     loadData()
-
-    return () => {
-      isMountedRef.current = false
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-        abortControllerRef.current = null
-      }
-    }
   }, [])
 
   const refreshQRTIds = useCallback(async () => {
@@ -349,41 +282,8 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
       const supabase = createClient()
       const { data, error } = await supabase
         .from("qrt_ids")
-        .select(`
-          id,
-          qrt_code,
-          verification_code,
-          user_id,
-          full_name,
-          birth_date,
-          age,
-          gender,
-          civil_status,
-          birth_place,
-          address,
-          height,
-          weight,
-          years_resident,
-          citizenship,
-          emergency_contact_name,
-          emergency_contact_address,
-          emergency_contact_phone,
-          emergency_contact_relationship,
-          photo_url,
-          id_front_image_url,
-          id_back_image_url,
-          status,
-          issued_date,
-          expiry_date,
-          created_at,
-          updated_at,
-          payment_reference,
-          payment_transaction_id,
-          request_type,
-          amount
-        `)
+        .select("*")
         .order("created_at", { ascending: false })
-        .limit(50)
         .abortSignal(controller.signal)
 
       if (error) {
@@ -393,14 +293,11 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
           details: error.details,
         })
       } else if (data) {
-        const mappedData = data.map((row) => ({
-          ...dbRowToQRTIDRequest(row),
-          qrCodeData: "", // Don't load this - fetch on demand
-        }))
+        const mappedData = data.map(dbRowToQRTIDRequest)
         setQrtIds(mappedData)
       }
     } catch (error: any) {
-      if (error.name === "AbortError") {
+      if (error.name === 'AbortError') {
         console.warn("[QRT Context] Refresh QRT IDs timed out after 5 seconds")
       } else {
         console.error("Failed to refresh QRT IDs:", error)

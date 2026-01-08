@@ -113,9 +113,6 @@ importers:
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.20(postcss@8.4.49)
-      bcryptjs:
-        specifier: 3.0.3
-        version: 3.0.3
       canvas-confetti:
         specifier: ^1.9.4
         version: 1.9.4
@@ -1354,10 +1351,6 @@ packages:
 
   baseline-browser-mapping@2.9.7:
     resolution: {integrity: sha512-k9xFKplee6KIio3IDbwj+uaCLpqzOwakOgmqzPezM0sFJlFKcg30vk2wOiAJtkTSfx0SSQDSe8q+mWA/fSH5Zg==}
-    hasBin: true
-
-  bcryptjs@3.0.3:
-    resolution: {integrity: sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==}
     hasBin: true
 
   browserslist@4.28.1:
@@ -3357,8 +3350,6 @@ snapshots:
     optional: true
 
   baseline-browser-mapping@2.9.7: {}
-
-  bcryptjs@3.0.3: {}
 
   browserslist@4.28.1:
     dependencies:
