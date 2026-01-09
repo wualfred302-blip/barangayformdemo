@@ -77,34 +77,34 @@ However, the existing spec documents mention a payment system (Pickup FREE, Home
 **For the staff interface at /staff/qrt-fulfillment, what layout style do you prefer?**
 
 **Option A: Kanban Board (Visual, Modern)**
-```
+\`\`\`
 [Pending Review] [Approved] [Printing] [Ready/Delivery] [Delivered]
      Card            Card       Card         Card          Card
      Card            Card       Card         Card          Card
-```
+\`\`\`
 - Drag-and-drop status updates
 - Visual workflow (like Trello/Linear)
 - Best for smaller volumes (< 50 active cards)
 
 **Option B: Table with Filters (Data-dense, Efficient)**
-```
+\`\`\`
 Status Filter: [All] [Pending] [Printing] [Ready] [Delivered]
 | QRT Code | Name | Method | Status | Actions |
 | -------- | ---- | ------ | ------ | ------- |
 | Bulk select checkboxes + action buttons at top
-```
+\`\`\`
 - Efficient for large volumes
 - Better for sorting/searching
 - Familiar for staff used to spreadsheets
 
 **Option C: Hybrid Card List (Balanced)**
-```
+\`\`\`
 Tab Filters: [All] [Pending] [Printing] [Ready] [Delivered]
 
 Card layout (stacked):
   QRT-2026-000001 | Juan Dela Cruz | Pickup | [Actions]
   QRT-2026-000002 | Maria Santos | Delivery | [Actions]
-```
+\`\`\`
 - Card-based like dashboard
 - Mobile-friendly
 - Matches existing staff interfaces in app
@@ -120,32 +120,32 @@ Card layout (stacked):
 **When residents view their QRT request details, how should status/timeline be shown?**
 
 **Option A: Full Timeline (Detailed)**
-```
+\`\`\`
 ● Request Submitted - Jan 9, 2026 10:30 AM ✓
 ● Under Review - Jan 9, 2026 2:15 PM ✓
 ○ Card Printing - Pending
 ○ Ready for Pickup - Pending
 ○ Delivered - Pending
-```
+\`\`\`
 - Shows all stages
 - Includes timestamps
 - Clear progress indication
 
 **Option B: Current Status Only (Minimal)**
-```
+\`\`\`
 Status: Under Review
 Estimated ready date: Jan 16, 2026
-```
+\`\`\`
 - Simpler, less overwhelming
 - Faster to load
 - Less technical
 
 **Option C: Progress Bar with Stages (Visual)**
-```
+\`\`\`
 [=====-----] 40% Complete
 
 ✓ Submitted → ✓ Approved → ⏳ Printing → Pickup → Delivered
-```
+\`\`\`
 - Visual progress indicator
 - Easy to understand at a glance
 - Matches e-commerce tracking patterns
@@ -222,22 +222,22 @@ Estimated ready date: Jan 16, 2026
 - What if staff accidentally marks wrong status?
 
 **Option A: Strict Linear Flow (Enforced)**
-```
+\`\`\`
 Submitted → Pending Review → Approved → Printing → Ready/Delivery → Delivered
 (Can only move forward, no skipping)
-```
+\`\`\`
 
 **Option B: Flexible with Warnings**
-```
+\`\`\`
 Staff can skip stages, but get warning dialog:
 "You're moving from Pending to Delivered. Are you sure? This skips printing confirmation."
-```
+\`\`\`
 
 **Option C: Full Flexibility**
-```
+\`\`\`
 Staff can set any status at any time
 No restrictions (trust staff judgment)
-```
+\`\`\`
 
 **QUESTION:** How much control should staff have over status transitions?
 

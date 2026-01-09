@@ -57,12 +57,12 @@
 - `framer-motion` for animations ✅ (already installed)
 
 **Key Props:**
-```typescript
+\`\`\`typescript
 interface QRTCardHeroProps {
   qrtId: QRTIDRequest | null
   onRequestClick?: () => void
 }
-```
+\`\`\`
 
 ### 2. `/app/dashboard/page.tsx` - MODIFIED ✅
 
@@ -77,7 +77,7 @@ interface QRTCardHeroProps {
 **Changes Made:**
 
 **Lines 240-290:** Added QRT ID auto-creation logic
-```typescript
+\`\`\`typescript
 // Calculate age from birth date
 const calculateAge = (birthDateStr: string | null): number => { ... }
 
@@ -115,10 +115,10 @@ const qrtData = {
   payment_reference: `FREE-${Date.now()}`,
   amount: 0,
 }
-```
+\`\`\`
 
 **Lines 292-302:** Supabase insert with error handling (non-critical)
-```typescript
+\`\`\`typescript
 try {
   const { error: qrtError } = await supabase
     .from("qrt_ids")
@@ -131,10 +131,10 @@ try {
 } catch (qrtErr) {
   console.warn("QRT ID creation error (non-critical):", qrtErr)
 }
-```
+\`\`\`
 
 **Lines 317-344:** Updated response to include full QRT ID data
-```typescript
+\`\`\`typescript
 qrtId: {
   id: `qrt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
   qrtCode, verificationCode, fullName, phoneNumber: cleanMobile,
@@ -157,7 +157,7 @@ qrtId: {
   paymentReference: `FREE-${Date.now()}`, amount: 0,
   createdAt: now,
 }
-```
+\`\`\`
 
 **Status:** ✅ Complete
 
@@ -174,7 +174,7 @@ qrtId: {
 - Old code had placeholder values, new code uses actual API response fields
 
 **NEEDS COMPLETION IN NEXT SESSION:**
-```typescript
+\`\`\`typescript
 // Lines 355-394 need to be updated to:
 const qrtRequest = {
   id: result.qrtId.id,
@@ -205,7 +205,7 @@ const qrtRequest = {
   requestType: (result.qrtId.requestType || 'regular') as "regular" | "rush",
   amount: result.qrtId.amount || 0,
 }
-```
+\`\`\`
 
 ---
 
@@ -301,7 +301,7 @@ const qrtRequest = {
 ### MEDIUM Priority
 
 **2. Test full registration flow**
-```bash
+\`\`\`bash
 # Test steps:
 1. Go to /register
 2. Fill out registration form
@@ -311,7 +311,7 @@ const qrtRequest = {
 6. QRT card should appear with full user data
 7. Click flip button - should show back side
 8. Click card - should navigate to detail page
-```
+\`\`\`
 
 **3. Verify QRT context loading**
 - Check that `useQRT()` hook loads QRT IDs from Supabase
@@ -334,7 +334,7 @@ const qrtRequest = {
 
 ## File Structure
 
-```
+\`\`\`
 /home/user/barangayformdemo/
 ├── components/
 │   ├── qrt-card-hero.tsx          ← NEW ✅
@@ -356,7 +356,7 @@ const qrtRequest = {
 │   └── IMPLEMENTATION-STATUS.md   ← THIS FILE
 └── scripts/
     └── 005_fix_qrt_schema.sql     ← Database schema (already applied)
-```
+\`\`\`
 
 ---
 
@@ -367,7 +367,7 @@ const qrtRequest = {
 Open `/app/register/page.tsx` and update lines 355-394 with the full field mapping from "NEEDS COMPLETION" section above.
 
 **Exact edit:**
-```typescript
+\`\`\`typescript
 // Find lines 355-394 and replace the qrtRequest object with:
 const qrtRequest = {
   id: result.qrtId.id,
@@ -398,11 +398,11 @@ const qrtRequest = {
   requestType: (result.qrtId.requestType || 'regular') as "regular" | "rush",
   amount: result.qrtId.amount || 0,
 }
-```
+\`\`\`
 
 ### Step 2: Test Registration Flow (10 minutes)
 
-```bash
+\`\`\`bash
 # Start dev server if not running
 npm run dev
 
@@ -415,7 +415,7 @@ npm run dev
 # 6. Verify QRT card appears
 # 7. Test flip animation
 # 8. Click card to test navigation
-```
+\`\`\`
 
 ### Step 3: Debug If Issues Found (variable)
 
@@ -448,28 +448,28 @@ npm run dev
 ## Design Reference
 
 ### Teal Color Palette (Consistent Across App)
-```css
+\`\`\`css
 Primary:   #14B8A6  (teal-500)
 Secondary: #06B6D4  (cyan-500)
 Accent:    #22D3EE  (cyan-400)
 Dark:      #0D9488  (teal-600)
 Light BG:  #F0FDFA  (teal-50)
-```
+\`\`\`
 
 ### Card Sizing
-```css
+\`\`\`css
 Mobile:  h-[200px]  (was 160px)
 Tablet:  h-[280px]  (was 200px)
 Desktop: h-[320px]  (was 240px)
-```
+\`\`\`
 
 ### Typography
-```css
+\`\`\`css
 Barangay Title:  text-[10px] font-bold uppercase tracking-wider
 QRT ID Label:    text-xs font-semibold uppercase
 User Name:       text-lg font-bold
 Details:         text-sm text-gray-600
-```
+\`\`\`
 
 ---
 
@@ -548,16 +548,16 @@ Details:         text-sm text-gray-600
 
 **Staged changes:** None
 **Unstaged changes:**
-```
+\`\`\`
 M app/api/register/route.ts
 M app/dashboard/page.tsx
 M app/register/page.tsx
 M agent-os/specs/2026-01-09-qrt-delivery-system/requirements.md
 ?? components/qrt-card-hero.tsx
-```
+\`\`\`
 
 **Recommended commit message:**
-```
+\`\`\`
 feat: auto-generate QRT ID on registration with hero card display
 
 - Create QRTCardHero component with prominent teal-themed design
@@ -568,14 +568,14 @@ feat: auto-generate QRT ID on registration with hero card display
 - Remove payment processing (all services FREE)
 
 Closes #[issue-number]
-```
+\`\`\`
 
 ---
 
 ## Dependencies Check
 
 **All required packages installed:**
-```json
+\`\`\`json
 {
   "qrcode.react": "^X.X.X",        ✅ Installed
   "@types/qrcode.react": "^X.X.X", ✅ Installed
@@ -584,7 +584,7 @@ Closes #[issue-number]
   "next": "15.1.11",               ✅ Installed
   "react": "^19.X.X",              ✅ Installed
 }
-```
+\`\`\`
 
 **No new dependencies needed.**
 
@@ -593,13 +593,13 @@ Closes #[issue-number]
 ## Environment Variables
 
 **Required:**
-```env
+\`\`\`env
 NEXT_PUBLIC_APP_URL=https://barangaymawaque.ph
 # Or http://localhost:3000 for dev
 
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+\`\`\`
 
 **Used in:** QR code verification URL generation
 
@@ -616,7 +616,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ## Quick Start Commands
 
-```bash
+\`\`\`bash
 # Continue development
 npm run dev
 
@@ -633,7 +633,7 @@ open http://localhost:3000/dashboard
 git add -A
 git commit -m "feat: auto-generate QRT ID on registration"
 git push
-```
+\`\`\`
 
 ---
 

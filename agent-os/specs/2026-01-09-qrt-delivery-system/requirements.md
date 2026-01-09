@@ -24,14 +24,14 @@ When a user registers, their QRT ID card automatically appears on the home dashb
 ### 1. Auto-Create QRT ID on Registration
 
 **Current Flow:**
-```
+\`\`\`
 Register → Dashboard shows CTA → User clicks → Request page → Creates QRT ID
-```
+\`\`\`
 
 **New Flow:**
-```
+\`\`\`
 Register → QRT ID auto-created → Dashboard immediately shows card
-```
+\`\`\`
 
 **Implementation:**
 - In `/app/api/register/route.ts`: After successful registration, auto-create QRT ID record
@@ -43,14 +43,14 @@ Register → QRT ID auto-created → Dashboard immediately shows card
 ### 2. Bigger Dashboard Card (Hero Display)
 
 **Current sizing:**
-```
+\`\`\`
 h-[160px] mobile, h-[200px] tablet, h-[240px] desktop
-```
+\`\`\`
 
 **New sizing (prominent hero):**
-```
+\`\`\`
 h-[200px] mobile, h-[280px] tablet, h-[320px] desktop
-```
+\`\`\`
 
 **Design updates:**
 - More visual prominence
@@ -62,7 +62,7 @@ h-[200px] mobile, h-[280px] tablet, h-[320px] desktop
 ### 3. Card Design Component
 
 **Front Side:**
-```
+\`\`\`
 ┌────────────────────────────────────────────────────────┐
 │  BARANGAY MAWAQUE                              [Logo]  │
 │  Quick Response Team ID                                │
@@ -78,10 +78,10 @@ h-[200px] mobile, h-[280px] tablet, h-[320px] desktop
 │  │ Code   │                                           │
 │  └────────┘                                           │
 └────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 **Back Side:**
-```
+\`\`\`
 ┌────────────────────────────────────────────────────────┐
 │  EMERGENCY CONTACT                                     │
 │  ─────────────────────────────────────────────────    │
@@ -96,7 +96,7 @@ h-[200px] mobile, h-[280px] tablet, h-[320px] desktop
 │  This card is property of Barangay Mawaque.           │
 │  If found, please return to the Barangay Hall.        │
 └────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ### 4. Design System
 

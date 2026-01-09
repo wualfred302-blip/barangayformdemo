@@ -93,7 +93,7 @@ This document summarizes the comprehensive exploration of the barangay app codeb
 **Main Storage Table**: `residents`
 
 **Table Schema** (inferred from API usage):
-```sql
+\`\`\`sql
 CREATE TABLE residents (
   id UUID PRIMARY KEY,
   full_name TEXT,
@@ -120,7 +120,7 @@ CREATE TABLE residents (
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ
 );
-```
+\`\`\`
 
 **Registration API Flow**:
 1. **Validation**
@@ -174,7 +174,7 @@ CREATE TABLE residents (
 ### 1.4 Data Flow: Registration → Features
 
 **Flow Diagram**:
-```
+\`\`\`
 Registration Page (/register)
     ↓
 ID Scanner → OCR Processing → Address Fuzzy Matching
@@ -195,7 +195,7 @@ Auth Context (useAuth hook)
 Navigation → /register/success
     ↓
 Redirect to Dashboard/Features
-```
+\`\`\`
 
 **Integration with Features**:
 
@@ -226,7 +226,7 @@ Redirect to Dashboard/Features
 **Current Implementation**:
 
 **Registration Form** (`/app/register/page.tsx`, lines 756-762):
-```tsx
+\`\`\`tsx
 <Checkbox
   id="agreedToTerms"
   checked={formData.agreedToTerms}
@@ -238,15 +238,15 @@ Redirect to Dashboard/Features
   I agree to the <Link href="/privacy">Privacy Policy</Link>
   and consent to the collection of my personal data
 </Label>
-```
+\`\`\`
 
 **Validation** (lines 287-290):
-```tsx
+\`\`\`tsx
 if (!formData.agreedToTerms) {
   setError("You must agree to the Privacy Policy to proceed.")
   return
 }
-```
+\`\`\`
 
 **Missing Components Identified**:
 - ❌ No `/privacy` route currently exists (would result in 404)
@@ -279,7 +279,7 @@ if (!formData.agreedToTerms) {
 
 **Service Grid Configuration** (lines 108-119):
 
-```tsx
+\`\`\`tsx
 const services = [
   // Row 1: Primary Services (4 items)
   { icon: FileText, label: "Request Certificate", href: "/request" },
@@ -293,7 +293,7 @@ const services = [
   { icon: FileSignature, label: "Permits", href: "/permits" },
   { icon: CircleDollarSign, label: "Taxes", href: "/taxes" },
 ]
-```
+\`\`\`
 
 **Current Layout**:
 - **Row 1**: Request Certificate | **Bayanihan** | File Blotter | **Request ID**
@@ -349,7 +349,7 @@ const services = [
 **Certificate Requests** (`/app/request/page.tsx`, lines 91-114):
 
 **Current Flow**:
-```tsx
+\`\`\`tsx
 const handleProceed = () => {
   // Validation checks
   if (!formData.certificateType) {
@@ -360,19 +360,19 @@ const handleProceed = () => {
   // Redirect to payment page
   router.push(`/payment?type=certificate&requestType=${formData.requestType}`)
 }
-```
+\`\`\`
 
 **Button Text** (line ~500):
-```tsx
+\`\`\`tsx
 <Button onClick={handleProceed}>
   Proceed to Payment
 </Button>
-```
+\`\`\`
 
 **QRT ID Requests** (`/app/qrt-id/request/page.tsx`, lines 1050-1118):
 
 **Current Step 3** (Review & Payment):
-```tsx
+\`\`\`tsx
 {/* Request Type Selection */}
 <div className="space-y-4">
   <Label>Request Type</Label>
@@ -392,12 +392,12 @@ const handleProceed = () => {
 <Button onClick={handleProceedToPayment}>
   Proceed to Payment (₱{requestType === 'standard' ? '100' : '200'})
 </Button>
-```
+\`\`\`
 
 ### 3.3 Dashboard Integration
 
 **Tabs Configuration** (lines 98-106):
-```tsx
+\`\`\`tsx
 const handleTabChange = (value: string) => {
   if (value === "requests") {
     router.push("/requests")
@@ -407,7 +407,7 @@ const handleTabChange = (value: string) => {
     setActiveTab(value)
   }
 }
-```
+\`\`\`
 
 **Tabs Display**:
 - Overview
@@ -450,7 +450,7 @@ const handleTabChange = (value: string) => {
 **Implementation**: **localStorage + in-memory state** (NO DATABASE)
 
 **Key Code** (lines 92-118):
-```tsx
+\`\`\`tsx
 // Load from localStorage
 useEffect(() => {
   const stored = localStorage.getItem('barangay_announcements')
@@ -470,7 +470,7 @@ useEffect(() => {
     localStorage.setItem('barangay_announcements', JSON.stringify(announcements))
   }
 }, [announcements])
-```
+\`\`\`
 
 **Problems with Current Approach**:
 - ❌ Data lost on browser cache clear
@@ -484,7 +484,7 @@ useEffect(() => {
 ### 4.3 Announcement Data Structure
 
 **Interface** (from context):
-```typescript
+\`\`\`typescript
 interface Announcement {
   id: string                    // UUID
   title: string                 // Announcement title
@@ -502,7 +502,7 @@ interface Announcement {
   createdAt: string             // ISO timestamp
   updatedAt: string             // ISO timestamp
 }
-```
+\`\`\`
 
 **Categories**:
 - `general`: General barangay information
@@ -520,14 +520,14 @@ interface Announcement {
 ### 4.4 Display Logic
 
 **Dashboard Filtering** (lines 95-96):
-```tsx
+\`\`\`tsx
 const priorityAnnouncements = allAnnouncements.filter(
   (a) => a.isPinned || a.priority === "urgent"
 )
 const regularAnnouncements = allAnnouncements.filter(
   (a) => !priorityAnnouncements.find((p) => p.id === a.id)
 )
-```
+\`\`\`
 
 **Display Sections**:
 1. **"Barangay Updates"** (Carousel 1)
@@ -541,7 +541,7 @@ const regularAnnouncements = allAnnouncements.filter(
    - Currently empty (no regular announcements)
 
 **Empty State Handling** (Current):
-```tsx
+\`\`\`tsx
 {/* Lines 224-228 - Barangay Updates */}
 {priorityAnnouncements.length === 0 ? (
   <p className="text-center text-gray-500 py-8">No priority updates at this time.</p>
@@ -555,7 +555,7 @@ const regularAnnouncements = allAnnouncements.filter(
 ) : (
   // Carousel rendering
 )}
-```
+\`\`\`
 
 **User Requirement**: Replace with rich empty states showing "No updates yet" with proper iconography and messaging.
 
@@ -578,9 +578,9 @@ const regularAnnouncements = allAnnouncements.filter(
 - ✅ `user.address` - Complete address string
 
 **Subtitle** (Hardcoded - Line 81):
-```tsx
+\`\`\`tsx
 <p className="text-sm text-white/80">Barangay Mawaque Resident</p>
-```
+\`\`\`
 
 ### 5.2 Available Address Data
 
@@ -588,11 +588,11 @@ const regularAnnouncements = allAnnouncements.filter(
 - Structured address from AddressCombobox component
 - Stored as full string in `residents.address` field
 - Example formats:
-  ```
+  \`\`\`
   "123 Main Street, Purok 1, Barangay Mawaque, Quezon City, Metro Manila 1100"
   "45 Rizal Ave, Brgy. San Antonio, Manila, Metro Manila"
   "Unit 5-B, Barangay Central, Pasig City, NCR"
-  ```
+  \`\`\`
 
 **Separate Address Components** (also stored):
 - `house_lot_no`
@@ -604,7 +604,7 @@ const regularAnnouncements = allAnnouncements.filter(
 - `zip_code`
 
 **Auth Context** (`/lib/auth-context.tsx`):
-```tsx
+\`\`\`tsx
 interface User {
   id: string
   fullName: string
@@ -613,7 +613,7 @@ interface User {
   address: string        // Full address string
   // Individual components not exposed in current interface
 }
-```
+\`\`\`
 
 ### 5.3 Implementation Options
 
@@ -661,7 +661,7 @@ interface User {
 ### 6.2 Database Schema (Current)
 
 **Residents Table**:
-```sql
+\`\`\`sql
 residents (
   id UUID PRIMARY KEY,
   full_name TEXT,
@@ -689,10 +689,10 @@ residents (
   updated_at TIMESTAMPTZ DEFAULT now()
   -- MISSING: privacy_policy_accepted, privacy_policy_accepted_at, privacy_policy_version
 )
-```
+\`\`\`
 
 **QRT IDs Table** (inferred):
-```sql
+\`\`\`sql
 qrt_ids (
   id UUID PRIMARY KEY,
   user_id UUID REFERENCES residents(id),
@@ -708,10 +708,10 @@ qrt_ids (
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ
 )
-```
+\`\`\`
 
 **Certificates Table** (inferred):
-```sql
+\`\`\`sql
 certificates (
   id TEXT PRIMARY KEY,
   user_id UUID REFERENCES residents(id),
@@ -740,7 +740,7 @@ certificates (
   valid_id_type TEXT,
   valid_id_number TEXT
 )
-```
+\`\`\`
 
 **Missing Tables**:
 - ❌ `announcements` - Needs to be created

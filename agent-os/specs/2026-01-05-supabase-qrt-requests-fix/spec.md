@@ -47,14 +47,14 @@ The issue stems from a **user ID mismatch** between how user identities are stor
    - This passes `user.id` to the filter
 
 6. **In QRT Context Filter** (`/lib/qrt-context.tsx` lines 445-450):
-   ```typescript
+   \`\`\`typescript
    const getUserQRTIds = useCallback(
      (userId: string) => {
        return qrtIds.filter((qrt) => qrt.userId === userId)
      },
      [qrtIds],
    )
-   ```
+   \`\`\`
    - This should work correctly IF the userId values match exactly
 
 ### Why the Mismatch Occurs
@@ -107,7 +107,7 @@ The mismatch is likely in **timing**, not value matching:
 
 **Changes to `/app/requests/page.tsx`**:
 
-```typescript
+\`\`\`typescript
 export default function RequestsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -170,7 +170,7 @@ export default function RequestsPage() {
 
   // ... rest of component unchanged
 }
-```
+\`\`\`
 
 **Why This Works**:
 - Waits for auth context to fully load (`authLoading` becomes false)
@@ -182,7 +182,7 @@ export default function RequestsPage() {
 
 **Changes to `/lib/qrt-context.tsx`** (in addition to Option A):
 
-```typescript
+\`\`\`typescript
 // In dbRowToQRTIDRequest function (line 74):
 function dbRowToQRTIDRequest(row: Record<string, unknown>): QRTIDRequest {
   const userId = (row.user_id as string) || "anonymous"
@@ -224,7 +224,7 @@ const getUserQRTIds = useCallback(
   },
   [qrtIds],
 )
-```
+\`\`\`
 
 **Why This Works**:
 - Catches undefined or malformed user IDs at the source
@@ -243,46 +243,46 @@ The working script `scripts/inspect-supabase-schema.js` provides direct Supabase
 - Bypasses MCP OAuth flow entirely
 
 **Usage**:
-```bash
+\`\`\`bash
 node scripts/inspect-supabase-schema.js
-```
+\`\`\`
 
 #### Create Additional Helper Scripts
 
 **File: `/scripts/qrt-id-inspector.js`**
 
-```javascript
+\`\`\`javascript
 // Query and inspect QRT IDs with user association
 // Usage: node scripts/qrt-id-inspector.js [userId]
-```
+\`\`\`
 
 **File: `/scripts/verify-user-ids.js`**
 
-```javascript
+\`\`\`javascript
 // Compare user IDs between auth flow and database records
 // Usage: node scripts/verify-user-ids.js
 // Output: Shows if there are any format mismatches
-```
+\`\`\`
 
 **File: `/scripts/query-qrt-by-code.js`**
 
-```javascript
+\`\`\`javascript
 // Find QRT record by QRT code
 // Usage: node scripts/query-qrt-by-code.js QRT-2025-123456
-```
+\`\`\`
 
 #### Configuration
 
 **Create file: `/.env.local.example`** with required Supabase variables:
-```
+\`\`\`
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-```
+\`\`\`
 
 **Optional: Disable Supabase MCP Plugin**
 
 Edit `.claude/settings.local.json`:
-```json
+\`\`\`json
 {
   "plugins": {
     "supabase@claude-plugins-official": {
@@ -290,7 +290,7 @@ Edit `.claude/settings.local.json`:
     }
   }
 }
-```
+\`\`\`
 
 This prevents MCP attempts and avoids confusing failures.
 
@@ -301,9 +301,9 @@ This prevents MCP attempts and avoids confusing failures.
 #### Problem
 
 TypeScript interface expects `email` field (line 12 in `/lib/qrt-context.tsx`):
-```typescript
+\`\`\`typescript
 email: string
-```
+\`\`\`
 
 But database schema has no `email` column. This causes:
 - Silent undefined assignments (line 81): `email: row.email as string`
@@ -316,7 +316,7 @@ But database schema has no `email` column. This causes:
 
 Edit `/lib/qrt-context.tsx`:
 
-```typescript
+\`\`\`typescript
 export interface QRTIDRequest {
   id: string
   qrtCode: string
@@ -345,7 +345,7 @@ function qrtRequestToDbRow(request: QRTIDRequest): Record<string, unknown> {
     // ... rest
   }
 }
-```
+\`\`\`
 
 Update all references in `/app/payment/page.tsx` and form pages to remove email field references.
 
@@ -371,7 +371,7 @@ If email should be collected:
 
 **File: `/app/payment/page.tsx`** (around line 312):
 
-```typescript
+\`\`\`typescript
 // After successful addQRTRequest call
 if (isQRTPayment && qrtRequest) {
   // ... existing QRT record creation ...
@@ -394,13 +394,13 @@ if (isQRTPayment && qrtRequest) {
 
   // ... existing rest of code ...
 }
-```
+\`\`\`
 
 #### Add Debug Info When /requests is Empty
 
 **File: `/app/requests/page.tsx`** (in the empty state):
 
-```typescript
+\`\`\`typescript
 {filteredRequests.length === 0 ? (
   <Card className="overflow-hidden rounded-2xl border-0 bg-white shadow-md">
     <CardContent className="flex flex-col items-center justify-center py-12">
@@ -433,13 +433,13 @@ if (isQRTPayment && qrtRequest) {
 ) : (
   // ... existing request list ...
 )}
-```
+\`\`\`
 
 #### Enhanced Console Logging
 
 **Create file: `/lib/request-logger.ts`**:
 
-```typescript
+\`\`\`typescript
 // Centralized logging for request lifecycle
 export const requestLogger = {
   logQRTCreation: (qrtRecord: QRTIDRequest) => {
@@ -469,7 +469,7 @@ export const requestLogger = {
     })
   },
 }
-```
+\`\`\`
 
 ---
 
@@ -569,18 +569,18 @@ Keep git history clean; don't force push to main.
 
 ### Database Schema Summary
 
-```
+\`\`\`
 Table: qrt_ids
 - 32 columns total
 - No email column (despite code expecting it)
 - All 43 records have status="ready"
 - All user_id follow "user_[timestamp]" pattern
 - Sample user_ids: user_1767563860928, user_1767563860929, etc.
-```
+\`\`\`
 
 ### Code Flow Diagram
 
-```
+\`\`\`
 Registration
 └─> user.id = `user_${Date.now()}` (e.g., user_1767563860928)
     └─> Stored in localStorage and auth-context
@@ -599,7 +599,7 @@ Payment Page
     └─> Calls getUserQRTIds(user.id)
         └─> Filters context.qrtIds by userId
             └─> Shows matching records to user
-```
+\`\`\`
 
 ### Known Working References
 

@@ -20,7 +20,7 @@
 
 Replace the `qrtRequest` object with full field mapping:
 
-```typescript
+\`\`\`typescript
 const qrtRequest = {
   id: result.qrtId.id,
   qrtCode: result.qrtId.qrtCode,
@@ -50,7 +50,7 @@ const qrtRequest = {
   requestType: (result.qrtId.requestType || 'regular') as "regular" | "rush",
   amount: result.qrtId.amount || 0,
 }
-```
+\`\`\`
 
 **Why:** Current code has placeholder values, needs actual API response data.
 
@@ -58,7 +58,7 @@ const qrtRequest = {
 
 ## Then Test (10 min)
 
-```bash
+\`\`\`bash
 npm run dev
 
 # Browser:
@@ -69,27 +69,27 @@ npm run dev
 5. See QRT card (hero size)
 6. Click flip button
 7. Click card (should navigate)
-```
+\`\`\`
 
 ---
 
 ## Flow
 
-```
+\`\`\`
 Register → API creates QRT → Saves to Supabase → Returns in response
        → Frontend saves to context → Dashboard loads → Card displays
-```
+\`\`\`
 
 ---
 
 ## Files Changed
 
-```
+\`\`\`
 ✅ components/qrt-card-hero.tsx         (NEW)
 ✅ app/dashboard/page.tsx               (import updated)
 ✅ app/api/register/route.ts            (auto-creates QRT)
 ⚠️  app/register/page.tsx               (needs field mapping fix)
-```
+\`\`\`
 
 ---
 

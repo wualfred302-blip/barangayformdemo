@@ -75,7 +75,7 @@ Full national data expansion (1,595 cities, ~41,973 barangays)
 
 ## Usage Example
 
-```typescript
+\`\`\`typescript
 // Province selection
 <AddressCombobox
   type="province"
@@ -117,11 +117,11 @@ Full national data expansion (1,595 cities, ~41,973 barangays)
   disabled={!formData.cityMunicipality}
   required
 />
-```
+\`\`\`
 
 ## OCR Integration
 
-```typescript
+\`\`\`typescript
 // Fuzzy match OCR-extracted addresses
 const addressMatches = await fuzzyMatchAddresses({
   province: ocrData.province,    // "PAMPANGA"
@@ -133,7 +133,7 @@ const addressMatches = await fuzzyMatchAddresses({
 // → province: "Pampanga"
 // → city: "Mabalacat"
 // → ZIP: "2010" (auto-filled)
-```
+\`\`\`
 
 ## Support
 

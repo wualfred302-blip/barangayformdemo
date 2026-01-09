@@ -26,9 +26,9 @@ Complete dashboard refinement including bug fixes, color scheme update from blue
 ### 1.2 QRT Card Mini Component (`/components/qrt-card-mini.tsx`)
 
 **Current Gradient** (Line 77):
-```tsx
+\`\`\`tsx
 bg-gradient-to-br from-[#3B82F6] to-[#4ADED4]
-```
+\`\`\`
 - Already has teal endpoint (`#4ADED4`)
 - Starts with blue (`#3B82F6`)
 - Need to update to full teal-to-cyan gradient
@@ -86,14 +86,14 @@ bg-gradient-to-br from-[#3B82F6] to-[#4ADED4]
 **Risk**: LOW
 
 **Current**:
-```tsx
+\`\`\`tsx
 bg-gradient-to-br from-[#3B82F6] to-[#4ADED4]
-```
+\`\`\`
 
 **Target**:
-```tsx
+\`\`\`tsx
 bg-gradient-to-br from-[#14B8A6] via-[#06B6D4] to-[#22D3EE]
-```
+\`\`\`
 
 **Color Breakdown**:
 - `from-[#14B8A6]` - Teal-500 (start)
@@ -115,19 +115,19 @@ bg-gradient-to-br from-[#14B8A6] via-[#06B6D4] to-[#22D3EE]
 **Risk**: LOW
 
 **Current**:
-```tsx
+\`\`\`tsx
 className="h-10 w-10 text-[#325A94]" // Dark blue
-```
+\`\`\`
 
 **Target**:
-```tsx
+\`\`\`tsx
 className="h-10 w-10 text-[#0D9488]" // Teal-600
-```
+\`\`\`
 
 **Alternative** (if too dark):
-```tsx
+\`\`\`tsx
 className="h-10 w-10 text-[#14B8A6]" // Teal-500
-```
+\`\`\`
 
 **Files to Modify**:
 - `/app/dashboard/page.tsx` line 176
@@ -144,14 +144,14 @@ className="h-10 w-10 text-[#14B8A6]" // Teal-500
 **Risk**: LOW
 
 **Current**:
-```tsx
+\`\`\`tsx
 data-[state=active]:bg-[#3B82F6] // Blue
-```
+\`\`\`
 
 **Target**:
-```tsx
+\`\`\`tsx
 data-[state=active]:bg-[#14B8A6] // Teal-500
-```
+\`\`\`
 
 **Files to Modify**:
 - `/app/dashboard/page.tsx` lines 146, 152, 158
@@ -173,18 +173,18 @@ data-[state=active]:bg-[#14B8A6] // Teal-500
 **Risk**: LOW
 
 **Current** (Barangay Updates empty state, lines 229-230):
-```tsx
+\`\`\`tsx
 <div className="rounded-full bg-blue-100 p-4 mb-4">
   <Bell className="h-8 w-8 text-blue-600" />
 </div>
-```
+\`\`\`
 
 **Target**:
-```tsx
+\`\`\`tsx
 <div className="rounded-full bg-teal-100 p-4 mb-4">
   <Bell className="h-8 w-8 text-teal-600" />
 </div>
-```
+\`\`\`
 
 **Files to Modify**:
 - `/app/dashboard/page.tsx` lines 229-230 (Barangay Updates)
@@ -202,14 +202,14 @@ data-[state=active]:bg-[#14B8A6] // Teal-500
 **Risk**: LOW
 
 **Current** (line 86):
-```tsx
+\`\`\`tsx
 <div className="h-8 w-8 animate-spin rounded-full border-3 border-[#3B82F6] border-t-transparent" />
-```
+\`\`\`
 
 **Target**:
-```tsx
+\`\`\`tsx
 <div className="h-8 w-8 animate-spin rounded-full border-3 border-[#14B8A6] border-t-transparent" />
-```
+\`\`\`
 
 **Files to Modify**:
 - `/app/dashboard/page.tsx` line 86
@@ -225,14 +225,14 @@ data-[state=active]:bg-[#14B8A6] // Teal-500
 **Risk**: LOW
 
 **Current**:
-```tsx
+\`\`\`tsx
 focus:ring-[#3B82F6]
-```
+\`\`\`
 
 **Target**:
-```tsx
+\`\`\`tsx
 focus:ring-[#14B8A6]
-```
+\`\`\`
 
 **Files to Modify**:
 - `/app/dashboard/page.tsx` lines 172, 208, 216, 264, 270
@@ -248,14 +248,14 @@ focus:ring-[#14B8A6]
 **Risk**: LOW
 
 **Current** (lines 201, 258):
-```tsx
+\`\`\`tsx
 <div className="h-full w-full bg-[#3B82F6]" aria-hidden="true" />
-```
+\`\`\`
 
 **Target**:
-```tsx
+\`\`\`tsx
 <div className="h-full w-full bg-gradient-to-br from-[#14B8A6] to-[#22D3EE]" aria-hidden="true" />
-```
+\`\`\`
 
 **Files to Modify**:
 - `/app/dashboard/page.tsx` lines 201, 258
@@ -309,14 +309,14 @@ focus:ring-[#14B8A6]
 ### 4.2 Gradient Patterns
 
 **QRT Card Gradient** (soft, 3-stop):
-```tsx
+\`\`\`tsx
 bg-gradient-to-br from-[#14B8A6] via-[#06B6D4] to-[#22D3EE]
-```
+\`\`\`
 
 **Announcement Placeholder** (soft, 2-stop):
-```tsx
+\`\`\`tsx
 bg-gradient-to-br from-[#14B8A6] to-[#22D3EE]
-```
+\`\`\`
 
 ---
 
@@ -332,7 +332,7 @@ bg-gradient-to-br from-[#14B8A6] to-[#22D3EE]
 5. Ensure all components are properly exported
 
 **Component Verification**:
-```bash
+\`\`\`bash
 # Check build succeeds
 npm run build
 
@@ -341,7 +341,7 @@ npm run dev
 
 # Verify no TypeScript errors
 npx tsc --noEmit
-```
+\`\`\`
 
 ### 5.2 Color Contrast Verification
 
@@ -380,7 +380,7 @@ npx tsc --noEmit
 ### 6.1 Functional Testing
 
 **Dashboard Load Test**:
-```
+\`\`\`
 1. Navigate to /dashboard
 2. Verify page loads without errors
 3. Check browser console for errors/warnings
@@ -389,56 +389,56 @@ npx tsc --noEmit
 6. Verify tabs navigation works
 7. Click each service → verify routing works
 8. Verify announcements section renders (empty or with data)
-```
+\`\`\`
 
 **QRT Card Test**:
-```
+\`\`\`
 1. Without QRT ID: Verify CTA card shows with teal gradient
 2. With QRT ID: Verify flip animation works
 3. Click card → verify navigation to details page
 4. Verify gradient displays smoothly
 5. Verify text is readable on gradient background
-```
+\`\`\`
 
 ### 6.2 Visual Testing
 
 **Color Accuracy Test**:
-```
+\`\`\`
 1. Compare dashboard to user's teal screenshot
 2. Verify all blue colors replaced with teal
 3. Check gradient smoothness on QRT card
 4. Verify icon colors match teal theme
 5. Check tab active state is teal
 6. Verify empty states use teal icons
-```
+\`\`\`
 
 **Responsive Testing**:
-```
+\`\`\`
 1. Mobile (320px-768px): Verify layout and colors
 2. Tablet (768px-1024px): Verify layout and colors
 3. Desktop (1024px+): Verify layout and colors
 4. Check that gradients render consistently across devices
-```
+\`\`\`
 
 ### 6.3 Accessibility Testing
 
 **Keyboard Navigation**:
-```
+\`\`\`
 1. Tab through all interactive elements
 2. Verify focus rings are visible (teal color)
 3. Verify focus order is logical
 4. Test Enter/Space on QRT card and services
 5. Verify screen reader announces correctly
-```
+\`\`\`
 
 **Contrast Testing**:
-```
+\`\`\`
 1. White text on teal gradient: Check contrast ratio
 2. Teal icons on white: Check contrast ratio
 3. Teal tab on gray: Check contrast ratio
 4. Use Chrome DevTools Accessibility panel
 5. Verify WCAG AA compliance
-```
+\`\`\`
 
 ---
 
@@ -515,12 +515,12 @@ npx tsc --noEmit
 ### If Errors Occur After Changes:
 
 **1. Immediate Rollback**:
-```bash
+\`\`\`bash
 git diff  # Review changes
 git checkout HEAD -- app/dashboard/page.tsx
 git checkout HEAD -- components/qrt-card-mini.tsx
 npm run dev  # Verify rollback works
-```
+\`\`\`
 
 **2. Partial Rollback** (if only visual issues):
 - Keep functional fixes (error fixes)
@@ -528,11 +528,11 @@ npm run dev  # Verify rollback works
 - Investigate contrast or rendering issues
 
 **3. Full Rollback**:
-```bash
+\`\`\`bash
 git log  # Find commit before changes
 git revert <commit-hash>
 npm run build && npm run dev
-```
+\`\`\`
 
 ---
 
@@ -546,11 +546,11 @@ npm run build && npm run dev
 5. Test interactions → All functionality works
 
 ### Verify Build
-```bash
+\`\`\`bash
 npm run build
 # Should complete without errors
 # Output: "Compiled successfully"
-```
+\`\`\`
 
 ### Verify Lighthouse Score
 - Performance: >= 90

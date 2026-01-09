@@ -23,23 +23,23 @@ The seed script already exists and is correct. It just needs to be run.
 
 Make sure you have these in `.env.local`:
 
-```bash
+\`\`\`bash
 NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 
 # Optional but recommended for faster seeding
 SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
-```
+\`\`\`
 
 ### Step 2: Run the Seed Script
 
-```bash
+\`\`\`bash
 cd /home/user/barangayformdemo
 npx tsx scripts/seed-addresses.ts
-```
+\`\`\`
 
 **Expected Output:**
-```
+\`\`\`
 === PSGC Address Seeding Script ===
 
 Fetching provinces from PSGC API...
@@ -66,7 +66,7 @@ Inserting 42036 barangays...
 Provinces: 82
 Cities/Municipalities: 1634
 Barangays: 42036
-```
+\`\`\`
 
 **Estimated Time:** 5-10 minutes (depends on network speed and database performance)
 
@@ -74,12 +74,12 @@ Barangays: 42036
 
 Run the validation script:
 
-```bash
+\`\`\`bash
 npx tsx scripts/validate-phase3.ts
-```
+\`\`\`
 
 **Expected Output:**
-```
+\`\`\`
 📊 Database Record Counts:
   Provinces: 82 / 82 (100%)
   Cities: 1634 / 1,634 ✅
@@ -90,7 +90,7 @@ npx tsx scripts/validate-phase3.ts
   Barangays: 100.0%
 
 ✅ FULL NATIONAL COVERAGE ACHIEVED
-```
+\`\`\`
 
 All regional tests should now pass:
 - ✅ Luzon: Manila, Quezon City, Baguio, Zambales/Subic
@@ -105,23 +105,23 @@ All regional tests should now pass:
 ### Issue: Permission Denied
 
 **Error:**
-```
+\`\`\`
 Error: You do not have permission to perform this operation
-```
+\`\`\`
 
 **Solution:**
 Use the service role key instead of anon key:
 
-```bash
+\`\`\`bash
 SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key> npx tsx scripts/seed-addresses.ts
-```
+\`\`\`
 
 ### Issue: API Timeout
 
 **Error:**
-```
+\`\`\`
 Attempt 1 failed for https://psgc.cloud/api/barangays, retrying...
-```
+\`\`\`
 
 **Solution:**
 - The script has automatic retry logic (3 attempts)
@@ -131,9 +131,9 @@ Attempt 1 failed for https://psgc.cloud/api/barangays, retrying...
 ### Issue: Duplicate Key Errors
 
 **Error:**
-```
+\`\`\`
 Error: duplicate key value violates unique constraint
-```
+\`\`\`
 
 **Solution:**
 - Script uses `upsert` with conflict resolution
@@ -143,15 +143,15 @@ Error: duplicate key value violates unique constraint
 ### Issue: Out of Memory
 
 **Error:**
-```
+\`\`\`
 JavaScript heap out of memory
-```
+\`\`\`
 
 **Solution:**
 - Increase Node memory limit:
-```bash
+\`\`\`bash
 NODE_OPTIONS="--max-old-space-size=4096" npx tsx scripts/seed-addresses.ts
-```
+\`\`\`
 
 ---
 
@@ -212,7 +212,7 @@ After running the seed script, verify:
 
 ## Quick Command Reference
 
-```bash
+\`\`\`bash
 # Execute seed script
 npx tsx scripts/seed-addresses.ts
 
@@ -235,7 +235,7 @@ const supabase = createClient(
   console.log('Barangays:', barangays.count);
 })();
 "
-```
+\`\`\`
 
 ---
 

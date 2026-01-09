@@ -100,13 +100,13 @@ All three UI fixes have been properly implemented with excellent code quality:
 
 ### CRITICAL - Execute Phase 1
 
-```bash
+\`\`\`bash
 # Run the seed script
 npx tsx scripts/seed-addresses.ts
 
 # Verify completion
 npx tsx scripts/validate-phase3.ts
-```
+\`\`\`
 
 **Expected Outcome:**
 - 1,634 cities seeded

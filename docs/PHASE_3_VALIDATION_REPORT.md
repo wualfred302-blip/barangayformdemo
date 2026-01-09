@@ -36,7 +36,7 @@ Phase 3 validation has been executed to assess the completion status of all task
 - Current coverage is insufficient for nationwide production deployment
 
 **SQL Verification Queries:**
-```sql
+\`\`\`sql
 -- Provinces
 SELECT COUNT(*) FROM address_provinces;
 -- Result: 82 ✅
@@ -48,7 +48,7 @@ SELECT COUNT(*) FROM address_cities;
 -- Barangays
 SELECT COUNT(*) FROM address_barangays;
 -- Result: 27 ❌ (Expected: 42,000+)
-```
+\`\`\`
 
 ---
 
@@ -136,7 +136,7 @@ SELECT COUNT(*) FROM address_barangays;
 **Line:** 480
 
 **Code Review:**
-```typescript
+\`\`\`typescript
 <Input
   id="birthDate"
   name="birthDate"
@@ -146,7 +146,7 @@ SELECT COUNT(*) FROM address_barangays;
   disabled={isLoading}
   className={`${inputBaseClass} text-gray-900 ${scannedFields.birthDate ? inputScannedClass : ""}`}
 />
-```
+\`\`\`
 
 **Findings:**
 - ✅ **CORRECT:** `text-gray-900` class applied
@@ -167,16 +167,16 @@ SELECT COUNT(*) FROM address_barangays;
 **Line:** 441
 
 **Code Review:**
-```typescript
+\`\`\`typescript
 <SelectTrigger className={`${inputBaseClass} text-gray-900 ${scannedFields.idType ? inputScannedClass : ""}`}>
   <SelectValue placeholder="Select ID" />
 </SelectTrigger>
-```
+\`\`\`
 
 **Variable Definition (Line 366):**
-```typescript
+\`\`\`typescript
 const inputBaseClass = "h-12 w-full text-base"
-```
+\`\`\`
 
 **Findings:**
 - ✅ **CORRECT:** SelectTrigger uses same `inputBaseClass` as Input fields
@@ -198,7 +198,7 @@ const inputBaseClass = "h-12 w-full text-base"
 **Lines:** 744-750
 
 **Code Review:**
-```typescript
+\`\`\`typescript
 <Label htmlFor="agreedToTerms" className="text-sm leading-relaxed text-gray-700 cursor-pointer">
   I agree to the{" "}
   <Link href="/privacy" className="font-medium text-emerald-600 underline hover:text-emerald-700">
@@ -206,7 +206,7 @@ const inputBaseClass = "h-12 w-full text-base"
   </Link>{" "}
   and consent to the collection of my personal data for registration purposes.
 </Label>
-```
+\`\`\`
 
 **Findings:**
 - ✅ **CORRECT:** `text-sm` provides readable font size
@@ -473,7 +473,7 @@ However, Phase 1 (Data Seeding) has **NOT been completed**:
 
 ## Appendix A: Validation Script Output
 
-```
+\`\`\`
 ═══════════════════════════════════════════════════════
   PHASE 3: COMPREHENSIVE TESTING & CODE REVIEW
   Address System Fixes - Validation Report
@@ -518,7 +518,7 @@ Data Quality Tests:
   ⚠️  SOME VALIDATIONS FAILED
   Phase 1 may be incomplete or errors occurred
 ═══════════════════════════════════════════════════════
-```
+\`\`\`
 
 ## Appendix B: Files Reviewed
 

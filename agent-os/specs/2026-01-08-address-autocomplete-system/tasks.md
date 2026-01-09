@@ -60,9 +60,9 @@ Create the `/app/api/address/provinces/route.ts` API endpoint that searches and 
 - ✅ Returns 500 for server errors
 
 **Test Command:**
-```bash
+\`\`\`bash
 curl "http://localhost:3000/api/address/provinces?search=pamp"
-```
+\`\`\`
 
 ---
 
@@ -97,9 +97,9 @@ Create the `/app/api/address/cities/route.ts` API endpoint that searches cities/
 - ✅ Returns all cities if no filters provided (limited to 20)
 
 **Test Command:**
-```bash
+\`\`\`bash
 curl "http://localhost:3000/api/address/cities?search=mabala&province_code=035400000"
-```
+\`\`\`
 
 ---
 
@@ -132,9 +132,9 @@ Create the `/app/api/address/barangays/route.ts` API endpoint that searches bara
 - ✅ Uses composite index on (city_code, name) for performance
 
 **Test Command:**
-```bash
+\`\`\`bash
 curl "http://localhost:3000/api/address/barangays?city_code=035409000&search=atlu"
-```
+\`\`\`
 
 ---
 
@@ -328,7 +328,7 @@ Create the `/lib/address-matcher.ts` utility for fuzzy matching OCR-extracted ad
 **Acceptance Criteria:**
 - ✅ File created at `/lib/address-matcher.ts`
 - ✅ Exports `fuzzyMatchAddresses` function with signature:
-  ```typescript
+  \`\`\`typescript
   interface FuzzyMatchResult {
     province: { code: string; name: string } | null
     city: { code: string; name: string; zip_code: string } | null
@@ -340,7 +340,7 @@ Create the `/lib/address-matcher.ts` utility for fuzzy matching OCR-extracted ad
     city?: string
     barangay?: string
   }): Promise<FuzzyMatchResult>
-  ```
+  \`\`\`
 - ✅ Implements cascading search algorithm:
   1. Search provinces API with OCR province text
   2. Take first (best) match, extract code
@@ -465,7 +465,7 @@ Plan how to modify `/app/register/page.tsx` to integrate AddressCombobox without
 - ✅ Current form uses simple string state for addresses
 - ✅ Need to add `provinceCode` and `cityCode` state
 - ✅ `wasScanned` currently boolean, needs to be object:
-  ```typescript
+  \`\`\`typescript
   {
     province: boolean,
     cityMunicipality: boolean,
@@ -473,7 +473,7 @@ Plan how to modify `/app/register/page.tsx` to integrate AddressCombobox without
     zipCode: boolean,
     // ... other fields
   }
-  ```
+  \`\`\`
 - ✅ OCR handler needs async fuzzy matching before state update
 - ✅ Cascading logic: changing province clears city, barangay, ZIP
 - ✅ Changing city clears barangay, updates ZIP
@@ -497,10 +497,10 @@ Modify `/app/register/page.tsx` to replace address Input fields with AddressComb
 **Acceptance Criteria:**
 - ✅ Import AddressCombobox and fuzzyMatchAddresses
 - ✅ Add state variables:
-  ```typescript
+  \`\`\`typescript
   const [provinceCode, setProvinceCode] = useState<string>("")
   const [cityCode, setCityCode] = useState<string>("")
-  ```
+  \`\`\`
 - ✅ Update `wasScanned` state to object structure
 - ✅ Replace Province Input with AddressCombobox:
   - ✅ Type: "province"
@@ -658,12 +658,12 @@ Verify that the existing partial seed data (82 provinces, 76 cities, 94 barangay
 
 **Acceptance Criteria:**
 - Query database to confirm current record counts:
-  ```sql
+  \`\`\`sql
   SELECT
     (SELECT COUNT(*) FROM address_provinces) as provinces,
     (SELECT COUNT(*) FROM address_cities) as cities,
     (SELECT COUNT(*) FROM address_barangays) as barangays;
-  ```
+  \`\`\`
 - Verify Pampanga region fully seeded:
   - All Pampanga cities present (22/22)
   - Mabalacat barangays present (27/27)
@@ -1313,16 +1313,16 @@ Upon completion of all tasks, the system should achieve:
 ## Quick Start for Implementation
 
 **For `/implement-tasks`:**
-```bash
+\`\`\`bash
 # Start with Phase 1 (API routes)
 /implement-tasks --start-task 1.1 --end-task 1.4
-```
+\`\`\`
 
 **For `/orchestrate-tasks`:**
-```bash
+\`\`\`bash
 # Orchestrate the entire implementation
 /orchestrate-tasks
-```
+\`\`\`
 
 The orchestrator will automatically:
 1. Assign tasks to appropriate agents (Sonnet/Haiku/Opus)

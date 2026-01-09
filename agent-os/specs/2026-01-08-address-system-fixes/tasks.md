@@ -55,13 +55,13 @@ Seed complete Philippine address data (all provinces, cities, barangays) to ensu
 - ✅ Luzon region fully covered (test: can select any Luzon city)
 - ✅ Script execution completes successfully
 - ✅ Database record counts verified:
-  ```sql
+  \`\`\`sql
   SELECT 'cities' as table, COUNT(*) FROM address_cities;
   -- Expected: ~1,634
 
   SELECT 'barangays' as table, COUNT(*) FROM address_barangays;
   -- Expected: ~42,000
-  ```
+  \`\`\`
 
 **Implementation:**
 1. Review existing seed script at `/scripts/seed-addresses.ts`
@@ -160,7 +160,7 @@ The ID Type dropdown bar is shorter (less vertical height) than the Full Name, I
 5. Verify shadcn/ui Select component styling
 
 **Likely Fix:**
-```typescript
+\`\`\`typescript
 // Ensure Select component has same classes as Input
 <Select>
   <SelectTrigger className="h-12 w-full"> {/* Match Input height */}
@@ -168,7 +168,7 @@ The ID Type dropdown bar is shorter (less vertical height) than the Full Name, I
   </SelectTrigger>
   ...
 </Select>
-```
+\`\`\`
 
 **Test:**
 - All form fields should have uniform height

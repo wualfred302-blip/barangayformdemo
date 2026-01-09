@@ -36,9 +36,9 @@ This specification covers three interconnected improvements to the QRT ID system
 
 ### 3. Card Delivery System
 - **New Workflow:**
-  ```
+  \`\`\`
   Request → Review → Approve → Print → Ready/Delivery → Delivered
-  ```
+  \`\`\`
 - **For Residents:**
   - Choose pickup (FREE) or delivery (₱50)
   - Track delivery status with timeline
@@ -114,10 +114,10 @@ End-to-end testing and polish.
 - **Home Delivery:** ₱50 fee, 5-7 business days, requires payment
 
 ### Status Flow
-```
+\`\`\`
 submitted → pending_approval → approved → printing →
 ready_for_pickup/out_for_delivery → delivered
-```
+\`\`\`
 
 ### Payment
 - Pickup: No payment required (immediate approval)
@@ -153,16 +153,16 @@ ready_for_pickup/out_for_delivery → delivered
 ## Files Overview
 
 ### New Files (5)
-```
+\`\`\`
 /scripts/009_add_delivery_fields_to_qrt.sql
 /app/staff/qrt-fulfillment/page.tsx
 /components/qrt-delivery-timeline.tsx
 /components/qrt-status-update-modal.tsx
 /lib/pdf-generator.ts
-```
+\`\`\`
 
 ### Modified Files (12)
-```
+\`\`\`
 /lib/auth-context.tsx
 /app/api/register/route.ts
 /app/api/login/route.ts
@@ -173,7 +173,7 @@ ready_for_pickup/out_for_delivery → delivered
 /components/qrt-card-mini.tsx
 /app/staff/secretary/page.tsx
 /app/staff/captain/page.tsx
-```
+\`\`\`
 
 **Total:** ~1,500 new lines, ~300 modified lines
 

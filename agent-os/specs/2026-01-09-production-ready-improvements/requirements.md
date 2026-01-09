@@ -102,13 +102,13 @@ Transform the barangay app from demo to production-ready by implementing 6 criti
   - "Announcements" - Shows regular published announcements
 
 **Announcement Structure** (from context):
-```typescript
+\`\`\`typescript
 {
   id, title, content, category, priority, imageUrl,
   isPublished, isPinned, authorId, authorName,
   publishedAt, expiresAt, createdAt, updatedAt
 }
-```
+\`\`\`
 
 **Categories**: general, health, emergency, event, notice
 **Priority**: low, normal, high, urgent
@@ -122,9 +122,9 @@ Transform the barangay app from demo to production-ready by implementing 6 criti
 **File**: `/app/profile/page.tsx` (line 81)
 
 **Current Implementation**:
-```typescript
+\`\`\`typescript
 <p className="text-sm text-white/80">Barangay Mawaque Resident</p>
-```
+\`\`\`
 
 **Data Available**:
 - Profile already displays dynamic data from auth context:
@@ -294,7 +294,7 @@ Pull from auth context (`useAuth()`):
 #### 2.4.1 Database Schema Changes
 **Create Migration**: `/supabase/migrations/008_add_privacy_policy_fields.sql`
 
-```sql
+\`\`\`sql
 ALTER TABLE public.residents
   ADD COLUMN IF NOT EXISTS privacy_policy_accepted BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS privacy_policy_accepted_at TIMESTAMPTZ,
@@ -309,34 +309,34 @@ UPDATE public.residents
 
 -- Add index
 CREATE INDEX idx_residents_privacy ON public.residents(privacy_policy_accepted);
-```
+\`\`\`
 
 #### 2.4.2 Registration Form UI
 **File**: `/app/register/page.tsx`
 
 **Line 763-769** - Update submit button:
-```typescript
+\`\`\`typescript
 <Button
   type="submit"
   disabled={isLoading || !formData.agreedToTerms}  // ADD condition
   className="... disabled:bg-gray-400 disabled:cursor-not-allowed"  // ADD disabled styles
 >
-```
+\`\`\`
 
 **Add warning message** (before button):
-```typescript
+\`\`\`typescript
 {!formData.agreedToTerms && (
   <p className="text-sm text-amber-600 font-medium">
     ⚠️ Please accept the Privacy Policy to create your account
   </p>
 )}
-```
+\`\`\`
 
 #### 2.4.3 Registration API Validation
 **File**: `/app/api/register/route.ts`
 
 **After line 59** - Add privacy validation:
-```typescript
+\`\`\`typescript
 // Validate privacy policy acceptance
 const privacyPolicyAccepted = cleanData.agreedToTerms === true
 if (!privacyPolicyAccepted) {
@@ -349,14 +349,14 @@ if (!privacyPolicyAccepted) {
     { status: 400 }
   )
 }
-```
+\`\`\`
 
 **Lines 174-196** - Add to INSERT statement:
-```typescript
+\`\`\`typescript
 privacy_policy_accepted: true,
 privacy_policy_accepted_at: new Date().toISOString(),
 privacy_policy_version: 'v1.0',
-```
+\`\`\`
 
 **Acceptance Criteria**:
 - [ ] Database columns added to residents table
@@ -379,7 +379,7 @@ privacy_policy_version: 'v1.0',
 **File**: `/app/profile/page.tsx` (line 81)
 
 **Replace hardcoded text**:
-```typescript
+\`\`\`typescript
 // BEFORE:
 <p className="text-sm text-white/80">Barangay Mawaque Resident</p>
 
@@ -387,10 +387,10 @@ privacy_policy_version: 'v1.0',
 <p className="text-sm text-white/80">
   Barangay {extractBarangay(user.address)} Resident
 </p>
-```
+\`\`\`
 
 **Add helper function**:
-```typescript
+\`\`\`typescript
 const extractBarangay = (address: string): string => {
   if (!address) return "Mawaque"
 
@@ -401,7 +401,7 @@ const extractBarangay = (address: string): string => {
   // Fallback to default
   return "Mawaque"
 }
-```
+\`\`\`
 
 #### 2.5.2 Address Format Examples
 **Registration stores addresses like**:
@@ -433,7 +433,7 @@ const extractBarangay = (address: string): string => {
 #### 2.6.1 Database Schema
 **Create Migration**: `/supabase/migrations/007_create_announcements_table.sql`
 
-```sql
+\`\`\`sql
 CREATE TABLE IF NOT EXISTS public.announcements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
@@ -486,7 +486,7 @@ CREATE POLICY "Staff can manage announcements"
 -- Grants
 GRANT SELECT ON public.announcements TO anon, authenticated;
 GRANT ALL ON public.announcements TO service_role;
-```
+\`\`\`
 
 #### 2.6.2 Replace Announcements Context
 **File**: `/lib/announcements-context.tsx`
@@ -514,7 +514,7 @@ GRANT ALL ON public.announcements TO service_role;
 **File**: `/app/dashboard/page.tsx`
 
 **Lines 224-228** - Barangay Updates (pinned/urgent):
-```typescript
+\`\`\`typescript
 {priorityAnnouncements.length === 0 ? (
   <Card className="flex flex-col items-center justify-center p-8 text-center bg-gray-50">
     <div className="rounded-full bg-blue-100 p-4 mb-4">
@@ -528,10 +528,10 @@ GRANT ALL ON public.announcements TO service_role;
 ) : (
   // existing carousel
 )}
-```
+\`\`\`
 
 **Lines 272-275** - Announcements (regular):
-```typescript
+\`\`\`typescript
 {regularAnnouncements.length === 0 ? (
   <Card className="flex flex-col items-center justify-center p-8 text-center bg-gray-50">
     <div className="rounded-full bg-gray-100 p-4 mb-4">
@@ -545,7 +545,7 @@ GRANT ALL ON public.announcements TO service_role;
 ) : (
   // existing carousel
 )}
-```
+\`\`\`
 
 #### 2.6.4 Staff CMS Integration
 **File**: `/app/staff/announcements/page.tsx`
@@ -609,7 +609,7 @@ GRANT ALL ON public.announcements TO service_role;
 5. Verify data integrity
 
 **Rollback Plan**:
-```sql
+\`\`\`sql
 -- If needed to rollback announcements table
 DROP TABLE IF EXISTS public.announcements CASCADE;
 
@@ -618,7 +618,7 @@ ALTER TABLE public.residents
   DROP COLUMN IF EXISTS privacy_policy_accepted,
   DROP COLUMN IF EXISTS privacy_policy_accepted_at,
   DROP COLUMN IF EXISTS privacy_policy_version;
-```
+\`\`\`
 
 ### 4.2 Data Migration (Existing Announcements)
 **Challenge**: Announcements currently in localStorage need migration
@@ -901,21 +901,21 @@ ALTER TABLE public.residents
 
 ### Phase 1: Database Migrations (CRITICAL - DO FIRST)
 1. **Backup production database**
-   ```bash
+   \`\`\`bash
    pg_dump $PROD_DB_URL > backup_$(date +%Y%m%d_%H%M%S).sql
-   ```
+   \`\`\`
 
 2. **Run migrations on staging**
-   ```bash
+   \`\`\`bash
    psql $STAGING_DB_URL -f supabase/migrations/007_create_announcements_table.sql
    psql $STAGING_DB_URL -f supabase/migrations/008_add_privacy_policy_fields.sql
-   ```
+   \`\`\`
 
 3. **Verify tables created**
-   ```bash
+   \`\`\`bash
    psql $STAGING_DB_URL -c "\d announcements"
    psql $STAGING_DB_URL -c "\d residents" | grep privacy
-   ```
+   \`\`\`
 
 4. **Test on staging environment**
    - Create test announcement
@@ -923,38 +923,38 @@ ALTER TABLE public.residents
    - Verify data persists
 
 5. **Run migrations on production** (after staging verified)
-   ```bash
+   \`\`\`bash
    psql $PROD_DB_URL -f supabase/migrations/007_create_announcements_table.sql
    psql $PROD_DB_URL -f supabase/migrations/008_add_privacy_policy_fields.sql
-   ```
+   \`\`\`
 
 ### Phase 2: Code Deployment
 1. **Create deployment branch**
-   ```bash
+   \`\`\`bash
    git checkout -b production-ready-improvements
-   ```
+   \`\`\`
 
 2. **Commit changes in logical groups**
-   ```bash
+   \`\`\`bash
    git commit -m "feat: add privacy policy enforcement"
    git commit -m "feat: remove payment system, make services free"
    git commit -m "feat: simplify QRT ID request flow"
    git commit -m "feat: implement Supabase-backed announcements CMS"
    git commit -m "feat: make profile barangay dynamic"
    git commit -m "chore: swap homepage service positions"
-   ```
+   \`\`\`
 
 3. **Deploy to staging**
-   ```bash
+   \`\`\`bash
    vercel --scope=staging
-   ```
+   \`\`\`
 
 4. **Run full testing suite** (see section 7.3)
 
 5. **Deploy to production**
-   ```bash
+   \`\`\`bash
    vercel --prod
-   ```
+   \`\`\`
 
 ### Phase 3: Post-Deployment Verification
 1. **Monitor Supabase metrics**
@@ -983,7 +983,7 @@ ALTER TABLE public.residents
 ## 9. Rollback Strategy
 
 ### If Database Issues Occur
-```sql
+\`\`\`sql
 -- Rollback announcements table
 DROP TABLE IF EXISTS public.announcements CASCADE;
 
@@ -995,10 +995,10 @@ ALTER TABLE public.residents
 
 -- Restore from backup if needed
 psql $PROD_DB_URL < backup_YYYYMMDD_HHMMSS.sql
-```
+\`\`\`
 
 ### If Code Issues Occur
-```bash
+\`\`\`bash
 # Revert to previous deployment
 vercel rollback
 
@@ -1008,7 +1008,7 @@ git push origin main
 
 # Redeploy old version
 vercel --prod
-```
+\`\`\`
 
 ### If Partial Rollback Needed
 Each feature is independent, can rollback individually:

@@ -94,13 +94,13 @@ The user reported two critical issues:
 ### Gradient Implementation
 
 **QRT Card Gradient**:
-```tsx
+\`\`\`tsx
 // Before
 bg-gradient-to-br from-[#3B82F6] to-[#4ADED4]
 
 // After
 bg-gradient-to-br from-[#14B8A6] via-[#06B6D4] to-[#22D3EE]
-```
+\`\`\`
 
 **Rationale**:
 - 3-stop gradient for smoother transitions ("soft gradients")

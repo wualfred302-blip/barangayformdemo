@@ -2,7 +2,7 @@
 
 ## System Overview
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────┐
 │                    User Interface Layer                      │
 │  ┌──────────────────────────────────────────────────────┐  │
@@ -54,13 +54,13 @@
 │  │  - Composite index on (city_code, name)              │  │
 │  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 ## Database Schema
 
 ### Tables
 
-```sql
+\`\`\`sql
 -- Enable PostgreSQL trigram extension for fuzzy text matching
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS public.address_sync_log (
   records_synced INTEGER NOT NULL,
   synced_at TIMESTAMPTZ DEFAULT NOW()
 );
-```
+\`\`\`
 
 **Storage Estimate:** ~26 MB total (negligible for PostgreSQL)
 
@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS public.address_sync_log (
 - `search` (optional): Search term for filtering (e.g., "pamp")
 
 **Response:**
-```json
+\`\`\`json
 {
   "provinces": [
     {
@@ -143,13 +143,13 @@ CREATE TABLE IF NOT EXISTS public.address_sync_log (
     }
   ]
 }
-```
+\`\`\`
 
 **Configuration:**
-```typescript
+\`\`\`typescript
 export const runtime = 'edge'      // Edge runtime for speed
 export const revalidate = 3600     // 1-hour cache
-```
+\`\`\`
 
 **Performance:** <50ms
 
@@ -164,7 +164,7 @@ export const revalidate = 3600     // 1-hour cache
 - `province_code` (optional): Filter cities by province (e.g., "035400000")
 
 **Response:**
-```json
+\`\`\`json
 {
   "cities": [
     {
@@ -174,13 +174,13 @@ export const revalidate = 3600     // 1-hour cache
     }
   ]
 }
-```
+\`\`\`
 
 **Configuration:**
-```typescript
+\`\`\`typescript
 export const runtime = 'edge'
 export const revalidate = 3600
-```
+\`\`\`
 
 **Performance:** <100ms
 
@@ -195,7 +195,7 @@ export const revalidate = 3600
 - `search` (optional): Search term for filtering (e.g., "atlu")
 
 **Response:**
-```json
+\`\`\`json
 {
   "barangays": [
     {
@@ -204,20 +204,20 @@ export const revalidate = 3600
     }
   ]
 }
-```
+\`\`\`
 
 **Error Response (400):**
-```json
+\`\`\`json
 {
   "error": "city_code parameter is required"
 }
-```
+\`\`\`
 
 **Configuration:**
-```typescript
+\`\`\`typescript
 export const runtime = 'edge'
 export const revalidate = 3600
-```
+\`\`\`
 
 **Performance:** <150ms
 
@@ -226,13 +226,13 @@ export const revalidate = 3600
 ### Common API Patterns
 
 **Fuzzy Search Implementation:**
-```typescript
+\`\`\`typescript
 // Prefix match (higher priority)
 query.or(`name.ilike.${search}%`)
 
 // Contains match (fallback)
 query.or(`name.ilike.%${search}%`)
-```
+\`\`\`
 
 **Examples:**
 - Search "pamp" → Matches "Pampanga" (prefix)
@@ -248,7 +248,7 @@ query.or(`name.ilike.%${search}%`)
 ### AddressCombobox Component
 
 **Props Interface:**
-```typescript
+\`\`\`typescript
 interface AddressComboboxProps {
   value: string                           // Current selected value
   onValueChange: (
@@ -264,17 +264,17 @@ interface AddressComboboxProps {
   required?: boolean                      // Required field flag
   className?: string                      // Additional CSS classes
 }
-```
+\`\`\`
 
 **State Management:**
-```typescript
+\`\`\`typescript
 const [open, setOpen] = useState(false)              // Dropdown open state
 const [options, setOptions] = useState<AddressOption[]>([])  // Search results
 const [loading, setLoading] = useState(false)        // Loading indicator
 const [search, setSearch] = useState("")             // Search query (debounced)
 const [customMode, setCustomMode] = useState(false)  // Manual input mode
 const debounceTimeout = useRef<NodeJS.Timeout>()    // Debounce timer
-```
+\`\`\`
 
 **Behavior:**
 - Fetches options from API when opened or search changes
@@ -297,7 +297,7 @@ const debounceTimeout = useRef<NodeJS.Timeout>()    // Debounce timer
 **Location:** `/lib/address-matcher.ts`
 
 **Function Signature:**
-```typescript
+\`\`\`typescript
 interface FuzzyMatchResult {
   province: { code: string; name: string } | null
   city: { code: string; name: string; zip_code: string } | null
@@ -309,7 +309,7 @@ export async function fuzzyMatchAddresses(input: {
   city?: string
   barangay?: string
 }): Promise<FuzzyMatchResult>
-```
+\`\`\`
 
 **Algorithm:**
 1. Search provinces with OCR-extracted province text
@@ -330,7 +330,7 @@ export async function fuzzyMatchAddresses(input: {
 
 ### Manual Entry Flow
 
-```
+\`\`\`
 1. User clicks Province dropdown
    ↓
 2. AddressCombobox opens, shows all provinces (limit 20)
@@ -348,11 +348,11 @@ export async function fuzzyMatchAddresses(input: {
 8. onValueChange fires → setProvinceCode("035400000")
    ↓
 9. City dropdown enables, clears barangay + ZIP
-```
+\`\`\`
 
 ### OCR-Assisted Flow
 
-```
+\`\`\`
 1. User scans Driver's License
    ↓
 2. OCR extracts: { province: "ZAMBALES", city: "SUBIC", barangay: "ILWAS" }
@@ -373,7 +373,7 @@ export async function fuzzyMatchAddresses(input: {
 8. Green highlights applied (wasScanned={true})
    ↓
 9. User reviews and can modify if needed
-```
+\`\`\`
 
 ## Cascading Logic
 
@@ -426,9 +426,9 @@ export async function fuzzyMatchAddresses(input: {
 - Used for initial seeding only (not runtime)
 
 **Seeding:**
-```bash
+\`\`\`bash
 npx tsx scripts/seed-addresses.ts
-```
+\`\`\`
 - Fetches all provinces, cities, barangays
 - Batch inserts (1,000 records at a time)
 - Idempotent (safe to re-run)
