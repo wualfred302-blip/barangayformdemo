@@ -25,7 +25,7 @@ import {
 } from "lucide-react"
 import { BottomNav } from "@/components/bottom-nav"
 import { DashboardHeader } from "@/components/dashboard-header"
-import { QRTCardMini } from "@/components/qrt-card-mini"
+import { QRTCardHero } from "@/components/qrt-card-hero"
 
 export default function DashboardPage() {
   // ============================================================================
@@ -129,9 +129,9 @@ export default function DashboardPage() {
           <DashboardHeader />
         </div>
 
-        {/* QRT ID Card Mini */}
+        {/* QRT ID Card Hero */}
         <div className="mb-4">
-          <QRTCardMini
+          <QRTCardHero
             qrtId={userQrtId}
             onRequestClick={() => router.push("/qrt-id/request")}
           />

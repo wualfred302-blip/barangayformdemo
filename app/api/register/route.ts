@@ -227,6 +227,83 @@ export async function POST(req: Request) {
       return Response.json({ success: false, error: "Registration failed" }, { status: 500 })
     }
 
+    // Generate QRT ID data
+    const year = new Date().getFullYear()
+    const qrtSequence = Math.floor(Math.random() * 999999).toString().padStart(6, '0')
+    const qrtCode = `QRT-${year}-${qrtSequence}`
+
+    // Generate verification code (6 alphanumeric characters)
+    const verificationCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+
+    const now = new Date().toISOString()
+
+    // Calculate age from birth date
+    const calculateAge = (birthDateStr: string | null): number => {
+      if (!birthDateStr) return 0
+      const birth = new Date(birthDateStr)
+      const today = new Date()
+      let age = today.getFullYear() - birth.getFullYear()
+      const monthDiff = today.getMonth() - birth.getMonth()
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--
+      }
+      return age
+    }
+
+    // Build QR code data JSON for the QRT ID
+    const qrCodeData = JSON.stringify({
+      qrtCode: qrtCode,
+      verificationCode: verificationCode,
+      fullName: fullName,
+      birthDate: birthDate || '',
+      issueDate: now.split('T')[0],
+      verifyUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://barangaymawaque.ph'}/verify/qrt/${qrtCode}`
+    })
+
+    // Create QRT ID record with all required fields for Supabase qrt_ids table
+    const qrtData = {
+      user_id: data.id,
+      qrt_code: qrtCode,
+      verification_code: verificationCode,
+      full_name: fullName,
+      birth_date: birthDate || '1990-01-01', // Default if not provided
+      age: calculateAge(birthDate),
+      gender: body.gender || 'prefer_not_to_say',
+      civil_status: body.civilStatus || 'single',
+      birth_place: body.birthPlace || fullAddress, // Use address as fallback
+      address: fullAddress,
+      phone_number: cleanMobile, // Use correct column name
+      height: body.height || '',
+      weight: body.weight || '',
+      years_resident: body.yearsResident || 0,
+      citizenship: body.citizenship || 'Filipino',
+      emergency_contact_name: body.emergencyContactName || '',
+      emergency_contact_address: body.emergencyContactAddress || fullAddress,
+      emergency_contact_phone: body.emergencyContactPhone || '',
+      emergency_contact_relationship: body.emergencyContactRelationship || '',
+      photo_url: body.photoUrl || null,
+      qr_code_data: qrCodeData, // Required field
+      status: 'ready',
+      request_type: 'regular',
+      payment_reference: `FREE-${Date.now()}`,
+      amount: 0,
+    }
+
+    // Try to insert QRT ID into database if table exists
+    try {
+      const { error: qrtError } = await supabase
+        .from("qrt_ids")
+        .insert(qrtData)
+
+      if (qrtError) {
+        console.warn("QRT ID creation warning (non-critical):", qrtError.message)
+        // Continue - QRT data will still be returned in response for frontend storage
+      }
+    } catch (qrtErr) {
+      console.warn("QRT ID creation error (non-critical):", qrtErr)
+      // Continue - registration was successful
+    }
+
     return Response.json({
       success: true,
       user: {
@@ -237,7 +314,35 @@ export async function POST(req: Request) {
         address: data.address,
         qrCode: data.qr_code,
       },
-    })
+      qrtId: {
+        id: `qrt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        qrtCode: qrtCode,
+        verificationCode: verificationCode,
+        fullName: fullName,
+        phoneNumber: cleanMobile,
+        birthDate: birthDate || '1990-01-01',
+        age: calculateAge(birthDate),
+        gender: body.gender || 'prefer_not_to_say',
+        civilStatus: body.civilStatus || 'single',
+        birthPlace: body.birthPlace || fullAddress,
+        address: fullAddress,
+        height: body.height || '',
+        weight: body.weight || '',
+        yearsResident: body.yearsResident || 0,
+        citizenship: body.citizenship || 'Filipino',
+        emergencyContactName: body.emergencyContactName || '',
+        emergencyContactAddress: body.emergencyContactAddress || fullAddress,
+        emergencyContactPhone: body.emergencyContactPhone || '',
+        emergencyContactRelationship: body.emergencyContactRelationship || '',
+        photoUrl: body.photoUrl || '',
+        qrCodeData: qrCodeData,
+        status: 'ready',
+        requestType: 'regular',
+        paymentReference: `FREE-${Date.now()}`,
+        amount: 0,
+        createdAt: now,
+      }
+    }, { status: 201 })
   } catch (error: any) {
     console.error("Registration error:", error)
     return Response.json({ success: false, error: error.message || "Server error" }, { status: 500 })

@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { useQRT } from "@/lib/qrt-context"
 import { IDScanner } from "@/components/id-scanner"
 import { AddressCombobox } from "@/components/address-combobox"
 import { fuzzyMatchAddresses } from "@/lib/address-matcher"
@@ -78,6 +79,7 @@ export default function RegisterPage() {
   const [showPin, setShowPin] = useState(false)
   const router = useRouter()
   const { login } = useAuth()
+  const { addQRTRequest } = useQRT()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -349,6 +351,47 @@ export default function RegisterPage() {
         email: result.user.email,
         address: result.user.address,
       })
+
+      // Save QRT ID to context if it was created during registration
+      if (result.qrtId) {
+        try {
+          // Convert the API response format to the QRTIDRequest format expected by context
+          const qrtRequest = {
+            id: result.qrtId.id,
+            qrtCode: result.qrtId.qrtCode,
+            verificationCode: result.qrtId.verificationCode,
+            userId: result.user.id,
+            fullName: result.qrtId.fullName,
+            phoneNumber: result.qrtId.phoneNumber || result.user.mobileNumber,
+            birthDate: result.qrtId.birthDate,
+            age: result.qrtId.age || 0,
+            gender: result.qrtId.gender || 'prefer_not_to_say',
+            civilStatus: result.qrtId.civilStatus || 'single',
+            birthPlace: result.qrtId.birthPlace || result.qrtId.address,
+            address: result.qrtId.address,
+            height: result.qrtId.height || '',
+            weight: result.qrtId.weight || '',
+            yearsResident: result.qrtId.yearsResident || 0,
+            citizenship: result.qrtId.citizenship || 'Filipino',
+            emergencyContactName: result.qrtId.emergencyContactName || '',
+            emergencyContactAddress: result.qrtId.emergencyContactAddress || '',
+            emergencyContactPhone: result.qrtId.emergencyContactPhone || '',
+            emergencyContactRelationship: result.qrtId.emergencyContactRelationship || '',
+            photoUrl: result.qrtId.photoUrl || '',
+            qrCodeData: result.qrtId.qrCodeData || '',
+            status: result.qrtId.status as "pending" | "processing" | "ready" | "issued",
+            createdAt: result.qrtId.createdAt,
+            paymentReference: result.qrtId.paymentReference || '',
+            requestType: (result.qrtId.requestType || 'regular') as "regular" | "rush",
+            amount: result.qrtId.amount || 0,
+          }
+
+          await addQRTRequest(qrtRequest)
+        } catch (qrtError) {
+          console.error('Failed to save QRT ID to context:', qrtError)
+          // Don't block registration success if QRT save fails
+        }
+      }
 
       router.push("/register/success")
     } catch (err: any) {
