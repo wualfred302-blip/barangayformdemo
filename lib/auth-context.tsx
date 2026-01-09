@@ -134,48 +134,60 @@ export const AuthProvider = memo(({ children }: { children: ReactNode }) => {
   }, [])
 
   const updateUser = useCallback((userData: Partial<User>) => {
-    setUser(prev => prev ? { ...prev, ...userData } : null)
+    setUser((prev) => (prev ? { ...prev, ...userData } : null))
   }, [])
 
   const userRole: UserRole | null = staffUser?.role || user?.role || null
 
-  const value = useMemo(() => ({
-    user,
-    staffUser,
-    isAuthenticated,
-    isStaffAuthenticated,
-    isLoading,
-    userRole,
-    login,
-    staffLogin,
-    logout,
-    staffLogout,
-    updateUser,
-  }), [
-    user,
-    staffUser,
-    isAuthenticated,
-    isStaffAuthenticated,
-    isLoading,
-    userRole,
-    login,
-    staffLogin,
-    logout,
-    staffLogout,
-    updateUser,
-  ])
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      user,
+      staffUser,
+      isAuthenticated,
+      isStaffAuthenticated,
+      isLoading,
+      userRole,
+      login,
+      staffLogin,
+      logout,
+      staffLogout,
+      updateUser,
+    }),
+    [
+      user,
+      staffUser,
+      isAuthenticated,
+      isStaffAuthenticated,
+      isLoading,
+      userRole,
+      login,
+      staffLogin,
+      logout,
+      staffLogout,
+      updateUser,
+    ],
   )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 })
 
 export function useAuth() {
   const context = useContext(AuthContext)
+  // Return safe defaults during SSR/prerendering instead of throwing
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+    return {
+      user: null,
+      staffUser: null,
+      isAuthenticated: false,
+      isStaffAuthenticated: false,
+      isLoading: true,
+      userRole: null,
+      login: () => {},
+      staffLogin: () => {},
+      logout: () => {},
+      staffLogout: () => {},
+      updateUser: () => {},
+    } as AuthContextType
   }
   return context
 }
