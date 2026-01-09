@@ -10,6 +10,17 @@ import { ArrowLeft, User, Mail, Phone, MapPin, LogOut, ChevronRight } from "luci
 import { useAuth } from "@/lib/auth-context"
 import { BottomNav } from "@/components/bottom-nav"
 
+const extractBarangay = (address: string): string => {
+  if (!address) return "Mawaque"
+
+  // Match "Barangay X" or "Brgy X" pattern
+  const match = address.match(/(?:Barangay|Brgy\.?)\s+([^,]+)/i)
+  if (match) return match[1].trim()
+
+  // Fallback to default
+  return "Mawaque"
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const { user, isAuthenticated, isLoading, logout } = useAuth()
@@ -78,7 +89,9 @@ export default function ProfilePage() {
               <span className="text-3xl font-bold text-white">{initials}</span>
             </div>
             <h2 className="text-xl font-bold text-white">{user.fullName}</h2>
-            <p className="text-sm text-white/80">Barangay Mawaque Resident</p>
+            <p className="text-sm text-white/80">
+              Barangay {extractBarangay(user.address)} Resident
+            </p>
           </CardContent>
         </Card>
 

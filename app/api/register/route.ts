@@ -58,6 +58,19 @@ export async function POST(req: Request) {
       return Response.json({ success: false, error: "Missing required fields" }, { status: 400 })
     }
 
+    // Validate privacy policy acceptance
+    const privacyPolicyAccepted = body.agreedToTerms === true
+    if (!privacyPolicyAccepted) {
+      return Response.json(
+        {
+          success: false,
+          error: "privacy_not_accepted",
+          message: "You must accept the Privacy Policy to register"
+        },
+        { status: 400 }
+      )
+    }
+
     // Validate ID format
     const idValidation = validateIDFormat(idType, idNumber)
     if (!idValidation.valid) {
@@ -192,6 +205,9 @@ export async function POST(req: Request) {
         password_hash: passwordHash,
         pin_hash: pinHash,
         qr_code: qrCode,
+        privacy_policy_accepted: true,
+        privacy_policy_accepted_at: new Date().toISOString(),
+        privacy_policy_version: 'v1.0',
       })
       .select()
       .single()

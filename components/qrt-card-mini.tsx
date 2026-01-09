@@ -74,7 +74,7 @@ export function QRTCardMini({ qrtId, onRequestClick }: QRTCardMiniProps) {
     return (
       <div
         onClick={handleCardClick}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#2563EB] p-6 cursor-pointer hover:shadow-lg transition-shadow"
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#14B8A6] via-[#06B6D4] to-[#22D3EE] p-6 cursor-pointer hover:shadow-lg transition-shadow"
         role="button"
         tabIndex={0}
         aria-label="Request QRT ID"

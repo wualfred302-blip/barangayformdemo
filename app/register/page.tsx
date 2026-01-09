@@ -760,10 +760,16 @@ export default function RegisterPage() {
                   </Label>
                 </div>
 
+                {!formData.agreedToTerms && (
+                  <p className="text-sm text-amber-600 font-medium">
+                    Please accept the Privacy Policy to create your account
+                  </p>
+                )}
+
                 <Button
                   type="submit"
-                  disabled={isLoading}
-                  className="h-12 w-full bg-emerald-600 text-base font-semibold hover:bg-emerald-700"
+                  disabled={isLoading || !formData.agreedToTerms}
+                  className="h-12 w-full bg-emerald-600 text-base font-semibold hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {isLoading ? "Creating Account..." : "Create Account"}
                 </Button>
