@@ -2,23 +2,19 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { LucideIcon, ArrowLeft } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import type { ReactNode } from "react"
 
 interface ComingSoonPageProps {
-  icon: LucideIcon
+  icon: ReactNode
   title: string
   description: string
   backHref: string
 }
 
-export function ComingSoonPage({
-  icon: Icon,
-  title,
-  description,
-  backHref,
-}: ComingSoonPageProps) {
+export function ComingSoonPage({ icon, title, description, backHref }: ComingSoonPageProps) {
   return (
     <div className="flex min-h-screen flex-col bg-[#F9FAFB]">
       {/* Header */}
@@ -37,12 +33,10 @@ export function ComingSoonPage({
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-5 py-12">
         <Card className="flex flex-col items-center justify-center p-8 text-center max-w-md">
-          <div className="rounded-full bg-blue-100 p-4 mb-6">
-            <Icon className="h-8 w-8 text-blue-600" />
-          </div>
+          <div className="rounded-full bg-blue-100 p-4 mb-6">{icon}</div>
           <h2 className="text-xl font-semibold text-gray-900 mb-3">{title}</h2>
           <p className="text-sm text-gray-600 mb-8 leading-relaxed">{description}</p>
-          <Button asChild variant="outline" className="w-full">
+          <Button asChild variant="outline" className="w-full bg-transparent">
             <Link href={backHref}>Back to Dashboard</Link>
           </Button>
         </Card>
