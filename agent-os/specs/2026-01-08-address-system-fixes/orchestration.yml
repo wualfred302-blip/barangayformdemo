@@ -1,0 +1,7 @@
+task_groups:
+  - name: Phase 1 - Complete National Address Data Seed
+    claude_code_subagent: general-purpose
+  - name: Phase 2 - UI Bug Fixes (Birth Date, ID Type, Privacy Text)
+    claude_code_subagent: general-purpose
+  - name: Phase 3 - Comprehensive Testing & Code Review
+    claude_code_subagent: general-purpose

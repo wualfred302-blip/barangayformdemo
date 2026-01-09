@@ -140,6 +140,16 @@ export default function RegisterPage() {
       }
     }
 
+    // Convert birthDate to YYYY-MM-DD format for type="date" input
+    let formattedBirthDate = data.birthDate || ""
+    if (formattedBirthDate && !formattedBirthDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Try to parse and convert to YYYY-MM-DD
+      const date = new Date(formattedBirthDate)
+      if (!isNaN(date.getTime())) {
+        formattedBirthDate = date.toISOString().split('T')[0]
+      }
+    }
+
     // Perform fuzzy matching on OCR-extracted addresses
     const addressMatches = await fuzzyMatchAddresses({
       province: data.province,
@@ -156,7 +166,7 @@ export default function RegisterPage() {
     setFormData((prev) => ({
       ...prev,
       fullName: data.fullName || prev.fullName,
-      birthDate: data.birthDate || prev.birthDate,
+      birthDate: formattedBirthDate || prev.birthDate,
       mobileNumber: data.mobileNumber || prev.mobileNumber,
       idType: mappedIdType || prev.idType,
       idNumber: data.idNumber || prev.idNumber,
@@ -438,7 +448,7 @@ export default function RegisterPage() {
                       onValueChange={(value) => handleSelectChange("idType", value)}
                       disabled={isLoading}
                     >
-                      <SelectTrigger className={`h-12 w-full ${scannedFields.idType ? inputScannedClass : ""}`}>
+                      <SelectTrigger className={`!h-12 ${inputBaseClass} text-gray-900 ${scannedFields.idType ? inputScannedClass : ""}`}>
                         <SelectValue placeholder="Select ID" />
                       </SelectTrigger>
                       <SelectContent>
@@ -477,7 +487,7 @@ export default function RegisterPage() {
                     value={formData.birthDate}
                     onChange={handleChange}
                     disabled={isLoading}
-                    className={`${inputBaseClass} ${scannedFields.birthDate ? inputScannedClass : ""}`}
+                    className={`${inputBaseClass} text-gray-900 ${scannedFields.birthDate ? inputScannedClass : ""}`}
                   />
                 </div>
               </section>
@@ -741,9 +751,9 @@ export default function RegisterPage() {
                     disabled={isLoading}
                     className="mt-1"
                   />
-                  <Label htmlFor="agreedToTerms" className="text-sm leading-relaxed text-gray-600">
+                  <Label htmlFor="agreedToTerms" className="text-sm leading-relaxed text-gray-700 cursor-pointer break-words">
                     I agree to the{" "}
-                    <Link href="/privacy" className="text-emerald-600 underline">
+                    <Link href="/privacy" className="font-medium text-emerald-600 underline hover:text-emerald-700 inline-block">
                       Privacy Policy
                     </Link>{" "}
                     and consent to the collection of my personal data for registration purposes.
