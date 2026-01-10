@@ -443,10 +443,54 @@ export default function RegisterPage() {
         {hasAnyScannedField && (
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
             <p className="text-center text-sm font-medium text-emerald-700">
-              ID scanned successfully! Review and complete the details below.
+              ID scanned successfully! Now take your selfie, then complete the form below.
             </p>
           </div>
         )}
+
+        {/* Selfie Section - Moved here for better UX (ID photo → selfie → form) */}
+        <Card className="border-0 shadow-sm mb-6">
+          <CardContent className="p-5">
+            <div className="space-y-5">
+              <div className="border-b-2 border-gray-200 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+                    <Camera className="h-4 w-4 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">Photo for QRT ID</h3>
+                </div>
+                <p className="mt-2 text-sm text-gray-500">This photo will appear on your barangay ID card</p>
+              </div>
+
+              {selfieImageBase64 ? (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-32 h-40 rounded-xl overflow-hidden border-2 border-emerald-500 shadow-md">
+                    <img
+                      src={selfieImageBase64}
+                      alt="Your selfie"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <p className="text-sm text-emerald-600 font-medium">Photo captured successfully!</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSelfieImageBase64(null)}
+                    className="text-sm"
+                  >
+                    Retake Photo
+                  </Button>
+                </div>
+              ) : (
+                <SelfieCapture
+                  onCapture={(imageBase64) => setSelfieImageBase64(imageBase64)}
+                  onCancel={() => {}}
+                  className="py-2"
+                />
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="border-0 shadow-sm">
           <CardContent className="p-5">
@@ -796,46 +840,6 @@ export default function RegisterPage() {
                     />
                   </div>
                 </div>
-              </section>
-
-              {/* Selfie Section for QRT ID */}
-              <section className="space-y-5">
-                <div className="border-b-2 border-gray-200 pb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-                      <Camera className="h-4 w-4 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900">Photo for QRT ID</h3>
-                  </div>
-                  <p className="mt-2 text-sm text-gray-500">This photo will appear on your barangay ID card</p>
-                </div>
-
-                {selfieImageBase64 ? (
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-32 h-40 rounded-xl overflow-hidden border-2 border-emerald-500 shadow-md">
-                      <img
-                        src={selfieImageBase64}
-                        alt="Your selfie"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <p className="text-sm text-emerald-600 font-medium">Photo captured successfully!</p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setSelfieImageBase64(null)}
-                      className="text-sm"
-                    >
-                      Retake Photo
-                    </Button>
-                  </div>
-                ) : (
-                  <SelfieCapture
-                    onCapture={(imageBase64) => setSelfieImageBase64(imageBase64)}
-                    onCancel={() => {}}
-                    className="py-2"
-                  />
-                )}
               </section>
 
               {/* Terms and Submit */}

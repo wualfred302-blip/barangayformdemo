@@ -121,55 +121,24 @@ async function seedProvinces() {
   console.log(`Fetched ${provinces.length} provinces from PSGC API`)
 
   // PSGC structure: Region(2) + Province(2) + District(2) + City(1) + Barangay(3)
-  // The API provinces endpoint only returns the main province level (Region + Province + "800000")
-  // But the cities can belong to different districts (80, 81, 82, etc.)
-  // We need to create province entries for each district found in cities
+  // Districts are administrative codes only - Filipinos don't select by district
+  // We only expose Province → City → Barangay to users
+  // Districts are handled internally in the code structure
 
-  // Create base province entries from API
-  const provinceMap = new Map<string, { code: string; name: string; region_code: string }>()
+  // Create province entries WITHOUT district level (user-friendly)
+  const provinceList = provinces.map((p) => {
+    // Use main province code: Region(2) + Province(2) + "00000"
+    // This ignores district variations (80, 81, 82, etc.)
+    const region = p.code.substring(0, 2)
+    const province = p.code.substring(2, 4)
+    const mainProvinceCode = region + province + "00000"
 
-  provinces.forEach((p) => {
-    const code9 = p.code.substring(0, 9)
-    provinceMap.set(code9, {
-      code: code9,
+    return {
+      code: mainProvinceCode,
       name: p.name,
       region_code: p.regionCode,
-    })
-  })
-
-  // Add district-level entries from cities
-  const districtSet = new Set<string>()
-  cities.forEach((c) => {
-    const region = c.code.substring(0, 2)
-    const province = c.code.substring(2, 4)
-    const district = c.code.substring(4, 6)
-    const districtCode = region + province + district + "000"
-
-    if (!provinceMap.has(districtCode)) {
-      districtSet.add(districtCode)
     }
   })
-
-  // Add district entries as pseudo-provinces with generic names
-  districtSet.forEach((districtCode) => {
-    const region = districtCode.substring(0, 2)
-    const province = districtCode.substring(2, 4)
-    const district = districtCode.substring(4, 6)
-
-    // Try to find a matching main province to inherit the name
-    const mainProvinceCode = region + province + "00000"
-    const mainProvince = provinces.find((p) => p.code.substring(0, 9) === mainProvinceCode)
-
-    provinceMap.set(districtCode, {
-      code: districtCode,
-      name: mainProvince
-        ? `${mainProvince.name} (District ${district})`
-        : `District ${districtCode}`,
-      region_code: region,
-    })
-  })
-
-  const provinceList = Array.from(provinceMap.values())
 
   const { error } = await supabase.from("address_provinces").upsert(provinceList, {
     onConflict: "code",
@@ -182,9 +151,7 @@ async function seedProvinces() {
     records_synced: provinceList.length,
   })
 
-  console.log(
-    `✓ Inserted ${provinceList.length} province entries (${provinces.length} main + ${districtSet.size} districts)`,
-  )
+  console.log(`✓ Inserted ${provinceList.length} province entries (district-agnostic)`)
   return provinceList.length
 }
 
@@ -204,17 +171,15 @@ async function seedCities() {
         // Truncate to 9 digits for consistency
         const code9 = c.code.substring(0, 9)
 
-        // Derive province code from city code
+        // Derive province code from city code (WITHOUT district)
         // PSGC 10-digit structure: Region(2) + Province(2) + District(2) + City(1) + Barangay(3)
         // E.g., 0102801000 = Region 01 + Province 02 + District 80 + City 1 + Barangay 000
-        // Truncated to 9 digits: 010280100 (preserves region, province, and district)
-        // Province code (mapping to district-level): Region(2) + Province(2) + District(2) + "000"
-        // E.g., 010280100 -> 010280000 (district 80)
-        //       0102810000 -> 010281000 (district 81)
+        // Province code (district-agnostic): Region(2) + Province(2) + "00000"
+        // E.g., 010280100 -> 010200000 (Ilocos Norte, no district)
+        //       0102810000 -> 010200000 (same province, different district code)
         const region = code9.substring(0, 2)
         const province = code9.substring(2, 4)
-        const district = code9.substring(4, 6)
-        const provinceCode = region + province + district + "000"
+        const provinceCode = region + province + "00000"
 
         return {
           code: code9,

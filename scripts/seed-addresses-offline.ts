@@ -93,12 +93,12 @@ async function seedProvinces() {
   const muniToProvince = new Map<string, string>()
   allMunicipalities.forEach(m => muniToProvince.set(m.name, m.province))
 
-  // Build province map from barangay codes
+  // Build province map from barangay codes (WITHOUT district level)
   const provinceMap = new Map<string, { code: string; name: string; region_code: string }>()
 
   console.log("Processing barangays to extract province codes...")
 
-  // Extract unique province/district codes from barangays
+  // Extract unique province codes from barangays (district-agnostic)
   allBarangays.forEach((barangay, index) => {
     if (index % 10000 === 0 && index > 0) {
       console.log(`  Processed ${index}/${allBarangays.length} barangays...`)
@@ -107,18 +107,17 @@ async function seedProvinces() {
     const code = barangay.code.toString().padStart(9, "0")
     const regionCode = code.substring(0, 2)
     const provinceCode = code.substring(2, 4)
-    const districtCode = code.substring(4, 6)
 
-    // District-level code (most granular province representation)
-    const fullProvinceCode = regionCode + provinceCode + districtCode + "000"
+    // Main province code (WITHOUT district): Region(2) + Province(2) + "00000"
+    const mainProvinceCode = regionCode + provinceCode + "00000"
 
-    if (!provinceMap.has(fullProvinceCode)) {
+    if (!provinceMap.has(mainProvinceCode)) {
       // Get province name from municipality
-      const provinceName = muniToProvince.get(barangay.citymun) || `District ${fullProvinceCode}`
+      const provinceName = muniToProvince.get(barangay.citymun) || `Province ${mainProvinceCode}`
 
-      provinceMap.set(fullProvinceCode, {
-        code: fullProvinceCode,
-        name: districtCode === "00" ? provinceName : `${provinceName} (District ${districtCode})`,
+      provinceMap.set(mainProvinceCode, {
+        code: mainProvinceCode,
+        name: provinceName,
         region_code: regionCode,
       })
     }
@@ -126,7 +125,7 @@ async function seedProvinces() {
 
   const provinceList = Array.from(provinceMap.values())
 
-  console.log(`Found ${provinceList.length} province/district entries`)
+  console.log(`Found ${provinceList.length} province entries (district-agnostic)`)
 
   const { error } = await supabase.from("address_provinces").upsert(provinceList, {
     onConflict: "code",
@@ -139,7 +138,7 @@ async function seedProvinces() {
     records_synced: provinceList.length,
   })
 
-  console.log(`✓ Inserted ${provinceList.length} province/district entries`)
+  console.log(`✓ Inserted ${provinceList.length} province entries`)
   return provinceList.length
 }
 
@@ -177,7 +176,8 @@ async function seedCities() {
     const cityCode = code.substring(6, 7)
 
     const fullCityCode = regionCode + provinceCode + districtCode + cityCode + "00"
-    const fullProvinceCode = regionCode + provinceCode + districtCode + "000"
+    // Link to main province code (WITHOUT district): Region(2) + Province(2) + "00000"
+    const mainProvinceCode = regionCode + provinceCode + "00000"
 
     if (!cityMap.has(fullCityCode)) {
       // Get municipality info from lookup
@@ -189,7 +189,7 @@ async function seedCities() {
       cityMap.set(fullCityCode, {
         code: fullCityCode,
         name: cityName,
-        province_code: fullProvinceCode,
+        province_code: mainProvinceCode,
         zip_code: ZIP_CODES[fullCityCode] || null,
         type: isCity ? "City" : "Municipality",
       })
