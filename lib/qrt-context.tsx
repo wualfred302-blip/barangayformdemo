@@ -217,7 +217,8 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
         const supabase = createClient()
         let mappedQrtData: QRTIDRequest[] = []
 
-        // The qr_code_data column contains large base64 strings that cause statement timeouts
+        // Exclude large base64 columns (photo_url, id_front_image_url, id_back_image_url, qr_code_data)
+        // to prevent statement timeouts - these can be loaded on-demand when needed
         try {
           const { data: qrtData, error: qrtError } = await supabase
             .from("qrt_ids")
@@ -241,9 +242,6 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
               emergency_contact_address,
               emergency_contact_phone,
               emergency_contact_relationship,
-              photo_url,
-              id_front_image_url,
-              id_back_image_url,
               status,
               issued_date,
               expiry_date,
@@ -267,7 +265,11 @@ export const QRTProvider = memo(({ children }: { children: ReactNode }) => {
           } else if (qrtData) {
             mappedQrtData = qrtData.map((row) => ({
               ...dbRowToQRTIDRequest(row),
-              qrCodeData: "", // Don't load this initially - fetch on demand
+              // Large base64 fields excluded from initial load - fetch on demand
+              photoUrl: "",
+              idFrontImageUrl: "",
+              idBackImageUrl: "",
+              qrCodeData: "",
             }))
             setQrtIds(mappedQrtData)
           }
