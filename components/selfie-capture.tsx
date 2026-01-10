@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Camera, RefreshCw, Upload, Check, X, Loader2, AlertCircle } from "lucide-react"
+import { Camera, RefreshCw, Upload, Check, X, Loader2, AlertCircle, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { validateFace, initFaceDetector, disposeFaceDetector, type FaceValidation } from "@/lib/face-validator"
 import { analyzeLighting, type LightingAnalysis } from "@/lib/lighting-analyzer"
@@ -11,51 +11,58 @@ interface SelfieCaptureProps {
   onCapture: (imageBase64: string) => void
   onCancel?: () => void
   className?: string
+  initialImage?: string | null
 }
 
-export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureProps) {
+export function SelfieCapture({ onCapture, onCancel, className, initialImage }: SelfieCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [cameraActive, setCameraActive] = useState(false)
+  const [capturedImage, setCapturedImage] = useState<string | null>(initialImage || null)
+  const [cameraOpen, setCameraOpen] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
-  const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [modelLoading, setModelLoading] = useState(false)
   const [modelLoaded, setModelLoaded] = useState(false)
 
-  // Real-time validation state
+  // Real-time validation state (only used in camera modal)
   const [faceValidation, setFaceValidation] = useState<FaceValidation | null>(null)
   const [lightingAnalysis, setLightingAnalysis] = useState<LightingAnalysis | null>(null)
   const [countdown, setCountdown] = useState<number | null>(null)
 
-  // Initialize face detector when component mounts
+  // Load face detector when camera opens
   useEffect(() => {
+    if (!cameraOpen) return
+
     const loadModel = async () => {
+      if (modelLoaded) return
       setModelLoading(true)
       const success = await initFaceDetector()
       setModelLoaded(success)
       setModelLoading(false)
     }
     loadModel()
+  }, [cameraOpen, modelLoaded])
 
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
       disposeFaceDetector()
       stopCamera()
     }
   }, [])
 
-  // Real-time validation loop
+  // Real-time validation loop (only when camera is open)
   useEffect(() => {
-    if (!cameraActive || !videoRef.current || !canvasRef.current || !modelLoaded) {
+    if (!cameraOpen || !videoRef.current || !canvasRef.current || !modelLoaded) {
       return
     }
 
     let animationId: number
     let lastValidationTime = 0
-    const VALIDATION_INTERVAL = 500 // Validate every 500ms
+    const VALIDATION_INTERVAL = 500
 
     const validateFrame = async () => {
       if (!videoRef.current || !canvasRef.current) return
@@ -64,14 +71,12 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
       if (now - lastValidationTime >= VALIDATION_INTERVAL) {
         lastValidationTime = now
 
-        // Draw current frame to canvas for analysis
         const ctx = canvasRef.current.getContext("2d")
         if (ctx && videoRef.current.readyState >= 2) {
           canvasRef.current.width = videoRef.current.videoWidth
           canvasRef.current.height = videoRef.current.videoHeight
           ctx.drawImage(videoRef.current, 0, 0)
 
-          // Run validations in parallel
           const [faceResult, lightingResult] = await Promise.all([
             validateFace(canvasRef.current),
             Promise.resolve(analyzeLighting(canvasRef.current)),
@@ -92,16 +97,22 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
         cancelAnimationFrame(animationId)
       }
     }
-  }, [cameraActive, modelLoaded])
+  }, [cameraOpen, modelLoaded])
 
-  const startCamera = async () => {
+  const openCamera = async () => {
+    setCameraOpen(true)
+    setCameraError(null)
+    setFaceValidation(null)
+    setLightingAnalysis(null)
+
     try {
-      setCameraError(null)
+      // High quality camera settings for ID photos
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: "user", // Front camera
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+          facingMode: "user",
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 960, min: 480 },
+          aspectRatio: { ideal: 4 / 3 },
         },
       })
 
@@ -111,7 +122,6 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
       }
 
       streamRef.current = stream
-      setCameraActive(true)
     } catch (error) {
       console.error("Camera error:", error)
       setCameraError(
@@ -127,31 +137,36 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
       streamRef.current.getTracks().forEach((track) => track.stop())
       streamRef.current = null
     }
-    setCameraActive(false)
   }, [])
+
+  const closeCamera = () => {
+    stopCamera()
+    setCameraOpen(false)
+    setFaceValidation(null)
+    setLightingAnalysis(null)
+    setCountdown(null)
+  }
 
   const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return
 
-    // Final validation check
     const canvas = canvasRef.current
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
     setIsProcessing(true)
 
-    // Start countdown
+    // Countdown
     for (let i = 3; i > 0; i--) {
       setCountdown(i)
       await new Promise((r) => setTimeout(r, 1000))
     }
     setCountdown(null)
 
-    // Capture the photo
+    // Capture at full resolution
     canvas.width = videoRef.current.videoWidth
     canvas.height = videoRef.current.videoHeight
     ctx.save()
-    // Mirror the image horizontally (selfie mode)
     ctx.scale(-1, 1)
     ctx.drawImage(videoRef.current, -canvas.width, 0, canvas.width, canvas.height)
     ctx.restore()
@@ -175,10 +190,11 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
       return
     }
 
-    // Convert to base64
-    const imageBase64 = canvas.toDataURL("image/jpeg", 0.9)
+    // Convert to high quality JPEG
+    const imageBase64 = canvas.toDataURL("image/jpeg", 0.92)
     setCapturedImage(imageBase64)
-    stopCamera()
+    onCapture(imageBase64)
+    closeCamera()
     setIsProcessing(false)
   }
 
@@ -189,8 +205,20 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
     setIsProcessing(true)
     setCameraError(null)
 
+    // Load model if needed
+    if (!modelLoaded) {
+      setModelLoading(true)
+      const success = await initFaceDetector()
+      setModelLoaded(success)
+      setModelLoading(false)
+      if (!success) {
+        setCameraError("Face detection not available")
+        setIsProcessing(false)
+        return
+      }
+    }
+
     try {
-      // Read file as data URL
       const reader = new FileReader()
       const imageBase64 = await new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(reader.result as string)
@@ -198,7 +226,6 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
         reader.readAsDataURL(file)
       })
 
-      // Create image element for validation
       const img = new Image()
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve()
@@ -206,7 +233,6 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
         img.src = imageBase64
       })
 
-      // Draw to canvas for validation
       if (canvasRef.current) {
         const ctx = canvasRef.current.getContext("2d")
         if (ctx) {
@@ -214,24 +240,19 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
           canvasRef.current.height = img.height
           ctx.drawImage(img, 0, 0)
 
-          // Validate
           const [faceResult, lightingResult] = await Promise.all([
             validateFace(canvasRef.current),
             Promise.resolve(analyzeLighting(canvasRef.current)),
           ])
 
-          setFaceValidation(faceResult)
-          setLightingAnalysis(lightingResult)
-
           if (!faceResult.isValid || !lightingResult.isAcceptable) {
-            setCameraError(
-              !faceResult.isValid ? faceResult.feedback : lightingResult.feedback
-            )
+            setCameraError(!faceResult.isValid ? faceResult.feedback : lightingResult.feedback)
             setIsProcessing(false)
             return
           }
 
           setCapturedImage(imageBase64)
+          onCapture(imageBase64)
         }
       }
     } catch (error) {
@@ -242,43 +263,123 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
     setIsProcessing(false)
   }
 
-  const retake = () => {
+  const retakePhoto = () => {
     setCapturedImage(null)
-    setFaceValidation(null)
-    setLightingAnalysis(null)
-    startCamera()
-  }
-
-  const confirmPhoto = () => {
-    if (capturedImage) {
-      onCapture(capturedImage)
-    }
+    openCamera()
   }
 
   const isValid = faceValidation?.isValid && lightingAnalysis?.isAcceptable
 
   return (
-    <div className={cn("flex flex-col items-center gap-4", className)}>
-      {/* Model loading indicator */}
-      {modelLoading && (
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading face detection...
-        </div>
-      )}
+    <>
+      {/* Main form view - image placeholder with button */}
+      <div className={cn("flex flex-col items-center gap-4", className)}>
+        {/* Image placeholder/preview */}
+        <div className="relative w-40 h-52 bg-gray-100 rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 flex items-center justify-center">
+          {capturedImage ? (
+            <img
+              src={capturedImage}
+              alt="Your selfie"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-2 text-gray-400">
+              <User className="h-16 w-16" />
+              <span className="text-xs">ID Photo</span>
+            </div>
+          )}
 
-      {/* Camera/Preview area */}
-      <div className="relative w-full max-w-sm aspect-[3/4] bg-gray-100 rounded-2xl overflow-hidden">
-        {/* Captured image preview */}
-        {capturedImage ? (
-          <img
-            src={capturedImage}
-            alt="Captured selfie"
-            className="w-full h-full object-cover"
-          />
-        ) : cameraActive ? (
-          <>
-            {/* Live video feed (mirrored for selfie mode) */}
+          {/* Processing overlay */}
+          {isProcessing && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-white" />
+            </div>
+          )}
+        </div>
+
+        {/* Error message */}
+        {cameraError && !cameraOpen && (
+          <div className="flex items-center gap-2 text-red-500 text-sm text-center max-w-xs">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            {cameraError}
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          {capturedImage ? (
+            <Button
+              variant="outline"
+              onClick={retakePhoto}
+              disabled={isProcessing}
+              className="h-10 rounded-xl"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retake
+            </Button>
+          ) : (
+            <>
+              <Button
+                onClick={openCamera}
+                disabled={isProcessing}
+                className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Take Photo
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isProcessing}
+                className="h-10 px-3 rounded-xl"
+                title="Upload photo"
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+
+        {/* Tips - only show when no image */}
+        {!capturedImage && (
+          <div className="text-xs text-gray-500 text-center max-w-xs">
+            <p className="font-medium mb-1">Tips for a good ID photo:</p>
+            <ul className="list-disc list-inside space-y-0.5 text-left">
+              <li>Face the camera directly</li>
+              <li>Remove glasses</li>
+              <li>Good lighting, no shadows</li>
+              <li>Neutral expression</li>
+            </ul>
+          </div>
+        )}
+
+        {/* Skip button */}
+        {onCancel && !capturedImage && (
+          <Button
+            variant="ghost"
+            onClick={onCancel}
+            className="text-gray-500 text-sm"
+          >
+            Skip for now
+          </Button>
+        )}
+
+        {/* Hidden elements */}
+        <canvas ref={canvasRef} className="hidden" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
+      </div>
+
+      {/* Fullscreen Camera Modal */}
+      {cameraOpen && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          {/* Camera view */}
+          <div className="flex-1 relative">
             <video
               ref={videoRef}
               autoPlay
@@ -287,10 +388,18 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
               className="w-full h-full object-cover scale-x-[-1]"
             />
 
+            {/* Model loading overlay */}
+            {modelLoading && (
+              <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-4">
+                <Loader2 className="h-12 w-12 animate-spin text-white" />
+                <p className="text-white text-lg">Loading face detection...</p>
+              </div>
+            )}
+
             {/* Countdown overlay */}
             {countdown !== null && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                <span className="text-8xl font-bold text-white">{countdown}</span>
+                <span className="text-9xl font-bold text-white drop-shadow-lg">{countdown}</span>
               </div>
             )}
 
@@ -298,18 +407,26 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div
                 className={cn(
-                  "w-48 h-64 rounded-full border-4 border-dashed",
-                  isValid ? "border-green-500" : "border-white/70"
+                  "w-56 h-72 rounded-full border-4",
+                  isValid ? "border-green-500 border-solid" : "border-white/60 border-dashed"
                 )}
               />
             </div>
 
-            {/* Validation feedback */}
-            <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-1">
+            {/* Close button */}
+            <button
+              onClick={closeCamera}
+              className="absolute top-4 right-4 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+
+            {/* Validation feedback - bottom */}
+            <div className="absolute bottom-24 left-4 right-4 flex flex-col gap-2">
               {faceValidation && (
                 <div
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-sm font-medium text-center",
+                    "px-4 py-2 rounded-xl text-sm font-medium text-center backdrop-blur-sm",
                     faceValidation.isValid
                       ? "bg-green-500/90 text-white"
                       : "bg-red-500/90 text-white"
@@ -319,138 +436,39 @@ export function SelfieCapture({ onCapture, onCancel, className }: SelfieCaptureP
                 </div>
               )}
               {lightingAnalysis && !lightingAnalysis.isAcceptable && (
-                <div className="px-3 py-1.5 rounded-lg text-sm font-medium text-center bg-yellow-500/90 text-white">
+                <div className="px-4 py-2 rounded-xl text-sm font-medium text-center bg-yellow-500/90 text-white backdrop-blur-sm">
                   {lightingAnalysis.feedback}
                 </div>
               )}
+              {cameraError && (
+                <div className="px-4 py-2 rounded-xl text-sm font-medium text-center bg-red-500/90 text-white backdrop-blur-sm">
+                  {cameraError}
+                </div>
+              )}
             </div>
-          </>
-        ) : (
-          /* Initial state - camera not started */
-          <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-6">
-            <Camera className="h-16 w-16 text-gray-400" />
-            <p className="text-gray-500 text-center text-sm">
-              Take a selfie for your QRT ID
-            </p>
-            {cameraError && (
-              <div className="flex items-center gap-2 text-red-500 text-sm text-center">
-                <AlertCircle className="h-4 w-4" />
-                {cameraError}
-              </div>
-            )}
           </div>
-        )}
-      </div>
 
-      {/* Hidden canvas for processing */}
-      <canvas ref={canvasRef} className="hidden" />
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileUpload}
-        className="hidden"
-      />
-
-      {/* Action buttons */}
-      <div className="flex gap-3 w-full max-w-sm">
-        {capturedImage ? (
-          /* Review mode buttons */
-          <>
-            <Button
-              variant="outline"
-              onClick={retake}
-              className="flex-1 h-12 rounded-xl"
-            >
-              <RefreshCw className="h-5 w-5 mr-2" />
-              Retake
-            </Button>
-            <Button
-              onClick={confirmPhoto}
-              className="flex-1 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700"
-            >
-              <Check className="h-5 w-5 mr-2" />
-              Use Photo
-            </Button>
-          </>
-        ) : cameraActive ? (
-          /* Camera active buttons */
-          <>
-            <Button
-              variant="outline"
-              onClick={stopCamera}
-              className="h-12 px-4 rounded-xl"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+          {/* Capture button bar */}
+          <div className="bg-black px-6 py-6 flex items-center justify-center gap-4 safe-area-pb">
             <Button
               onClick={capturePhoto}
-              disabled={!isValid || isProcessing || !modelLoaded}
+              disabled={!isValid || isProcessing || !modelLoaded || modelLoading}
               className={cn(
-                "flex-1 h-12 rounded-xl",
+                "h-16 w-16 rounded-full p-0 transition-all",
                 isValid
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-gray-400"
+                  ? "bg-white hover:bg-gray-100 text-black ring-4 ring-green-500"
+                  : "bg-gray-600 text-gray-400"
               )}
             >
               {isProcessing ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-8 w-8 animate-spin" />
               ) : (
-                <>
-                  <Camera className="h-5 w-5 mr-2" />
-                  Capture
-                </>
+                <Camera className="h-8 w-8" />
               )}
             </Button>
-          </>
-        ) : (
-          /* Initial state buttons */
-          <>
-            <Button
-              onClick={startCamera}
-              disabled={modelLoading}
-              className="flex-1 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700"
-            >
-              <Camera className="h-5 w-5 mr-2" />
-              Open Camera
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={modelLoading}
-              className="h-12 px-4 rounded-xl"
-            >
-              <Upload className="h-5 w-5" />
-            </Button>
-          </>
-        )}
-      </div>
-
-      {/* Tips */}
-      {!capturedImage && !cameraActive && (
-        <div className="text-xs text-gray-500 text-center max-w-sm">
-          <p className="font-medium mb-1">Tips for a good ID photo:</p>
-          <ul className="list-disc list-inside space-y-0.5">
-            <li>Face the camera directly</li>
-            <li>Remove glasses</li>
-            <li>Use good lighting (no shadows)</li>
-            <li>Keep a neutral expression</li>
-          </ul>
+          </div>
         </div>
       )}
-
-      {/* Cancel button */}
-      {onCancel && (
-        <Button
-          variant="ghost"
-          onClick={onCancel}
-          className="text-gray-500"
-        >
-          Skip for now
-        </Button>
-      )}
-    </div>
+    </>
   )
 }
