@@ -291,7 +291,7 @@ This affects how we design the admin panel and user routing.
 
 Based on successful implementations in other Philippine LGU systems, here's a recommended workflow you might consider:
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────┐
 │                    RECOMMENDED ID PRINTING WORKFLOW             │
 ├─────────────────────────────────────────────────────────────────┤
@@ -334,7 +334,7 @@ Based on successful implementations in other Philippine LGU systems, here's a re
 │     └─→ Record closed                                           │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
-```
+\`\`\`
 
 This can be adapted based on your specific barangay's capacity and resources.
 
