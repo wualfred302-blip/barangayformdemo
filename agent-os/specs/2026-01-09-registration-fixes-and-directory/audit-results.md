@@ -34,10 +34,10 @@ This audit examined all registration forms and their database table mappings to 
 **Location**: `/app/register/page.tsx` lines 312-330
 
 **Fix Applied**:
-```typescript
+\`\`\`typescript
 // Added to API request body:
 agreedToTerms: formData.agreedToTerms,
-```
+\`\`\`
 
 **Status**: ✅ FIXED
 
@@ -71,11 +71,11 @@ agreedToTerms: formData.agreedToTerms,
 **Location**: `/app/api/register/route.ts` line 208
 
 **Fix Applied**:
-```typescript
+\`\`\`typescript
 // Changed from: privacy_policy_accepted: true
 // To:
 privacy_policy_accepted: privacyPolicyAccepted,
-```
+\`\`\`
 
 **Status**: ✅ FIXED
 
@@ -89,10 +89,10 @@ privacy_policy_accepted: privacyPolicyAccepted,
 **Location**: `/app/register/page.tsx` error handling
 
 **Fix Applied**:
-```typescript
+\`\`\`typescript
 } else if (result.error === "privacy_not_accepted") {
   setError("Please check the Privacy Policy checkbox to continue with registration.")
-```
+\`\`\`
 
 **Status**: ✅ FIXED
 
@@ -222,12 +222,12 @@ privacy_policy_accepted: privacyPolicyAccepted,
 **Location**: `/lib/certificate-context.tsx` line 137-140
 
 **Fix Applied**:
-```typescript
+\`\`\`typescript
 // Validate that user_id is provided
 if (!cert.userId) {
   throw new Error('User ID is required to request a certificate')
 }
-```
+\`\`\`
 
 **Status**: ✅ FIXED
 

@@ -55,7 +55,7 @@
 ## 🚀 Ready to Test
 
 ### 1. Test Registration Flow
-```
+\`\`\`
 URL: http://localhost:3000/register (or your dev URL)
 
 Steps:
@@ -66,10 +66,10 @@ Steps:
 5. User should be created in residents table
 
 Expected Result: ✅ Registration succeeds
-```
+\`\`\`
 
 ### 2. Verify Database Record
-```sql
+\`\`\`sql
 -- Check latest registered user
 SELECT
   full_name,
@@ -82,10 +82,10 @@ ORDER BY created_at DESC
 LIMIT 1;
 
 Expected: privacy_policy_accepted = true
-```
+\`\`\`
 
 ### 3. Test Directory Pages
-```
+\`\`\`
 1. Navigate to /directory
    → Should see portal with 2 directory cards
 
@@ -96,7 +96,7 @@ Expected: privacy_policy_accepted = true
 
 3. Navigate to /directory/staff
    → Should show 3 staff members with contact info
-```
+\`\`\`
 
 ---
 
@@ -147,13 +147,13 @@ This caused ALL registrations to fail with "You must accept the Privacy Policy" 
 ### Navigation Links
 The directory pages are fully functional but not yet linked in your main navigation. You should add:
 
-```tsx
+\`\`\`tsx
 // In your navigation component, add:
 <Link href="/directory">
   <Users className="h-5 w-5" />
   Directory
 </Link>
-```
+\`\`\`
 
 ### Future Enhancements
 - Add automated tests for registration flow
