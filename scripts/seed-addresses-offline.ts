@@ -98,18 +98,19 @@ async function seedProvinces() {
 
   console.log("Processing barangays to extract province codes...")
 
-  // Extract unique province codes from barangays (district-agnostic)
+  // Extract unique province codes from barangays
   allBarangays.forEach((barangay, index) => {
     if (index % 10000 === 0 && index > 0) {
       console.log(`  Processed ${index}/${allBarangays.length} barangays...`)
     }
 
+    // PSGC 9-digit structure: Region(2) + Province(3) + City(2) + Barangay(2)
     const code = barangay.code.toString().padStart(9, "0")
     const regionCode = code.substring(0, 2)
-    const provinceCode = code.substring(2, 4)
+    const provinceCode = code.substring(2, 5)
 
-    // Main province code (WITHOUT district): Region(2) + Province(2) + "00000"
-    const mainProvinceCode = regionCode + provinceCode + "00000"
+    // Main province code: Region(2) + Province(3) + "0000"
+    const mainProvinceCode = regionCode + provinceCode + "0000"
 
     if (!provinceMap.has(mainProvinceCode)) {
       // Get province name from municipality
@@ -169,15 +170,15 @@ async function seedCities() {
       console.log(`  Processed ${index}/${allBarangays.length} barangays...`)
     }
 
+    // PSGC 9-digit structure: Region(2) + Province(3) + City(2) + Barangay(2)
     const code = barangay.code.toString().padStart(9, "0")
     const regionCode = code.substring(0, 2)
-    const provinceCode = code.substring(2, 4)
-    const districtCode = code.substring(4, 6)
-    const cityCode = code.substring(6, 7)
+    const provinceCode = code.substring(2, 5)
+    const cityCode = code.substring(5, 7)
 
-    const fullCityCode = regionCode + provinceCode + districtCode + cityCode + "00"
-    // Link to main province code (WITHOUT district): Region(2) + Province(2) + "00000"
-    const mainProvinceCode = regionCode + provinceCode + "00000"
+    const fullCityCode = regionCode + provinceCode + cityCode + "00"
+    // Link to main province code: Region(2) + Province(3) + "0000"
+    const mainProvinceCode = regionCode + provinceCode + "0000"
 
     if (!cityMap.has(fullCityCode)) {
       // Get municipality info from lookup

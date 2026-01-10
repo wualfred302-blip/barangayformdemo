@@ -14,7 +14,7 @@ import {
   Users,
   ShieldAlert,
   CreditCard,
-  Plus,
+  HandHeart,
   Calendar,
   FileSignature,
   CircleDollarSign,
@@ -23,6 +23,7 @@ import {
   Bell,
   Inbox,
   Truck,
+  MessageCircleWarning,
 } from "lucide-react"
 import { BottomNav } from "@/components/bottom-nav"
 import { DashboardHeader } from "@/components/dashboard-header"
@@ -114,10 +115,10 @@ export default function DashboardPage() {
     { icon: FileText, label: "Request Certificate", href: "/request" },
     { icon: CreditCard, label: "Request ID", href: "/qrt-id/request" },
     { icon: Truck, label: "ID Delivery", href: "/delivery/request" },
-    { icon: ShieldAlert, label: "File Blotter", href: "/blotter" },
+    { icon: MessageCircleWarning, label: "Concerns", href: "/blotter" },
     // Row 2: Secondary Services (4 items)
     { icon: Users, label: "Bayanihan", href: "/bayanihan" },
-    { icon: Plus, label: "Health Center", href: "/health-center" },
+    { icon: HandHeart, label: "Ayuda", href: "/health-center" },
     { icon: Calendar, label: "Events", href: "/announcements" },
     { icon: FileSignature, label: "Permits", href: "/permits" },
   ]

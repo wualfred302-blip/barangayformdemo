@@ -120,21 +120,17 @@ async function seedProvinces() {
 
   console.log(`Fetched ${provinces.length} provinces from PSGC API`)
 
-  // PSGC structure: Region(2) + Province(2) + District(2) + City(1) + Barangay(3)
-  // Districts are administrative codes only - Filipinos don't select by district
-  // We only expose Province → City → Barangay to users
-  // Districts are handled internally in the code structure
+  // PSGC structure: Region(2) + Province(3) + City(2) + Barangay(3) = 10 digits
+  // API returns clean province codes already: "0307100000" (Zambales)
+  // Region=03, Province=071, City=00, Barangay=000
+  // Database schema uses VARCHAR(9), so truncate last digit
 
-  // Create province entries WITHOUT district level (user-friendly)
   const provinceList = provinces.map((p) => {
-    // Use main province code: Region(2) + Province(2) + "00000"
-    // This ignores district variations (80, 81, 82, etc.)
-    const region = p.code.substring(0, 2)
-    const province = p.code.substring(2, 4)
-    const mainProvinceCode = region + province + "00000"
+    // API returns 10-digit codes, truncate to 9 for database
+    const code9 = p.code.substring(0, 9)
 
     return {
-      code: mainProvinceCode,
+      code: code9,
       name: p.name,
       region_code: p.regionCode,
     }
@@ -151,7 +147,51 @@ async function seedProvinces() {
     records_synced: provinceList.length,
   })
 
-  console.log(`✓ Inserted ${provinceList.length} province entries (district-agnostic)`)
+  console.log(`✓ Inserted ${provinceList.length} province entries`)
+
+  // Now check for any province codes used by cities that don't exist yet  // (e.g., Highly Urbanized Cities with special codes like Angeles = 030100000)
+  console.log("Checking for additional province codes from cities...")
+  const missingProvinceCodes = new Set<string>()
+
+  cities.forEach((c) => {
+    const code9 = c.code.substring(0, 9)
+    const region = code9.substring(0, 2)
+    const province = code9.substring(2, 5)
+    const provinceCode = region + province + "0000"
+
+    // Check if this province code exists in our list
+    if (!provinceList.find(p => p.code === provinceCode)) {
+      missingProvinceCodes.add(provinceCode)
+    }
+  })
+
+  if (missingProvinceCodes.size > 0) {
+    console.log(`Found ${missingProvinceCodes.size} additional province codes (HUCs/special areas)`)
+    const additionalProvinces = Array.from(missingProvinceCodes).map(code => {
+      const region = code.substring(0, 2)
+      // Find a city with this province code to get a representative name
+      const sampleCity = cities.find(c => {
+        const code9 = c.code.substring(0, 9)
+        const r = code9.substring(0, 2)
+        const p = code9.substring(2, 5)
+        return r + p + "0000" === code
+      })
+
+      return {
+        code,
+        name: sampleCity ? `${sampleCity.name} (Special Administrative Area)` : `Administrative Area ${code}`,
+        region_code: region,
+      }
+    })
+
+    const { error: additionalError } = await supabase.from("address_provinces").upsert(additionalProvinces, {
+      onConflict: "code",
+    })
+
+    if (additionalError) throw additionalError
+    console.log(`✓ Inserted ${additionalProvinces.length} additional province entries`)
+  }
+
   return provinceList.length
 }
 
@@ -171,15 +211,15 @@ async function seedCities() {
         // Truncate to 9 digits for consistency
         const code9 = c.code.substring(0, 9)
 
-        // Derive province code from city code (WITHOUT district)
-        // PSGC 10-digit structure: Region(2) + Province(2) + District(2) + City(1) + Barangay(3)
-        // E.g., 0102801000 = Region 01 + Province 02 + District 80 + City 1 + Barangay 000
-        // Province code (district-agnostic): Region(2) + Province(2) + "00000"
-        // E.g., 010280100 -> 010200000 (Ilocos Norte, no district)
-        //       0102810000 -> 010200000 (same province, different district code)
+        // Derive province code from city code
+        // PSGC 10-digit structure: Region(2) + Province(3) + City(2) + Barangay(3)
+        // E.g., "0307101000" (Botolan, Zambales)
+        //   Region=03, Province=071, City=01, Barangay=000
+        // Province code (9 digits): Region(2) + Province(3) + "0000"
+        // E.g., "0307101000" -> "030710000"
         const region = code9.substring(0, 2)
-        const province = code9.substring(2, 4)
-        const provinceCode = region + province + "00000"
+        const province = code9.substring(2, 5)
+        const provinceCode = region + province + "0000"
 
         return {
           code: code9,

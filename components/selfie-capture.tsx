@@ -32,19 +32,16 @@ export function SelfieCapture({ onCapture, onCancel, className, initialImage }: 
   const [lightingAnalysis, setLightingAnalysis] = useState<LightingAnalysis | null>(null)
   const [countdown, setCountdown] = useState<number | null>(null)
 
-  // Load face detector when camera opens
+  // Pre-load face detector in background when component mounts (optimization)
   useEffect(() => {
-    if (!cameraOpen) return
-
     const loadModel = async () => {
       if (modelLoaded) return
-      setModelLoading(true)
+      // Load silently in background without showing loading UI
       const success = await initFaceDetector()
       setModelLoaded(success)
-      setModelLoading(false)
     }
     loadModel()
-  }, [cameraOpen, modelLoaded])
+  }, [modelLoaded])
 
   // Cleanup on unmount
   useEffect(() => {
