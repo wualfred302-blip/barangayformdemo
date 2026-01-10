@@ -10,6 +10,7 @@ import { useBlotters } from "@/lib/blotter-context"
 import { useAnnouncements } from "@/lib/announcements-context"
 import { useBayanihan } from "@/lib/bayanihan-context"
 import { useQRT } from "@/lib/qrt-context"
+import { useDelivery } from "@/lib/delivery-context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -39,6 +40,7 @@ import {
   Search,
   Filter,
   Download,
+  Truck,
 } from "lucide-react"
 
 export default function CaptainDashboard() {
@@ -49,6 +51,7 @@ export default function CaptainDashboard() {
   const { announcements } = useAnnouncements()
   const { getPendingCount, getHighUrgencyCount } = useBayanihan()
   const { findQRTByVerificationCode, getQRTByCode, logVerification, getVerificationLogs } = useQRT()
+  const { deliveryRequests } = useDelivery()
 
   // Scanner state
   const [showScanner, setShowScanner] = useState(false)
@@ -134,6 +137,8 @@ export default function CaptainDashboard() {
   const completedCerts = certificates.filter((c) => c.status === "ready").length
   const activeComplaints = blotters.filter((b) => !["resolved", "dismissed"].includes(b.status)).length
   const publishedAnnouncements = announcements.filter((a) => a.isPublished).length
+  const pendingDeliveries = deliveryRequests.filter((d) => ["requested", "printing", "printed"].includes(d.status)).length
+  const outForDelivery = deliveryRequests.filter((d) => d.status === "out_for_delivery").length
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F9FAFB]">
@@ -301,6 +306,25 @@ export default function CaptainDashboard() {
                     <p className="text-sm font-semibold text-gray-900">Bayanihan Requests</p>
                     <p className="text-[10px] text-gray-500">
                       {getPendingCount()} pending{getHighUrgencyCount() > 0 ? `, ${getHighUrgencyCount()} urgent` : ''}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-gray-400" />
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/staff/delivery-management">
+            <Card className="border-0 shadow-sm transition-all active:scale-[0.98]">
+              <CardContent className="flex items-center justify-between p-3">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${outForDelivery > 0 ? 'bg-blue-100' : 'bg-slate-100'}`}>
+                    <Truck className={`h-5 w-5 ${outForDelivery > 0 ? 'text-blue-600' : 'text-slate-600'}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">ID Deliveries</p>
+                    <p className="text-[10px] text-gray-500">
+                      {pendingDeliveries} pending{outForDelivery > 0 ? `, ${outForDelivery} out for delivery` : ''}
                     </p>
                   </div>
                 </div>

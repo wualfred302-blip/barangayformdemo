@@ -8,6 +8,8 @@ import { CertificateProvider } from "@/lib/certificate-context"
 import { BlotterProvider } from "@/lib/blotter-context"
 import { AnnouncementsProvider } from "@/lib/announcements-context"
 import { BayanihanProvider } from "@/lib/bayanihan-context"
+import { DeliveryProvider } from "@/lib/delivery-context"
+import { NotificationsProvider } from "@/lib/notifications-context"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -15,15 +17,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ResidentsProvider>
         <PaymentProvider>
           <QRTProvider>
-            <CertificateProvider>
-              <BlotterProvider>
-                <AnnouncementsProvider>
-                  <BayanihanProvider>
-                    {children}
-                  </BayanihanProvider>
-                </AnnouncementsProvider>
-              </BlotterProvider>
-            </CertificateProvider>
+            <DeliveryProvider>
+              <NotificationsProvider>
+                <CertificateProvider>
+                  <BlotterProvider>
+                    <AnnouncementsProvider>
+                      <BayanihanProvider>
+                        {children}
+                      </BayanihanProvider>
+                    </AnnouncementsProvider>
+                  </BlotterProvider>
+                </CertificateProvider>
+              </NotificationsProvider>
+            </DeliveryProvider>
           </QRTProvider>
         </PaymentProvider>
       </ResidentsProvider>

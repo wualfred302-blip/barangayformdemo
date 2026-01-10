@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Bell,
   Inbox,
+  Truck,
 } from "lucide-react"
 import { BottomNav } from "@/components/bottom-nav"
 import { DashboardHeader } from "@/components/dashboard-header"
@@ -112,13 +113,13 @@ export default function DashboardPage() {
     // Row 1: Primary Services (4 items - aligned)
     { icon: FileText, label: "Request Certificate", href: "/request" },
     { icon: CreditCard, label: "Request ID", href: "/qrt-id/request" },
+    { icon: Truck, label: "ID Delivery", href: "/delivery/request" },
     { icon: ShieldAlert, label: "File Blotter", href: "/blotter" },
-    { icon: Users, label: "Bayanihan", href: "/bayanihan" },
     // Row 2: Secondary Services (4 items)
+    { icon: Users, label: "Bayanihan", href: "/bayanihan" },
     { icon: Plus, label: "Health Center", href: "/health-center" },
     { icon: Calendar, label: "Events", href: "/announcements" },
     { icon: FileSignature, label: "Permits", href: "/permits" },
-    { icon: CircleDollarSign, label: "Taxes", href: "/taxes" },
   ]
 
   return (

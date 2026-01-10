@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { UserCircle2, Bell } from "lucide-react"
+import { UserCircle2 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { getGreeting } from "@/lib/utils/timezone"
+import { NotificationDropdown } from "@/components/notification-dropdown"
 
 /**
  * DashboardHeader Component
@@ -85,13 +86,8 @@ export function DashboardHeader() {
         </div>
       </button>
 
-      {/* Right: Notification Bell - Touch target compliant (44x44px minimum) */}
-      <button
-        aria-label="View notifications"
-        className="h-11 w-11 min-h-[44px] min-w-[44px] rounded-full hover:bg-gray-50 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:ring-offset-2"
-      >
-        <Bell className="h-5 w-5 text-gray-500" strokeWidth={2} />
-      </button>
+      {/* Right: Notification Dropdown - Touch target compliant (44x44px minimum) */}
+      <NotificationDropdown />
     </div>
   )
 }

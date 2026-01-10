@@ -6,17 +6,19 @@ import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, FileText, ChevronRight, HandHeart, CreditCard } from "lucide-react"
+import { ArrowLeft, FileText, ChevronRight, HandHeart, CreditCard, Truck } from "lucide-react"
 import { useCertificates } from "@/lib/certificate-context"
 import { useBayanihan } from "@/lib/bayanihan-context"
 import { useQRT } from "@/lib/qrt-context"
+import { useDelivery } from "@/lib/delivery-context"
 import { useAuth } from "@/lib/auth-context"
 import { BottomNav } from "@/components/bottom-nav"
 import { QRTStatusBadge } from "@/components/qrt-status-badge"
+import { DeliveryStatusBadge } from "@/components/delivery-status-badge"
 import { cn } from "@/lib/utils"
 
 type FilterType = "all" | "processing" | "ready"
-type TabType = "all" | "certificates" | "qrt" | "bayanihan"
+type TabType = "all" | "certificates" | "qrt" | "bayanihan" | "deliveries"
 
 function RequestsPageContent() {
   const router = useRouter()
@@ -25,11 +27,12 @@ function RequestsPageContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const { requests: bayanihanRequests } = useBayanihan()
   const { qrtIds, getUserQRTIds, refreshQRTIds, isLoaded: qrtLoaded } = useQRT()
+  const { deliveryRequests, getUserDeliveryRequests, isLoaded: deliveryLoaded } = useDelivery()
   const [filter, setFilter] = useState<FilterType>("all")
   const [activeTab, setActiveTab] = useState<TabType>("all")
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const isContextReady = !authLoading && qrtLoaded
+  const isContextReady = !authLoading && qrtLoaded && deliveryLoaded
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -39,7 +42,7 @@ function RequestsPageContent() {
 
   useEffect(() => {
     const tab = searchParams.get("tab") as TabType
-    if (tab && ["all", "certificates", "qrt", "bayanihan"].includes(tab)) {
+    if (tab && ["all", "certificates", "qrt", "bayanihan", "deliveries"].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -58,10 +61,13 @@ function RequestsPageContent() {
 
   const myCertificates = user?.id ? getCertificatesByUserId(user.id) : certificates
 
+  const myDeliveries = user?.id ? getUserDeliveryRequests(user.id) : []
+
   const combinedRequests = [
     ...myCertificates.map((c) => ({ type: "certificate" as const, data: c, date: c.createdAt })),
     ...myBayanihan.map((b) => ({ type: "bayanihan" as const, data: b, date: b.createdAt })),
     ...myQrtIds.map((q) => ({ type: "qrt" as const, data: q, date: q.createdAt })),
+    ...myDeliveries.map((d) => ({ type: "delivery" as const, data: d, date: d.createdAt })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const filteredRequests = combinedRequests.filter((item) => {
@@ -69,6 +75,7 @@ function RequestsPageContent() {
       if (activeTab === "certificates" && item.type !== "certificate") return false
       if (activeTab === "qrt" && item.type !== "qrt") return false
       if (activeTab === "bayanihan" && item.type !== "bayanihan") return false
+      if (activeTab === "deliveries" && item.type !== "delivery") return false
     }
 
     if (filter === "all") return true
@@ -77,12 +84,14 @@ function RequestsPageContent() {
       if (item.type === "certificate") return item.data.status === "processing"
       if (item.type === "bayanihan") return ["pending", "in_progress"].includes(item.data.status)
       if (item.type === "qrt") return ["pending", "processing"].includes(item.data.status)
+      if (item.type === "delivery") return ["requested", "printing", "printed", "out_for_delivery"].includes(item.data.status)
     }
 
     if (filter === "ready") {
       if (item.type === "certificate") return item.data.status === "ready"
       if (item.type === "bayanihan") return ["resolved", "rejected"].includes(item.data.status)
       if (item.type === "qrt") return ["ready", "issued"].includes(item.data.status)
+      if (item.type === "delivery") return ["delivered", "pickup_required"].includes(item.data.status)
     }
 
     return false
@@ -127,6 +136,7 @@ function RequestsPageContent() {
             { value: "all" as const, label: "All" },
             { value: "certificates" as const, label: "Certificates" },
             { value: "qrt" as const, label: "QRT IDs" },
+            { value: "deliveries" as const, label: "Deliveries" },
             { value: "bayanihan" as const, label: "Bayanihan" },
           ].map((tab) => (
             <button
@@ -177,6 +187,9 @@ function RequestsPageContent() {
                 </Button>
                 <Button asChild variant="outline" className="rounded-xl w-full border-gray-200 bg-transparent">
                   <Link href="/qrt-id/request">Request QRT ID</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-xl w-full border-gray-200 bg-transparent">
+                  <Link href="/delivery/request">Request ID Delivery</Link>
                 </Button>
                 <Button asChild variant="outline" className="rounded-xl w-full border-gray-200 bg-transparent">
                   <Link href="/bayanihan">Request Assistance</Link>
@@ -306,7 +319,7 @@ function RequestsPageContent() {
                     </Card>
                   </Link>
                 )
-              } else {
+              } else if (item.type === "qrt") {
                 const qrt = item.data
                 const isReady = ["ready", "issued"].includes(qrt.status)
 
@@ -341,6 +354,69 @@ function RequestsPageContent() {
                         </div>
                         <div className="flex items-center gap-2">
                           <QRTStatusBadge status={qrt.status} size="sm" showIcon={false} />
+                          <ChevronRight className="h-5 w-5 text-gray-300" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              } else {
+                // Delivery request
+                const delivery = item.data
+                const isCompleted = delivery.status === "delivered"
+                const isOutForDelivery = delivery.status === "out_for_delivery"
+
+                return (
+                  <Link key={delivery.id} href={`/delivery/${delivery.id}`}>
+                    <Card className="overflow-hidden rounded-2xl border-0 bg-white shadow-md transition-transform active:scale-[0.98]">
+                      <CardContent className="flex items-center justify-between p-4">
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={cn(
+                              "flex h-12 w-12 items-center justify-center rounded-xl",
+                              isCompleted
+                                ? "bg-[#10B981]/10"
+                                : isOutForDelivery
+                                  ? "bg-blue-100"
+                                  : "bg-orange-100",
+                            )}
+                          >
+                            <Truck
+                              className={cn(
+                                "h-6 w-6",
+                                isCompleted
+                                  ? "text-[#10B981]"
+                                  : isOutForDelivery
+                                    ? "text-blue-500"
+                                    : "text-orange-500",
+                              )}
+                            />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                ID Delivery
+                              </span>
+                              {delivery.deliveryType === "pickup" && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-purple-100 text-purple-700">
+                                  PICKUP
+                                </span>
+                              )}
+                            </div>
+                            <p className="font-semibold text-[#1A1A1A]">
+                              {delivery.deliveryType === "pickup" ? "Office Pickup" : `To ${delivery.deliveryBarangay}`}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {new Date(delivery.createdAt).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <DeliveryStatusBadge status={delivery.status} size="sm" showIcon={false} />
                           <ChevronRight className="h-5 w-5 text-gray-300" />
                         </div>
                       </CardContent>
