@@ -133,10 +133,8 @@ export function QRTCardHero({ qrtId, onRequestClick }: QRTCardHeroProps) {
   const formattedValidUntil = format(validUntilDate, "MM/dd/yyyy")
   const formattedBirthDate = qrtId.birthDate ? format(new Date(qrtId.birthDate), "MM/dd/yyyy") : "N/A"
 
-  // Truncate address if too long
-  const displayAddress = qrtId.address && qrtId.address.length > 50
-    ? qrtId.address.substring(0, 50) + "..."
-    : qrtId.address || "N/A"
+  // Display address (truncation handled by CSS line-clamp)
+  const displayAddress = qrtId.address || "N/A"
 
   // Has QRT ID - Show hero card with flip functionality
   return (
@@ -179,7 +177,7 @@ export function QRTCardHero({ qrtId, onRequestClick }: QRTCardHeroProps) {
                 <h3 className="text-white text-xs sm:text-sm lg:text-base font-bold tracking-wide">
                   BARANGAY MAWAQUE
                 </h3>
-                <p className="text-white/90 text-[10px] sm:text-xs lg:text-sm font-medium">
+                <p className="text-white/90 text-xs sm:text-sm lg:text-sm font-medium">
                   Quick Response Team ID
                 </p>
               </div>
@@ -188,7 +186,7 @@ export function QRTCardHero({ qrtId, onRequestClick }: QRTCardHeroProps) {
                 {/* Left Section: Photo & QR Code */}
                 <div className="flex flex-col items-center justify-between">
                   {/* User Photo */}
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/40 flex items-center justify-center overflow-hidden">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/40 flex items-center justify-center overflow-hidden">
                     {qrtId.photoUrl ? (
                       <img
                         src={qrtId.photoUrl}
@@ -204,8 +202,8 @@ export function QRTCardHero({ qrtId, onRequestClick }: QRTCardHeroProps) {
                   <div className="bg-white p-1.5 sm:p-2 lg:p-2.5 rounded-lg shadow-lg">
                     <QRCodeSVG
                       value={`https://barangaymawaque.ph/verify/${qrtId.verificationCode}`}
-                      size={48}
-                      className="sm:w-16 sm:h-16 lg:w-20 lg:h-20"
+                      size={56}
+                      className="w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20"
                       level="M"
                     />
                   </div>
@@ -223,12 +221,12 @@ export function QRTCardHero({ qrtId, onRequestClick }: QRTCardHeroProps) {
                     </p>
 
                     {/* Details Grid */}
-                    <div className="space-y-0.5 sm:space-y-1 lg:space-y-1.5">
+                    <div className="space-y-1.5 sm:space-y-2 lg:space-y-2.5">
                       <div className="flex items-start gap-1.5 sm:gap-2">
                         <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4 text-white/80 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="text-white/70 text-[9px] sm:text-[10px] lg:text-xs leading-tight">Birth Date</p>
-                          <p className="text-white text-[10px] sm:text-xs lg:text-sm font-medium leading-tight">
+                          <p className="text-white/70 text-[11px] sm:text-[10px] lg:text-xs leading-tight">Birth Date</p>
+                          <p className="text-white text-xs sm:text-sm lg:text-sm font-medium leading-tight">
                             {formattedBirthDate}
                           </p>
                         </div>
@@ -236,9 +234,9 @@ export function QRTCardHero({ qrtId, onRequestClick }: QRTCardHeroProps) {
 
                       <div className="flex items-start gap-1.5 sm:gap-2">
                         <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4 text-white/80 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-white/70 text-[9px] sm:text-[10px] lg:text-xs leading-tight">Address</p>
-                          <p className="text-white text-[10px] sm:text-xs lg:text-sm font-medium leading-tight">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white/70 text-[11px] sm:text-[10px] lg:text-xs leading-tight">Address</p>
+                          <p className="text-white text-xs sm:text-sm lg:text-sm font-medium leading-tight line-clamp-2">
                             {displayAddress}
                           </p>
                         </div>
@@ -248,7 +246,7 @@ export function QRTCardHero({ qrtId, onRequestClick }: QRTCardHeroProps) {
 
                   {/* Valid Until */}
                   <div className="mt-auto">
-                    <p className="text-white/70 text-[9px] sm:text-[10px] lg:text-xs">Valid Until</p>
+                    <p className="text-white/70 text-[11px] sm:text-[10px] lg:text-xs">Valid Until</p>
                     <p className="text-white text-xs sm:text-sm lg:text-base font-bold">
                       {formattedValidUntil}
                     </p>
@@ -273,7 +271,7 @@ export function QRTCardHero({ qrtId, onRequestClick }: QRTCardHeroProps) {
                 <h3 className="text-white text-xs sm:text-sm lg:text-base font-bold tracking-wide">
                   QUICK RESPONSE TEAM
                 </h3>
-                <p className="text-white/90 text-[10px] sm:text-xs lg:text-sm">
+                <p className="text-white/90 text-xs sm:text-sm lg:text-sm">
                   Emergency Contact Information
                 </p>
               </div>
@@ -331,7 +329,7 @@ export function QRTCardHero({ qrtId, onRequestClick }: QRTCardHeroProps) {
 
               {/* Verification Instructions */}
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-white/20 mb-3 sm:mb-4">
-                <p className="text-white/90 text-[10px] sm:text-xs lg:text-sm font-semibold mb-1 sm:mb-2">
+                <p className="text-white/90 text-xs sm:text-sm lg:text-sm font-semibold mb-1 sm:mb-2">
                   Verify this ID at:
                 </p>
                 <p className="text-white text-xs sm:text-sm lg:text-base font-mono">
@@ -341,7 +339,7 @@ export function QRTCardHero({ qrtId, onRequestClick }: QRTCardHeroProps) {
 
               {/* Return Instructions */}
               <div className="bg-white/5 rounded-lg p-2 sm:p-3 border border-white/10">
-                <p className="text-white/70 text-[9px] sm:text-[10px] lg:text-xs text-center leading-relaxed">
+                <p className="text-white/70 text-[11px] sm:text-[10px] lg:text-xs text-center leading-relaxed">
                   If found, please return to Barangay Mawaque Hall or contact
                   <span className="block text-white font-semibold mt-0.5">
                     {qrtId.phoneNumber || qrtId.mobileNumber || "(123) 456-7890"}

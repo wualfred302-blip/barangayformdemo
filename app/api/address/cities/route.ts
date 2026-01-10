@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get("search")?.trim() || ""
     const provinceCode = searchParams.get("province_code")?.trim() || ""
+    const code = searchParams.get("code")?.trim() || ""
 
     let query = supabase
       .from("address_cities")
@@ -17,13 +18,20 @@ export async function GET(request: NextRequest) {
       .order("name", { ascending: true })
       .limit(20)
 
-    if (provinceCode) {
-      query = query.eq("province_code", provinceCode)
-    }
+    // NEW: Support exact code lookup (for reverse inference)
+    if (code) {
+      query = query.eq("code", code)
+      console.log(`[City API] Exact code lookup: ${code}`)
+    } else {
+      // Normal search/filter mode
+      if (provinceCode) {
+        query = query.eq("province_code", provinceCode)
+      }
 
-    if (search) {
-      // Fuzzy search with prefix match (higher priority) and contains match
-      query = query.or(`name.ilike.${search}%,name.ilike.%${search}%`)
+      if (search) {
+        // Fuzzy search with prefix match (higher priority) and contains match
+        query = query.or(`name.ilike.${search}%,name.ilike.%${search}%`)
+      }
     }
 
     const { data, error } = await query
@@ -33,6 +41,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch cities" }, { status: 500 })
     }
 
+    console.log(`[City API] Found ${data?.length || 0} cities`)
     return NextResponse.json({ cities: data || [] })
   } catch (error) {
     console.error("City API error:", error)

@@ -66,31 +66,47 @@ interface BarangayResult {
   name: string
 }
 
+// Address candidate with confidence level (from server)
+interface AddressCandidate {
+  value: string
+  confidence: 'high' | 'medium' | 'low'
+}
+
 /**
- * Fuzzy match OCR-extracted addresses against the database
+ * Enhanced fuzzy match with reverse inference for maximum autocomplete accuracy
  *
- * @param input - Object containing optional province, city, and barangay text
+ * Strategies:
+ * 1. Candidate prioritization (high > medium > low confidence)
+ * 2. Multi-word combinations (try "Mabayuan Subic" before individuals)
+ * 3. Reverse inference (if barangay found but no city, infer city from barangay parent)
+ * 4. Cascading hierarchy (province → city within province → barangay within city)
+ *
+ * @param input - Raw address string and optional server-extracted candidates
  * @returns Promise resolving to matched address components (null for unmatched)
  *
  * @example
  * ```typescript
  * const result = await fuzzyMatchAddresses({
- *   province: "PAMPANGA",
- *   city: "MABALACAT",
- *   barangay: "ATLU-BOLA"
+ *   rawAddress: "79 Otero Avenue, Mabayuan, Rhoxanne, Ebalon",
+ *   candidates: {
+ *     barangay: [{ value: "Mabayuan", confidence: "low" }],
+ *     city: [{ value: "Rhoxanne", confidence: "low" }],
+ *     province: [{ value: "Ebalon", confidence: "medium" }]
+ *   }
  * })
- * // Returns: {
- * //   province: { code: "035400000", name: "Pampanga" },
- * //   city: { code: "035409000", name: "Mabalacat City", zip_code: "2010" },
- * //   barangay: { code: "035409001", name: "Atlu-Bola" }
- * // }
+ * // Returns (with reverse inference):
+ * //   province: { code: "030710000", name: "Zambales" },
+ * //   city: { code: "037109000", name: "Subic", zip_code: "2209" } ← INFERRED from barangay
+ * //   barangay: { code: "037109008", name: "Mabayuan" }
  * ```
  */
 export async function fuzzyMatchAddresses(input: {
-  province?: string
-  city?: string
-  barangay?: string
-  rawAddress?: string // Full OCR address text for ZIP extraction
+  rawAddress: string
+  candidates?: {
+    barangay: AddressCandidate[]
+    city: AddressCandidate[]
+    province: AddressCandidate[]
+  }
 }): Promise<FuzzyMatchResult> {
   const result: FuzzyMatchResult = {
     province: null,
@@ -99,84 +115,195 @@ export async function fuzzyMatchAddresses(input: {
     extractedZipCode: extractZipFromText(input.rawAddress),
   }
 
-  // Step 1: Match province if provided
-  let provinceCode: string | null = null
-  if (input.province?.trim()) {
-    try {
-      const provinceResponse = await fetch(
-        `/api/address/provinces?search=${encodeURIComponent(input.province.trim())}`
-      )
+  console.log("[Fuzzy Matcher] Starting with raw address:", input.rawAddress)
 
-      if (provinceResponse.ok) {
-        const data = await provinceResponse.json()
-        if (data.provinces && data.provinces.length > 0) {
-          // Take first (best) match
-          const province: ProvinceResult = data.provinces[0]
-          result.province = {
-            code: province.code,
-            name: province.name,
-          }
-          provinceCode = province.code
-        }
+  // Split raw address into parts
+  const parts = input.rawAddress.split(',').map(p => p.trim()).filter(p => p.length > 2)
+
+  // Prepare search candidates (prioritize server hints by confidence, then try all parts)
+  const getCandidates = (type: 'province' | 'city' | 'barangay'): string[] => {
+    const serverCandidates = input.candidates?.[type] || []
+
+    // Sort by confidence: high > medium > low
+    const sorted = serverCandidates.sort((a, b) => {
+      const confidenceOrder = { high: 3, medium: 2, low: 1 }
+      return confidenceOrder[b.confidence] - confidenceOrder[a.confidence]
+    })
+
+    const candidateValues = sorted.map(c => c.value)
+
+    // Add all raw parts that aren't already in candidates
+    const uniqueParts = parts.filter(p => !candidateValues.some(c =>
+      c.toLowerCase().includes(p.toLowerCase()) || p.toLowerCase().includes(c.toLowerCase())
+    ))
+
+    return [...candidateValues, ...uniqueParts]
+  }
+
+  // PASS 1: Find province
+  let provinceCode: string | null = null
+  const provinceCandidates = getCandidates('province')
+  console.log("[Fuzzy Matcher] Province candidates:", provinceCandidates)
+
+  for (const candidate of provinceCandidates) {
+    try {
+      const response = await fetch(`/api/address/provinces?search=${encodeURIComponent(candidate)}`)
+      const data = await response.json()
+
+      if (data.provinces && data.provinces.length > 0) {
+        const province: ProvinceResult = data.provinces[0]
+        result.province = { code: province.code, name: province.name }
+        provinceCode = province.code
+        console.log(`[Fuzzy Matcher] ✓ Province matched: "${candidate}" → ${province.name} (${province.code})`)
+        break
       }
     } catch (error) {
-      console.error("Error matching province:", error)
-      // Gracefully handle error - leave province as null
+      console.error(`[Fuzzy Matcher] Error matching province "${candidate}":`, error)
     }
   }
 
-  // Step 2: Match city if provided (filtered by province if found)
+  // PASS 2: Find city WITHIN province
   let cityCode: string | null = null
-  if (input.city?.trim()) {
-    try {
-      const cityUrl = provinceCode
-        ? `/api/address/cities?search=${encodeURIComponent(input.city.trim())}&province_code=${provinceCode}`
-        : `/api/address/cities?search=${encodeURIComponent(input.city.trim())}`
+  if (provinceCode) {
+    const cityCandidates = getCandidates('city')
+    console.log("[Fuzzy Matcher] City candidates:", cityCandidates)
 
-      const cityResponse = await fetch(cityUrl)
+    // Strategy 1: Try individual candidates
+    for (const candidate of cityCandidates) {
+      try {
+        const cityUrl = `/api/address/cities?search=${encodeURIComponent(candidate)}&province_code=${provinceCode}`
+        const response = await fetch(cityUrl)
+        const data = await response.json()
 
-      if (cityResponse.ok) {
-        const data = await cityResponse.json()
         if (data.cities && data.cities.length > 0) {
-          // Take first (best) match
           const city: CityResult = data.cities[0]
           result.city = {
             code: city.code,
             name: city.name,
-            zip_code: city.zip_code || "",
+            zip_code: city.zip_code || ""
           }
           cityCode = city.code
+          console.log(`[Fuzzy Matcher] ✓ City matched: "${candidate}" → ${city.name} (${city.code})`)
+          break
+        }
+      } catch (error) {
+        console.error(`[Fuzzy Matcher] Error matching city "${candidate}":`, error)
+      }
+    }
+
+    // Strategy 2: Try multi-word combinations (e.g., "Mabayuan Subic")
+    if (!cityCode && cityCandidates.length >= 2) {
+      console.log("[Fuzzy Matcher] Trying multi-word city combinations...")
+      for (let i = 0; i < cityCandidates.length - 1; i++) {
+        const combined = `${cityCandidates[i]} ${cityCandidates[i + 1]}`
+        try {
+          const response = await fetch(
+            `/api/address/cities?search=${encodeURIComponent(combined)}&province_code=${provinceCode}`
+          )
+          const data = await response.json()
+
+          if (data.cities && data.cities.length > 0) {
+            const city: CityResult = data.cities[0]
+            result.city = {
+              code: city.code,
+              name: city.name,
+              zip_code: city.zip_code || ""
+            }
+            cityCode = city.code
+            console.log(`[Fuzzy Matcher] ✓ City matched (multi-word): "${combined}" → ${city.name}`)
+            break
+          }
+        } catch (error) {
+          console.error(`[Fuzzy Matcher] Error matching combined city "${combined}":`, error)
         }
       }
-    } catch (error) {
-      console.error("Error matching city:", error)
-      // Gracefully handle error - leave city as null
     }
   }
 
-  // Step 3: Match barangay if provided (requires city code)
-  if (input.barangay?.trim() && cityCode) {
-    try {
-      const barangayResponse = await fetch(
-        `/api/address/barangays?city_code=${cityCode}&search=${encodeURIComponent(input.barangay.trim())}`
-      )
+  // PASS 3: Find barangay WITHIN city
+  if (cityCode) {
+    const barangayCandidates = getCandidates('barangay')
+    console.log("[Fuzzy Matcher] Barangay candidates (within city):", barangayCandidates)
 
-      if (barangayResponse.ok) {
-        const data = await barangayResponse.json()
+    for (const candidate of barangayCandidates) {
+      try {
+        const barangayUrl = `/api/address/barangays?city_code=${cityCode}&search=${encodeURIComponent(candidate)}`
+        const response = await fetch(barangayUrl)
+        const data = await response.json()
+
         if (data.barangays && data.barangays.length > 0) {
-          // Take first (best) match
           const barangay: BarangayResult = data.barangays[0]
           result.barangay = {
             code: barangay.code,
-            name: barangay.name,
+            name: barangay.name
           }
+          console.log(`[Fuzzy Matcher] ✓ Barangay matched: "${candidate}" → ${barangay.name}`)
+          break
         }
+      } catch (error) {
+        console.error(`[Fuzzy Matcher] Error matching barangay "${candidate}":`, error)
       }
-    } catch (error) {
-      console.error("Error matching barangay:", error)
-      // Gracefully handle error - leave barangay as null
     }
   }
+
+  // FALLBACK STRATEGY: Reverse inference (city from barangay) 🔥
+  // If province found but NO city, try searching barangay candidates across ALL cities in province
+  if (provinceCode && !cityCode) {
+    console.log("[Fuzzy Matcher] 🔥 Activating reverse inference (city from barangay)...")
+    const barangayCandidates = getCandidates('barangay')
+
+    for (const candidate of barangayCandidates) {
+      try {
+        // Search barangays globally within province (no city filter)
+        const barangayUrl = `/api/address/barangays?province_code=${provinceCode}&search=${encodeURIComponent(candidate)}`
+        const response = await fetch(barangayUrl)
+        const data = await response.json()
+
+        if (data.barangays && data.barangays.length > 0) {
+          const matchedBarangay: BarangayResult = data.barangays[0]
+          result.barangay = {
+            code: matchedBarangay.code,
+            name: matchedBarangay.name
+          }
+          console.log(`[Fuzzy Matcher] ✓ Barangay found (province-level): "${candidate}" → ${matchedBarangay.name}`)
+
+          // REVERSE INFERENCE: Extract city code from barangay code
+          // Barangay code format: RRPPPDDCCBBB (Region+Province+District+City+Barangay)
+          // City code: RRPPPDDCC000 (first 7 digits + "000")
+          const cityCodeFromBarangay = matchedBarangay.code.substring(0, 7) + "000"
+          console.log(`[Fuzzy Matcher] 🔄 Inferring city from barangay code: ${matchedBarangay.code} → ${cityCodeFromBarangay}`)
+
+          // Fetch city details
+          try {
+            const cityResponse = await fetch(`/api/address/cities?code=${cityCodeFromBarangay}`)
+            const cityData = await cityResponse.json()
+
+            if (cityData.cities && cityData.cities.length > 0) {
+              const city: CityResult = cityData.cities[0]
+              result.city = {
+                code: city.code,
+                name: city.name,
+                zip_code: city.zip_code || ""
+              }
+              console.log(`[Fuzzy Matcher] ✅ CITY INFERRED: ${city.name} (from barangay ${matchedBarangay.name})`)
+            }
+          } catch (error) {
+            console.error("[Fuzzy Matcher] Error fetching inferred city:", error)
+          }
+
+          break  // Found barangay and inferred city - success!
+        }
+      } catch (error) {
+        console.error(`[Fuzzy Matcher] Error in reverse inference for "${candidate}":`, error)
+      }
+    }
+  }
+
+  console.log("[Fuzzy Matcher] Final result:", {
+    province: result.province?.name || "null",
+    city: result.city?.name || "null",
+    barangay: result.barangay?.name || "null"
+  })
 
   return result
 }

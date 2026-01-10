@@ -113,6 +113,11 @@ export default function RegisterPage() {
     cityMunicipality?: string
     province?: string
     zipCode?: string
+    candidates?: {
+      barangay: Array<{ value: string; confidence: 'high' | 'medium' | 'low' }>
+      city: Array<{ value: string; confidence: 'high' | 'medium' | 'low' }>
+      province: Array<{ value: string; confidence: 'high' | 'medium' | 'low' }>
+    }
   }) => {
     let mappedIdType = ""
     if (data.idType) {
@@ -154,12 +159,10 @@ export default function RegisterPage() {
       }
     }
 
-    // Perform fuzzy matching on OCR-extracted addresses
+    // Perform enhanced fuzzy matching with server-extracted candidates
     const addressMatches = await fuzzyMatchAddresses({
-      province: data.province,
-      city: data.cityMunicipality,
-      barangay: data.barangay,
-      rawAddress: data.address, // Pass raw address for ZIP extraction
+      rawAddress: data.address,
+      candidates: data.candidates, // Server hints with confidence levels
     })
 
     // Use matched names and codes, fallback to original OCR text

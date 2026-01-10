@@ -676,7 +676,13 @@ function parseDriversLicense(lines: string[], text: string): {
   }
 }
 
-// Parse address into components
+// Address candidate with confidence level
+interface AddressCandidate {
+  value: string
+  confidence: 'high' | 'medium' | 'low'
+}
+
+// Parse address into components with intelligent candidate extraction
 function parseAddressComponents(address: string): {
   houseLotNo: string
   street: string
@@ -685,120 +691,124 @@ function parseAddressComponents(address: string): {
   cityMunicipality: string
   province: string
   zipCode: string
+  candidates?: {
+    barangay: AddressCandidate[]
+    city: AddressCandidate[]
+    province: AddressCandidate[]
+  }
 } {
   let houseLotNo = ""
   let street = ""
   let purok = ""
-  let barangay = ""
-  let cityMunicipality = ""
-  let province = ""
   let zipCode = ""
 
   if (!address) {
-    return { houseLotNo, street, purok, barangay, cityMunicipality, province, zipCode }
+    return { houseLotNo, street, purok, barangay: "", cityMunicipality: "", province: "", zipCode }
   }
 
   const upperAddr = address.toUpperCase()
   console.log("[Address Parser] Parsing:", upperAddr)
 
-  // Split by comma for structured addresses like "18 NATIONAL HIGHWAY, ILWAS, SUBIC, ZAMBALES"
+  // Split by comma for structured addresses
   const parts = address.split(",").map(p => p.trim())
   console.log("[Address Parser] Parts:", parts)
 
-  if (parts.length >= 2) {
-    // First part usually has house number and street
-    const firstPart = parts[0]
-
-    // Extract house number (leading digits)
-    const houseMatch = firstPart.match(/^(\d+[-A-Z]?)\s+/i)
-    if (houseMatch) {
-      houseLotNo = houseMatch[1]
-    }
-
-    // Extract street (everything after house number, or entire first part if no house number)
-    const streetPart = houseMatch ? firstPart.substring(houseMatch[0].length).trim() : firstPart
-    if (streetPart && /HIGHWAY|STREET|ST\.?|AVENUE|AVE\.?|ROAD|RD\.?|BOULEVARD|BLVD\.?|DRIVE|DR\.?|LANE|LN\.?/i.test(streetPart)) {
-      street = streetPart
-    } else if (streetPart && !houseMatch) {
-      // Might be street without type indicator
-      street = streetPart
-    }
-
-    // For comma-separated Philippine addresses, typical format is:
-    // [House# Street], [Barangay], [City/Municipality], [Province]
-    if (parts.length === 4) {
-      barangay = parts[1]
-      cityMunicipality = parts[2]
-      province = parts[3]
-    } else if (parts.length === 3) {
-      // Could be [Street], [City], [Province] or [Street], [Barangay], [City]
-      const lastPart = parts[2].toUpperCase()
-      if (isProvince(lastPart)) {
-        province = parts[2]
-        cityMunicipality = parts[1]
-      } else {
-        cityMunicipality = parts[2]
-        barangay = parts[1]
-      }
-    } else if (parts.length === 2) {
-      const secondPart = parts[1].toUpperCase()
-      if (isProvince(secondPart)) {
-        province = parts[1]
-      } else {
-        cityMunicipality = parts[1]
-      }
-    }
-  } else {
-    // Single string address - use pattern matching
-    // House number
-    const houseMatch = upperAddr.match(/^(\d+[-A-Z]?)\s/i)
-    if (houseMatch) houseLotNo = houseMatch[1]
-
-    // Street with type
-    const streetMatch = upperAddr.match(/(\d*\s*[A-Z\s]+(?:NATIONAL\s+)?(?:HIGHWAY|STREET|ST\.?|AVENUE|AVE\.?|ROAD|RD\.?|BOULEVARD|BLVD\.?|DRIVE|DR\.?|LANE|LN\.?))/i)
-    if (streetMatch) street = streetMatch[1].trim()
-
-    // Purok
-    const purokMatch = upperAddr.match(/PUROK\s*#?\s*(\d+|[A-Z]+)/i)
-    if (purokMatch) purok = purokMatch[1]
-
-    // Barangay
-    const brgyMatch = upperAddr.match(/(?:BRGY\.?|BARANGAY)\s+([A-Z0-9\s\-]+?)(?:,|\s+CITY|\s+MUNICIPALITY|$)/i)
-    if (brgyMatch) barangay = brgyMatch[1].trim()
+  // Extract house number and street from first part
+  const firstPart = parts[0] || ""
+  const houseMatch = firstPart.match(/^(\d+[-A-Z]?)\s+/i)
+  if (houseMatch) {
+    houseLotNo = houseMatch[1]
   }
 
-  // Province detection from full address
-  if (!province) {
-    const detectedProvince = detectProvince(upperAddr)
-    if (detectedProvince) province = detectedProvince
+  // Extract street
+  const streetPart = houseMatch ? firstPart.substring(houseMatch[0].length).trim() : firstPart
+  if (streetPart && /HIGHWAY|STREET|ST\.?|AVENUE|AVE\.?|ROAD|RD\.?|BOULEVARD|BLVD\.?|DRIVE|DR\.?|LANE|LN\.?/i.test(streetPart)) {
+    street = streetPart
   }
 
-  // City/Municipality detection
-  if (!cityMunicipality) {
-    const detectedCity = detectCity(upperAddr)
-    if (detectedCity) cityMunicipality = detectedCity
+  // Extract purok
+  const purokMatch = upperAddr.match(/PUROK\s*#?\s*(\d+|[A-Z]+)/i)
+  if (purokMatch) {
+    purok = purokMatch[1]
   }
 
-  // ZIP code
+  // Extract ZIP code
   const zipMatch = upperAddr.match(/\b(\d{4})\b(?![\d\-])/)
   if (zipMatch) {
     const potentialZip = parseInt(zipMatch[1])
-    if (potentialZip >= 400 && potentialZip <= 9811) {
+    if (potentialZip >= 1000 && potentialZip <= 9999) {
       zipCode = zipMatch[1]
+    }
+  }
+
+  // NEW: Extract candidates with confidence scoring for client-side fuzzy matching
+  const candidates = {
+    barangay: [] as AddressCandidate[],
+    city: [] as AddressCandidate[],
+    province: [] as AddressCandidate[]
+  }
+
+  // Pattern: "Barangay X" or "Brgy. X" = HIGH confidence barangay
+  const brgyMatch = upperAddr.match(/(?:BRGY\.?|BARANGAY)\s+([A-Z][A-Z0-9\s\-]+?)(?:,|\s+(?:CITY|MUNICIPALITY)|$)/i)
+  if (brgyMatch) {
+    candidates.barangay.push({ value: brgyMatch[1].trim(), confidence: 'high' })
+    console.log("[Candidate] High-confidence barangay:", brgyMatch[1].trim())
+  }
+
+  // Pattern: "City of X" or "Municipality of X" = HIGH confidence city
+  const cityMatch = upperAddr.match(/(?:CITY OF|MUNICIPALITY OF)\s+([A-Z][A-Z\s]+?)(?:,|$)/i)
+  if (cityMatch) {
+    candidates.city.push({ value: cityMatch[1].trim(), confidence: 'high' })
+    console.log("[Candidate] High-confidence city:", cityMatch[1].trim())
+  }
+
+  // For comma-separated addresses, use positional heuristics
+  if (parts.length >= 2) {
+    // Last part is usually province (if not already matched)
+    const lastPart = parts[parts.length - 1]
+    if (lastPart.length > 3 && !cityMatch) {
+      candidates.province.push({ value: lastPart, confidence: 'medium' })
+      console.log("[Candidate] Medium-confidence province:", lastPart)
+    }
+
+    // Second-to-last might be city
+    if (parts.length >= 3) {
+      const secondLast = parts[parts.length - 2]
+      if (secondLast.length > 3 && !cityMatch) {
+        candidates.city.push({ value: secondLast, confidence: 'low' })
+        console.log("[Candidate] Low-confidence city:", secondLast)
+      }
+    }
+
+    // Middle parts could be barangay (after street, before city)
+    if (parts.length >= 3 && !brgyMatch) {
+      for (let i = 1; i < parts.length - 2; i++) {
+        if (parts[i].length > 3) {
+          candidates.barangay.push({ value: parts[i], confidence: 'low' })
+          console.log("[Candidate] Low-confidence barangay:", parts[i])
+        }
+      }
     }
   }
 
   // Title case the results
   const titleCase = (str: string) => str.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ")
 
+  console.log("[Candidates Summary]", {
+    barangay: candidates.barangay.length,
+    city: candidates.city.length,
+    province: candidates.province.length
+  })
+
   return {
     houseLotNo,
     street: street ? titleCase(street) : "",
     purok,
-    barangay: barangay ? titleCase(barangay) : "",
-    cityMunicipality: cityMunicipality ? titleCase(cityMunicipality) : "",
-    province: province ? titleCase(province) : "",
+    barangay: "",  // Empty - client-side fuzzy matcher will fill
+    cityMunicipality: "",  // Empty - client-side fuzzy matcher will fill
+    province: "",  // Empty - client-side fuzzy matcher will fill
     zipCode,
+    candidates  // NEW: Pass candidates to client for intelligent matching
   }
 }
 
