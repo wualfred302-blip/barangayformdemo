@@ -56,7 +56,7 @@ export default function Home() {
 
         {/* Buttons */}
         <div className="w-full space-y-4 pt-4">
-          <Button asChild className="w-full h-14 rounded-full bg-gradient-to-r from-[#003399] to-[#cc0000] hover:opacity-90 text-white font-bold text-lg shadow-lg transition-all">
+          <Button asChild className="w-full h-14 rounded-full bg-gradient-to-r from-[#003399] to-[#22c55e] hover:opacity-90 text-white font-bold text-lg shadow-lg transition-all">
             <Link href="/register">
               Get Started <ArrowRight className="ml-2 h-5 w-5" />
             </Link>

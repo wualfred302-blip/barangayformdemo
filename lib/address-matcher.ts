@@ -15,6 +15,39 @@ export interface FuzzyMatchResult {
   province: { code: string; name: string } | null
   city: { code: string; name: string; zip_code: string } | null
   barangay: { code: string; name: string } | null
+  extractedZipCode?: string // ZIP code extracted from raw OCR text via regex
+}
+
+/**
+ * Extract Philippine ZIP code from raw OCR text using regex
+ * Philippine ZIP codes are 4 digits (e.g., 2010, 1234)
+ */
+function extractZipFromText(text?: string): string | undefined {
+  if (!text) return undefined
+
+  // Pattern: Look for 4-digit numbers that are likely ZIP codes
+  // ZIP codes in PH are typically at the end of an address or standalone
+  const zipPatterns = [
+    /\b(\d{4})\s*(?:philippines?|ph)?$/i, // End of address
+    /\bzip\s*:?\s*(\d{4})\b/i, // ZIP: 1234
+    /\bpostal\s*(?:code)?:?\s*(\d{4})\b/i, // Postal code: 1234
+    /\b(\d{4})\s*(?:city|municipality|brgy|barangay)/i, // Before city name
+    /(?:city|municipality|brgy|barangay)[^0-9]*(\d{4})\b/i, // After city name
+  ]
+
+  for (const pattern of zipPatterns) {
+    const match = text.match(pattern)
+    if (match && match[1]) {
+      const zip = match[1]
+      // Validate it's a reasonable Philippine ZIP (1000-9999)
+      const zipNum = parseInt(zip, 10)
+      if (zipNum >= 1000 && zipNum <= 9999) {
+        return zip
+      }
+    }
+  }
+
+  return undefined
 }
 
 interface ProvinceResult {
@@ -57,11 +90,13 @@ export async function fuzzyMatchAddresses(input: {
   province?: string
   city?: string
   barangay?: string
+  rawAddress?: string // Full OCR address text for ZIP extraction
 }): Promise<FuzzyMatchResult> {
   const result: FuzzyMatchResult = {
     province: null,
     city: null,
     barangay: null,
+    extractedZipCode: extractZipFromText(input.rawAddress),
   }
 
   // Step 1: Match province if provided

@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useQRT } from "@/lib/qrt-context"
 import { IDScanner } from "@/components/id-scanner"
 import { AddressCombobox } from "@/components/address-combobox"
+import { SelfieCapture } from "@/components/selfie-capture"
 import { fuzzyMatchAddresses } from "@/lib/address-matcher"
 
 const ID_TYPES = [
@@ -73,6 +74,7 @@ export default function RegisterPage() {
   })
 
   const [idImageBase64, setIdImageBase64] = useState<string | null>(null)
+  const [selfieImageBase64, setSelfieImageBase64] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -157,13 +159,15 @@ export default function RegisterPage() {
       province: data.province,
       city: data.cityMunicipality,
       barangay: data.barangay,
+      rawAddress: data.address, // Pass raw address for ZIP extraction
     })
 
     // Use matched names and codes, fallback to original OCR text
     const finalProvince = addressMatches.province?.name || data.province || ""
     const finalCity = addressMatches.city?.name || data.cityMunicipality || ""
     const finalBarangay = addressMatches.barangay?.name || data.barangay || ""
-    const finalZipCode = addressMatches.city?.zip_code || data.zipCode || ""
+    // ZIP fallback chain: city lookup -> OCR extracted -> raw text extraction -> empty
+    const finalZipCode = addressMatches.city?.zip_code || data.zipCode || addressMatches.extractedZipCode || ""
 
     setFormData((prev) => ({
       ...prev,
@@ -327,6 +331,7 @@ export default function RegisterPage() {
           password: formData.password,
           pin: formData.pin,
           idImageBase64: idImageBase64,
+          selfieImageBase64: selfieImageBase64,
           agreedToTerms: formData.agreedToTerms,
         }),
       })
@@ -646,9 +651,15 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     placeholder="2010"
                     disabled={isLoading}
-                    className={`${inputBaseClass} ${scannedFields.zipCode ? inputScannedClass : ""}`}
+                    className={`${inputBaseClass} ${scannedFields.zipCode ? inputScannedClass : ""} ${formData.cityMunicipality && !formData.zipCode ? "border-amber-300" : ""}`}
                   />
                   {scannedFields.zipCode && <p className="text-xs text-emerald-600">Auto-filled from selected city</p>}
+                  {formData.cityMunicipality && !formData.zipCode && !scannedFields.zipCode && (
+                    <p className="text-xs text-amber-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      ZIP not found - please enter manually
+                    </p>
+                  )}
                 </div>
               </section>
 
@@ -785,6 +796,41 @@ export default function RegisterPage() {
                     />
                   </div>
                 </div>
+              </section>
+
+              {/* Selfie Section for QRT ID */}
+              <section className="space-y-5">
+                <div className="border-b-2 border-gray-200 pb-3">
+                  <h3 className="text-xl font-bold text-gray-900">Photo for QRT ID</h3>
+                  <p className="mt-1 text-sm text-gray-500">Take a selfie for your barangay ID card</p>
+                </div>
+
+                {selfieImageBase64 ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-32 h-40 rounded-xl overflow-hidden border-2 border-emerald-500 shadow-md">
+                      <img
+                        src={selfieImageBase64}
+                        alt="Your selfie"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <p className="text-sm text-emerald-600 font-medium">Photo captured successfully!</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setSelfieImageBase64(null)}
+                      className="text-sm"
+                    >
+                      Retake Photo
+                    </Button>
+                  </div>
+                ) : (
+                  <SelfieCapture
+                    onCapture={(imageBase64) => setSelfieImageBase64(imageBase64)}
+                    onCancel={() => {}}
+                    className="py-2"
+                  />
+                )}
               </section>
 
               {/* Terms and Submit */}

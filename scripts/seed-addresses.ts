@@ -106,7 +106,7 @@ async function fetchWithRetry(url: string, retries = 3): Promise<any> {
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       return await response.json()
     } catch (error) {
-      console.log(`Attempt ${i + 1} failed for ${url}: ${error.message}, retrying...`)
+      console.log(`Attempt ${i + 1} failed for ${url}: ${(error as Error).message}, retrying...`)
       if (i === retries - 1) throw error
       await new Promise((r) => setTimeout(r, 2000 * (i + 1)))
     }
@@ -245,45 +245,105 @@ async function seedCities() {
 }
 
 async function seedBarangays() {
-  console.log("Fetching barangays from PSGC API...")
-  const barangays: PSGCBarangay[] = await fetchWithRetry("https://psgc.cloud/api/barangays")
+  console.log("Fetching barangays per city from PSGC API...")
 
-  console.log(`Fetched ${barangays.length} barangays from PSGC API`)
+  // First, get all city codes from our database
+  const { data: cities, error: cityError } = await supabase
+    .from("address_cities")
+    .select("code, name")
+    .order("code")
 
-  // Insert in batches of 1000
-  const batchSize = 1000
-  for (let i = 0; i < barangays.length; i += batchSize) {
-    const batch = barangays.slice(i, i + batchSize)
-    const { error } = await supabase.from("address_barangays").upsert(
-      batch.map((b) => {
-        // PSGC barangay codes are typically 12 digits (kept as is)
-        // City code derivation: first 9 digits of barangay code
-        // Barangay code: XXYYZZZWWW[??] -> City code: XXYYZZZWWW (first 9 digits)
-        const cityCode = b.code.substring(0, 9)
-
-        return {
-          code: b.code,
-          name: b.name,
-          city_code: cityCode,
-        }
-      }),
-      { onConflict: "code" },
-    )
-
-    if (error) {
-      console.error(`Error in batch ${Math.floor(i / batchSize) + 1}:`, error)
-      throw error
-    }
-    console.log(`  Batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(barangays.length / batchSize)} done`)
+  if (cityError || !cities) {
+    console.error("Failed to fetch cities:", cityError)
+    return 0
   }
 
-  await supabase.from("address_sync_log").insert({
-    entity_type: "barangays",
-    records_synced: barangays.length,
-  })
+  console.log(`Found ${cities.length} cities to fetch barangays for...`)
 
-  console.log(`✓ Inserted ${barangays.length} barangays`)
-  return barangays.length
+  let totalBarangays = 0
+  let successfulCities = 0
+  let failedCities = 0
+  const batchSize = 500 // Insert every 500 barangays
+
+  let pendingBarangays: { code: string; name: string; city_code: string }[] = []
+
+  // Fetch barangays for each city with rate limiting
+  for (let i = 0; i < cities.length; i++) {
+    const city = cities[i]
+    // PSGC cloud uses 10-digit codes (pad with 0)
+    const cityCode10 = city.code.padEnd(10, "0")
+
+    // Rate limit: 250ms delay between requests to avoid 429
+    await new Promise((r) => setTimeout(r, 250))
+
+    try {
+      const cityBarangays: PSGCBarangay[] = await fetchWithRetry(
+        `https://psgc.cloud/api/cities-municipalities/${cityCode10}/barangays`,
+        2 // Only 2 retries per city to speed up
+      )
+
+      if (cityBarangays && cityBarangays.length > 0) {
+        // Add to pending batch
+        cityBarangays.forEach((b) => {
+          pendingBarangays.push({
+            code: b.code,
+            name: b.name,
+            city_code: city.code,
+          })
+        })
+        totalBarangays += cityBarangays.length
+        successfulCities++
+
+        // Insert when batch is large enough
+        if (pendingBarangays.length >= batchSize) {
+          const { error } = await supabase
+            .from("address_barangays")
+            .upsert(pendingBarangays, { onConflict: "code" })
+
+          if (error) {
+            console.error(`Batch insert error:`, error.message)
+          } else {
+            console.log(`  Batch inserted: ${pendingBarangays.length} barangays (total: ${totalBarangays})`)
+          }
+          pendingBarangays = []
+        }
+      }
+    } catch {
+      failedCities++
+    }
+
+    // Progress update every 100 cities
+    if ((i + 1) % 100 === 0) {
+      console.log(`  Progress: ${i + 1}/${cities.length} cities (${totalBarangays} barangays found)`)
+    }
+  }
+
+  // Insert remaining barangays
+  if (pendingBarangays.length > 0) {
+    const { error } = await supabase
+      .from("address_barangays")
+      .upsert(pendingBarangays, { onConflict: "code" })
+
+    if (error) {
+      console.error(`Final batch insert error:`, error.message)
+    } else {
+      console.log(`  Final batch inserted: ${pendingBarangays.length} barangays`)
+    }
+  }
+
+  console.log(`\n✓ Barangay seeding complete:`)
+  console.log(`  Total barangays: ${totalBarangays}`)
+  console.log(`  Successful cities: ${successfulCities}`)
+  console.log(`  Failed cities: ${failedCities}`)
+
+  if (totalBarangays > 0) {
+    await supabase.from("address_sync_log").insert({
+      entity_type: "barangays",
+      records_synced: totalBarangays,
+    })
+  }
+
+  return totalBarangays
 }
 
 async function main() {

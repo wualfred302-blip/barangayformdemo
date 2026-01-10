@@ -52,6 +52,7 @@ export async function POST(req: Request) {
       password,
       pin,
       idImageBase64,
+      selfieImageBase64,
     } = body
 
     if (!fullName || !mobileNumber || !barangay || !cityMunicipality || !idType || !idNumber || !password || !pin) {
@@ -170,6 +171,33 @@ export async function POST(req: Request) {
       }
     }
 
+    // Upload selfie image to Supabase Storage if provided
+    let selfieUrl: string | null = null
+    if (selfieImageBase64) {
+      try {
+        // Remove data URL prefix if present
+        let cleanBase64 = selfieImageBase64
+        if (cleanBase64.includes(",")) {
+          cleanBase64 = cleanBase64.split(",")[1]
+        }
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("id-documents")
+          .upload(`${qrCode}/selfie.jpg`, Buffer.from(cleanBase64, "base64"), {
+            contentType: "image/jpeg",
+            upsert: true,
+          })
+
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabase.storage.from("id-documents").getPublicUrl(`${qrCode}/selfie.jpg`)
+          selfieUrl = urlData.publicUrl
+        }
+      } catch (uploadErr) {
+        console.error("Selfie upload error:", uploadErr)
+        // Continue without selfie - not critical
+      }
+    }
+
     const fullAddress =
       address ||
       [
@@ -202,6 +230,7 @@ export async function POST(req: Request) {
         id_type: idType,
         id_number: idNumber.replace(/\s/g, "").toUpperCase(),
         id_document_url: idDocumentUrl,
+        selfie_url: selfieUrl,
         password_hash: passwordHash,
         pin_hash: pinHash,
         qr_code: qrCode,
@@ -281,7 +310,7 @@ export async function POST(req: Request) {
       emergency_contact_address: body.emergencyContactAddress || fullAddress,
       emergency_contact_phone: body.emergencyContactPhone || '',
       emergency_contact_relationship: body.emergencyContactRelationship || '',
-      photo_url: body.photoUrl || null,
+      photo_url: selfieUrl || body.photoUrl || null,
       qr_code_data: qrCodeData, // Required field
       status: 'ready',
       request_type: 'regular',
@@ -334,7 +363,7 @@ export async function POST(req: Request) {
         emergencyContactAddress: body.emergencyContactAddress || fullAddress,
         emergencyContactPhone: body.emergencyContactPhone || '',
         emergencyContactRelationship: body.emergencyContactRelationship || '',
-        photoUrl: body.photoUrl || '',
+        photoUrl: selfieUrl || body.photoUrl || '',
         qrCodeData: qrCodeData,
         status: 'ready',
         requestType: 'regular',
