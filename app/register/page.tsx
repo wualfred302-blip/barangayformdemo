@@ -327,6 +327,7 @@ export default function RegisterPage() {
           password: formData.password,
           pin: formData.pin,
           idImageBase64: idImageBase64,
+          agreedToTerms: formData.agreedToTerms,
         }),
       })
 
@@ -337,6 +338,8 @@ export default function RegisterPage() {
           setError("This mobile number is already registered. Please login instead.")
         } else if (result.error === "duplicate_id") {
           setError("An account with this ID already exists. Try logging in or reset your password.")
+        } else if (result.error === "privacy_not_accepted") {
+          setError("Please check the Privacy Policy checkbox to continue with registration.")
         } else {
           setError(result.message || result.error || "Registration failed. Please try again.")
         }
@@ -792,11 +795,11 @@ export default function RegisterPage() {
                     checked={formData.agreedToTerms}
                     onCheckedChange={(checked) => setFormData({ ...formData, agreedToTerms: checked as boolean })}
                     disabled={isLoading}
-                    className="mt-1"
+                    className="mt-0.5 flex-shrink-0"
                   />
-                  <Label htmlFor="agreedToTerms" className="text-sm leading-relaxed text-gray-700 cursor-pointer break-words">
+                  <Label htmlFor="agreedToTerms" className="text-sm leading-normal text-gray-700 cursor-pointer">
                     I agree to the{" "}
-                    <Link href="/privacy" className="font-medium text-emerald-600 underline hover:text-emerald-700 inline-block">
+                    <Link href="/privacy" className="font-medium text-emerald-600 underline hover:text-emerald-700">
                       Privacy Policy
                     </Link>{" "}
                     and consent to the collection of my personal data for registration purposes.

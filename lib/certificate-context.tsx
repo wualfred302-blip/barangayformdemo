@@ -134,6 +134,11 @@ export const CertificateProvider = memo(({ children }: { children: ReactNode }) 
     try {
       const supabase = createClient()
 
+      // Validate that user_id is provided
+      if (!cert.userId) {
+        throw new Error('User ID is required to request a certificate')
+      }
+
       const dbRow = {
         // Don't insert id - let DB generate UUID via gen_random_uuid()
         user_id: cert.userId,

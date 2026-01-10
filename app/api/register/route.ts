@@ -205,7 +205,7 @@ export async function POST(req: Request) {
         password_hash: passwordHash,
         pin_hash: pinHash,
         qr_code: qrCode,
-        privacy_policy_accepted: true,
+        privacy_policy_accepted: privacyPolicyAccepted,
         privacy_policy_accepted_at: new Date().toISOString(),
         privacy_policy_version: 'v1.0',
       })
