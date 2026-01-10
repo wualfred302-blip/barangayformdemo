@@ -273,9 +273,9 @@ export function SelfieCapture({ onCapture, onCancel, className, initialImage }: 
   return (
     <>
       {/* Main form view - image placeholder with button */}
-      <div className={cn("flex flex-col items-center gap-4", className)}>
+      <div className={cn("flex flex-col items-center gap-5", className)}>
         {/* Image placeholder/preview */}
-        <div className="relative w-40 h-52 bg-gray-100 rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 flex items-center justify-center">
+        <div className="relative w-36 h-44 rounded-2xl overflow-hidden shadow-sm flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-200">
           {capturedImage ? (
             <img
               src={capturedImage}
@@ -283,15 +283,16 @@ export function SelfieCapture({ onCapture, onCancel, className, initialImage }: 
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="flex flex-col items-center gap-2 text-gray-400">
-              <User className="h-16 w-16" />
-              <span className="text-xs">ID Photo</span>
+            <div className="flex flex-col items-center gap-1 text-gray-300">
+              <div className="w-20 h-24 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center">
+                <User className="h-10 w-10" />
+              </div>
             </div>
           )}
 
           {/* Processing overlay */}
           {isProcessing && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm">
               <Loader2 className="h-8 w-8 animate-spin text-white" />
             </div>
           )}
@@ -299,20 +300,20 @@ export function SelfieCapture({ onCapture, onCancel, className, initialImage }: 
 
         {/* Error message */}
         {cameraError && !cameraOpen && (
-          <div className="flex items-center gap-2 text-red-500 text-sm text-center max-w-xs">
+          <div className="flex items-center gap-2 text-red-600 text-sm text-center max-w-xs px-3 py-2 bg-red-50 rounded-lg">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            {cameraError}
+            <span>{cameraError}</span>
           </div>
         )}
 
         {/* Action buttons */}
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           {capturedImage ? (
             <Button
               variant="outline"
               onClick={retakePhoto}
               disabled={isProcessing}
-              className="h-10 rounded-xl"
+              className="h-11 px-5 rounded-xl border-gray-300"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Retake
@@ -322,7 +323,7 @@ export function SelfieCapture({ onCapture, onCancel, className, initialImage }: 
               <Button
                 onClick={openCamera}
                 disabled={isProcessing}
-                className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700"
+                className="h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 shadow-sm"
               >
                 <Camera className="h-4 w-4 mr-2" />
                 Take Photo
@@ -331,7 +332,7 @@ export function SelfieCapture({ onCapture, onCancel, className, initialImage }: 
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isProcessing}
-                className="h-10 px-3 rounded-xl"
+                className="h-11 px-4 rounded-xl border-gray-300"
                 title="Upload photo"
               >
                 <Upload className="h-4 w-4" />
@@ -340,28 +341,14 @@ export function SelfieCapture({ onCapture, onCancel, className, initialImage }: 
           )}
         </div>
 
-        {/* Tips - only show when no image */}
+        {/* Tips - redesigned as inline hints */}
         {!capturedImage && (
-          <div className="text-xs text-gray-500 text-center max-w-xs">
-            <p className="font-medium mb-1">Tips for a good ID photo:</p>
-            <ul className="list-disc list-inside space-y-0.5 text-left">
-              <li>Face the camera directly</li>
-              <li>Remove glasses</li>
-              <li>Good lighting, no shadows</li>
-              <li>Neutral expression</li>
-            </ul>
+          <div className="flex flex-wrap justify-center gap-2 max-w-xs">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-xs text-gray-600">Face forward</span>
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-xs text-gray-600">No glasses</span>
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-xs text-gray-600">Good lighting</span>
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gray-100 text-xs text-gray-600">Neutral face</span>
           </div>
-        )}
-
-        {/* Skip button */}
-        {onCancel && !capturedImage && (
-          <Button
-            variant="ghost"
-            onClick={onCancel}
-            className="text-gray-500 text-sm"
-          >
-            Skip for now
-          </Button>
         )}
 
         {/* Hidden elements */}

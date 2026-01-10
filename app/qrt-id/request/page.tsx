@@ -8,9 +8,6 @@ import { cn } from "@/lib/utils"
 import {
   ArrowLeft,
   MapPin,
-  User,
-  Phone,
-  Mail,
   Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -96,55 +93,44 @@ export default function QrtIdRequestPage() {
 
       <main className="mx-auto max-w-2xl px-4 py-6 space-y-6">
         {/* User Info Display Card */}
-        <Card className="overflow-hidden border-0 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-[24px] bg-white">
-          <CardContent className="p-6 space-y-4">
-            <h2 className="text-sm font-black text-gray-900 uppercase tracking-widest">Your Information</h2>
+        <Card className="overflow-hidden border border-gray-100 shadow-sm rounded-2xl bg-white">
+          <CardContent className="p-5">
+            <h2 className="text-base font-semibold text-gray-900 mb-4">Your Information</h2>
 
-            {/* Full Name */}
-            <div className="flex items-start gap-4">
-              <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                <User className="h-5 w-5" />
+            <div className="space-y-3">
+              {/* Full Name */}
+              <div className="flex justify-between items-start py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-500">Full Name</span>
+                <span className="text-sm font-medium text-gray-900 text-right max-w-[60%]">
+                  {user?.fullName || "Not provided"}
+                </span>
               </div>
-              <div className="flex-1">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Full Name</p>
-                <p className="text-sm font-bold text-gray-900">{user?.fullName || "Not provided"}</p>
-              </div>
-            </div>
 
-            {/* Mobile Number */}
-            {user?.mobileNumber && (
-              <div className="flex items-start gap-4">
-                <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <Phone className="h-5 w-5" />
+              {/* Mobile Number */}
+              {user?.mobileNumber && (
+                <div className="flex justify-between items-start py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-500">Mobile</span>
+                  <span className="text-sm font-medium text-gray-900">{user.mobileNumber}</span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Mobile Number</p>
-                  <p className="text-sm font-bold text-gray-900">{user.mobileNumber}</p>
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Email */}
-            {user?.email && (
-              <div className="flex items-start gap-4">
-                <div className="h-10 w-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                  <Mail className="h-5 w-5" />
+              {/* Email */}
+              {user?.email && (
+                <div className="flex justify-between items-start py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-500">Email</span>
+                  <span className="text-sm font-medium text-gray-900 text-right max-w-[60%] break-all">
+                    {user.email}
+                  </span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Email</p>
-                  <p className="text-sm font-bold text-gray-900">{user.email}</p>
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Current Address */}
-            <div className="flex items-start gap-4">
-              <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 mt-1">
-                <MapPin className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Current Address</p>
-                <p className="text-sm font-bold text-gray-900 leading-relaxed">
+              {/* Current Address */}
+              <div className="pt-2">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <MapPin className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm text-gray-500">Address</span>
+                </div>
+                <p className="text-sm font-medium text-gray-900 leading-relaxed pl-6">
                   {user?.address || "Address not provided"}
                 </p>
               </div>
@@ -152,44 +138,43 @@ export default function QrtIdRequestPage() {
           </CardContent>
         </Card>
 
-        {/* Address Confirmation Card */}
-        <Card className="overflow-hidden border-2 rounded-[24px] bg-white transition-all"
-              style={{
-                borderColor: addressConfirmed ? "#10B981" : "#E5E7EB",
-                backgroundColor: addressConfirmed ? "#F0FDF4" : "#FFFFFF"
-              }}>
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="mt-1">
-                <Checkbox
-                  id="address-confirm"
-                  checked={addressConfirmed}
-                  onCheckedChange={(checked) => setAddressConfirmed(checked as boolean)}
-                  className={cn(
-                    "h-6 w-6 rounded-lg transition-all",
-                    addressConfirmed && "bg-emerald-500 border-emerald-500"
-                  )}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <Label
-                  htmlFor="address-confirm"
-                  className="text-sm font-bold text-gray-900 cursor-pointer"
-                >
-                  I confirm that the address shown above is my current residence
-                </Label>
-                <p className="text-xs text-gray-600 mt-2">
-                  This information from your registration will be used for your QRT ID.
-                </p>
-              </div>
+        {/* Address Confirmation */}
+        <div className={cn(
+          "rounded-xl border p-4 transition-all cursor-pointer",
+          addressConfirmed
+            ? "border-emerald-200 bg-emerald-50/60"
+            : "border-gray-200 bg-white hover:border-gray-300"
+        )}
+        onClick={() => setAddressConfirmed(!addressConfirmed)}
+        >
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="address-confirm"
+              checked={addressConfirmed}
+              onCheckedChange={(checked) => setAddressConfirmed(checked as boolean)}
+              className="mt-0.5 h-5 w-5"
+            />
+            <div className="flex-1">
+              <Label
+                htmlFor="address-confirm"
+                className="text-sm font-medium text-gray-900 cursor-pointer"
+              >
+                I confirm this is my current address
+              </Label>
+              <p className="text-xs text-gray-500 mt-1">
+                This will appear on your QRT ID card.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Info Box */}
-        <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
-          <p className="text-xs text-blue-900 font-medium">
-            Your QRT ID will be generated immediately at no cost.
+        {/* Info notice */}
+        <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50">
+          <div className="h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Check className="h-3 w-3 text-emerald-600" />
+          </div>
+          <p className="text-sm text-gray-600">
+            Your QRT ID will be ready instantly. No fees required.
           </p>
         </div>
       </main>

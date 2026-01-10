@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Eye, EyeOff, AlertCircle } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, AlertCircle, Camera } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useQRT } from "@/lib/qrt-context"
 import { IDScanner } from "@/components/id-scanner"
@@ -801,8 +801,13 @@ export default function RegisterPage() {
               {/* Selfie Section for QRT ID */}
               <section className="space-y-5">
                 <div className="border-b-2 border-gray-200 pb-3">
-                  <h3 className="text-xl font-bold text-gray-900">Photo for QRT ID</h3>
-                  <p className="mt-1 text-sm text-gray-500">Take a selfie for your barangay ID card</p>
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+                      <Camera className="h-4 w-4 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900">Photo for QRT ID</h3>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-500">This photo will appear on your barangay ID card</p>
                 </div>
 
                 {selfieImageBase64 ? (
@@ -835,28 +840,33 @@ export default function RegisterPage() {
 
               {/* Terms and Submit */}
               <section className="space-y-5">
-                <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="agreedToTerms"
-                    checked={formData.agreedToTerms}
-                    onCheckedChange={(checked) => setFormData({ ...formData, agreedToTerms: checked as boolean })}
-                    disabled={isLoading}
-                    className="mt-0.5 flex-shrink-0"
-                  />
-                  <Label htmlFor="agreedToTerms" className="text-sm leading-normal text-gray-700 cursor-pointer">
-                    I agree to the{" "}
-                    <Link href="/privacy" className="font-medium text-emerald-600 underline hover:text-emerald-700">
-                      Privacy Policy
-                    </Link>{" "}
-                    and consent to the collection of my personal data for registration purposes.
-                  </Label>
+                <div className={`rounded-xl border p-4 transition-all ${formData.agreedToTerms ? 'border-emerald-200 bg-emerald-50/50' : 'border-gray-200 bg-gray-50/50'}`}>
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="agreedToTerms"
+                      checked={formData.agreedToTerms}
+                      onCheckedChange={(checked) => setFormData({ ...formData, agreedToTerms: checked as boolean })}
+                      disabled={isLoading}
+                      className="mt-1 flex-shrink-0 h-5 w-5"
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="agreedToTerms" className="text-sm leading-relaxed text-gray-700 cursor-pointer block">
+                        I agree to the{" "}
+                        <Link
+                          href="/privacy"
+                          className="font-semibold text-emerald-600 hover:text-emerald-700 underline underline-offset-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Privacy Policy
+                        </Link>{" "}
+                        and consent to the collection of my personal data.
+                      </Label>
+                      <p className="text-xs text-gray-500 mt-1.5">
+                        Your data is protected and used only for barangay services.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-
-                {!formData.agreedToTerms && (
-                  <p className="text-sm text-amber-600 font-medium">
-                    Please accept the Privacy Policy to create your account
-                  </p>
-                )}
 
                 <Button
                   type="submit"
