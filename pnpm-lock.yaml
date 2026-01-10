@@ -191,6 +191,9 @@ importers:
       playwright:
         specifier: ^1.57.0
         version: 1.57.0
+      psgc:
+        specifier: ^2.2.0
+        version: 2.2.0
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -2091,6 +2094,9 @@ packages:
 
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
+
+  psgc@2.2.0:
+    resolution: {integrity: sha512-zwE/k903j5CZY5oPb9S3yRDVLYGczX0Bjwjf+REoZn00nM3tAF5M1cCCJUWcHaBxiXlTItV7BMBbTXLzhxnXww==}
 
   qrcode.react@4.2.0:
     resolution: {integrity: sha512-QpgqWi8rD9DsS9EP3z7BT+5lY5SFhsqGjpgW5DY/i3mK4M9DTBNz3ErMi8BWYEfI3L0d8GIbGmcdFAS1uIRGjA==}
@@ -4244,6 +4250,8 @@ snapshots:
       loose-envify: 1.4.0
       object-assign: 4.1.1
       react-is: 16.13.1
+
+  psgc@2.2.0: {}
 
   qrcode.react@4.2.0(react@19.0.0):
     dependencies:
